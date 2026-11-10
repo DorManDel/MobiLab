@@ -181,3 +181,65 @@ footer a{text-decoration:none;color:#aa92d5}
  html{scroll-behavior:auto}
  *,*:before,*:after{animation:none!important;transition:none!important}
 }
+
+/* MobiLab v0.2 — tactile dial and motion experiment bench */
+.preset-dial {
+  display:grid;grid-template-columns:42px minmax(0,1fr) 42px;justify-items:center;
+  align-items:center;gap:8px;max-width:360px;margin:2px auto 0;
+  user-select:none;-webkit-user-select:none;touch-action:pan-y;
+}
+.dial-nav {
+  display:grid;place-items:center;min-width:42px;min-height:52px;border:1px solid var(--border);
+  background:#ffffff0a;border-radius:12px;color:var(--ink);font-size:33px;line-height:1;
+}
+.dial-nav:active{background:#bb9cfc38}
+.dial-core{
+  position:relative;overflow:hidden;display:grid;place-items:center;text-align:center;
+  width:min(100%,210px);aspect-ratio:1;border-radius:50%;
+  padding:14px;isolation:isolate;color:var(--ink);
+  border:1px solid #ba9bf680;
+  background:radial-gradient(circle at 35% 25%,#7350a35c,#1e1837 56%,#130e20);
+  box-shadow:inset 0 0 30px #150a2888,0 12px 36px #05020b88;
+}
+.dial-core:active{transform:scale(.985)}
+.dial-ticks{position:absolute;inset:9px;border-radius:50%;background:repeating-conic-gradient(from var(--dial-angle,0deg),#c9acff 0deg 2.5deg,transparent 2.5deg 14deg);-webkit-mask:radial-gradient(transparent 62%,#000 64% 72%,transparent 75%);mask:radial-gradient(transparent 62%,#000 64% 72%,transparent 75%);opacity:.73;transition:background .15s}
+.dial-inner{display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:center;max-width:120px;z-index:1}
+.dial-kicker,.dial-subtitle{font-size:10px;color:#c5b6e1;letter-spacing:1px;font-weight:750}
+.dial-kicker{color:var(--yellow)}
+.dial-inner strong{font-size:clamp(18px,4vw,26px);line-height:1.08;letter-spacing:-.75px;overflow-wrap:anywhere}
+.dial-meta{display:flex;justify-content:space-between;max-width:360px;margin:13px auto 0;gap:12px;font-size:11px;color:var(--muted);letter-spacing:1px;font-weight:700}
+.group-card .group-dial{display:flex;align-items:center;gap:7px;min-width:0}
+.group-card .group-dial .group-step{flex:0 0 38px;width:38px;height:43px;min-height:43px;padding:0;font-size:24px}
+.group-card .group-selected{flex:1;min-width:0;text-align:center;font-size:12px;color:var(--yellow);font-weight:800;overflow-wrap:anywhere}
+.group-card .group-actions{grid-template-columns:minmax(0,1fr) auto}
+.group-card .group-actions .btn{font-size:12px;padding:9px 12px}
+.motion-settings>label:not(.motion-confirm), .motion-results label{margin-top:13px}
+.motion-settings>select{margin-bottom:9px}
+.motion-confirm.glass-card,.glass-card label.motion-confirm{display:flex;align-items:flex-start;gap:12px;border:1px solid #f9df7640;border-radius:11px;padding:13px;margin:18px 0 20px;background:#f9df760a;font-size:12px;line-height:1.5}
+.motion-confirm input{accent-color:var(--purple);width:19px;height:19px;flex:0 0 auto;margin-top:1px}
+.telemetry-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:19px 0}
+.telemetry-row>div{padding:12px 8px;text-align:center;background:#100d1a;border:1px solid #a78ddd24;border-radius:12px;min-width:0}
+.telemetry-row strong{font-size:clamp(17px,2.5vw,26px);font-variant-numeric:tabular-nums;color:var(--mint);display:block;white-space:nowrap}
+.telemetry-row span{display:block;margin-top:7px;font-size:8px;letter-spacing:.7px;line-height:1.4;color:#c1bad1}
+#motionChart{background:#0f0b1b;border:1px solid #a78ddd3c;border-radius:12px;display:block;width:100%;height:auto;max-height:168px}
+.divider-mini{height:1px;background:var(--border);margin:22px 0 19px}
+.motion-video{width:100%;background:#0f0c1b;border-radius:11px;max-height:240px;aspect-ratio:16/9;object-fit:contain;margin:12px 0;display:block}
+.motion-observations{gap:13px}
+.motion-results input[type="number"],.motion-results textarea{
+  color:var(--ink);width:100%;min-height:43px;background:#100e1d;border:1px solid #9582c040;
+  border-radius:10px;padding:11px 13px;resize:vertical;
+}
+.motion-result-list{display:flex;flex-direction:column;gap:8px;max-height:310px;overflow-y:auto}
+.motion-record{padding:14px 16px;background:#120e20;border:1px solid var(--border);border-radius:10px;display:grid;gap:6px}
+.motion-record-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12px;font-weight:800}
+.motion-record small{color:var(--muted);line-height:1.5}
+.motion-record b{color:var(--yellow)}
+@media (max-width:560px){
+  .preset-dial{grid-template-columns:38px minmax(0,1fr) 38px;max-width:100%}
+  .dial-nav{min-width:38px}
+  .dial-core{width:min(100%,196px)}
+  .group-card .group-actions{grid-template-columns:1fr;gap:11px}
+  .group-card .group-actions .btn{width:100%;max-width:none}
+  .telemetry-row{gap:6px}.telemetry-row>div{padding:11px 4px}
+  .motion-settings .actions-row .btn{flex:1 1 140px}
+}
