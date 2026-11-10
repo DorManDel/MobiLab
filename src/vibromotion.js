@@ -48,7 +48,7 @@ async function motionPermission() {
     if (accepted !== "granted") throw new Error("Motion permission denied");
   }
 }
-export function setupVibroMotion({ haptics, notify }) {
+export function setupVibroMotion({ haptics, notify, isActive = () => true }) {
   const camera = new CameraLab($("motionVideo"));
   let records = loadRecords();
   let runToken = 0;
@@ -61,6 +61,7 @@ export function setupVibroMotion({ haptics, notify }) {
   let samples = [];
   let raf = 0;
   let cameraArmed = false;
+  let cameraRequestToken = 0;
   let sensorSampleCount = 0;
   let motionPresetIndex = MOTION_PRESETS.indexOf("rumble");
 
@@ -136,7 +137,7 @@ export function setupVibroMotion({ haptics, notify }) {
     samples.push(delta);
     if (samples.length > 120) samples.shift();
     if (!raf && document.visibilityState === "visible") raf = requestAnimationFrame(drawGraph);
-    if (activeTrial?.startYaw !== null) {
+    if (activeTrial && activeTrial.startYaw !== null) {
       activeTrial.yawAbsMax = Math.max(activeTrial.yawAbsMax, Math.abs(angularDelta(lastYaw, activeTrial.startYaw)));
     }
   }
@@ -243,8 +244,13 @@ export function setupVibroMotion({ haptics, notify }) {
       return;
     }
     $("motionCameraStatus").textContent = "Requesting rear camera…";
+    const requestToken = ++cameraRequestToken;
     try {
       await camera.start("environment");
+      if (cameraRequestToken !== requestToken || !isActive() || document.hidden) {
+        camera.stop();
+        return;
+      }
       cameraArmed = true;
       $("motionCameraStatus").textContent = "Rear camera armed locally. A completed trial saves one contact sheet.";
     } catch (error) {
@@ -253,6 +259,7 @@ export function setupVibroMotion({ haptics, notify }) {
     }
   }
   function stopCamera() {
+    cameraRequestToken++;
     camera.stop();
     cameraArmed = false;
     $("motionCameraStatus").textContent = "Camera is off.";
