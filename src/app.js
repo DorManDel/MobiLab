@@ -369,5 +369,5 @@ document.addEventListener("visibilitychange", () => {
 setupHaptics();
 setupCamera();
 setupIdeas();
-motionBench = setupVibroMotion({ haptics, notify });
+motionBench = setupVibroMotion({ haptics, notify, isActive: () => currentTab === "motion" });
 navigate(location.hash.slice(1) || "home", !location.hash);
