@@ -164,8 +164,20 @@
               <option value="Fabric in tray">Fabric in tray</option>
               <option value="Other enclosed surface">Other enclosed surface</option>
             </select>
-            <label for="motionPreset">Vibration rhythm</label>
-            <select id="motionPreset"></select>
+            <label for="motionPreset">Vibration rhythm · compact dial</label>
+            <input id="motionPreset" type="hidden" value="rumble">
+            <div class="motion-rhythm-picker" role="group" aria-label="Choose VibroMotion rhythm">
+              <button id="motionPresetPrev" type="button" class="btn btn-secondary" aria-label="Previous rhythm">‹</button>
+              <div class="motion-rhythm-center"><strong id="motionPresetLabel">Rumble</strong><span id="motionPresetMeta">3 pulses</span></div>
+              <button id="motionPresetNext" type="button" class="btn btn-secondary" aria-label="Next rhythm">›</button>
+            </div>
+            <div id="motionTrainControls" hidden>
+              <p class="hint">Pulse train: changing ON/OFF time and duty cycle can change the perceived or observed result, but cannot directly set motor amplitude.</p>
+              <div class="slider-field"><label for="motionPulseOn">Motor ON <output id="motionPulseOnValue">100 ms</output></label><input id="motionPulseOn" type="range" min="5" max="250" step="5" value="100"></div>
+              <div class="slider-field"><label for="motionPulseOff">Motor OFF <output id="motionPulseOffValue">45 ms</output></label><input id="motionPulseOff" type="range" min="5" max="250" step="5" value="45"></div>
+              <div class="slider-field"><label for="motionPulseCount">Pulse count <output id="motionPulseCountValue">4</output></label><input id="motionPulseCount" type="range" min="1" max="5" step="1" value="4"></div>
+              <p class="hint" id="motionDuty">ON duty: 75% · total 535 ms</p>
+            </div>
             <label for="motionRounds">Cycles</label>
             <select id="motionRounds"><option value="1">1 cycle</option><option value="2">2 cycles</option><option value="3">3 cycles</option></select>
             <label for="motionDelay">Preparation countdown</label>
