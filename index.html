@@ -28,6 +28,7 @@
       <button class="tab is-active" type="button" data-tab="home" aria-selected="true">⌂ <span>Overview</span></button>
       <button class="tab" type="button" data-tab="haptics" aria-selected="false">〰 <span>Haptic Studio</span></button>
       <button class="tab" type="button" data-tab="camera" aria-selected="false">◎ <span>Camera Lab</span></button>
+      <button class="tab" type="button" data-tab="motion" aria-selected="false">⌁ <span>VibroMotion</span></button>
       <button class="tab" type="button" data-tab="ideas" aria-selected="false">✧ <span>Idea Board</span></button>
     </nav>
 
@@ -43,7 +44,7 @@
           </div>
           <div class="hero-decoration" aria-hidden="true"><div class="orbit orbit-a"></div><div class="orbit orbit-b"></div><div class="hero-core">M</div></div>
         </div>
-        <div class="section-heading"><div><div class="eyebrow">EXPERIMENT INDEX</div><h2>Choose your lab</h2></div><span class="count">03 MODULES + 01 BOARD</span></div>
+        <div class="section-heading"><div><div class="eyebrow">EXPERIMENT INDEX</div><h2>Choose your lab</h2></div><span class="count">03 LABS + IDEA BOARD</span></div>
         <div class="lab-cards">
           <button type="button" class="lab-card" data-open="haptics" data-haptic-group="navigation">
             <span class="card-top"><span class="lab-icon purple">〰</span><span class="index">01 / ACTIVE</span></span>
@@ -53,8 +54,12 @@
             <span class="card-top"><span class="lab-icon yellow">◎</span><span class="index">02 / BETA</span></span>
             <strong>Camera Lab</strong><span>Test live camera preview, snapshots and relative orientation.</span><span class="card-foot">Explore sensors <b>↗</b></span>
           </button>
+          <button type="button" class="lab-card" data-open="motion" data-haptic-group="navigation">
+            <span class="card-top"><span class="lab-icon yellow">⌁</span><span class="index">03 / PROTOTYPE</span></span>
+            <strong>VibroMotion</strong><span>Run safe timed vibration experiments with orientation and motion telemetry.</span><span class="card-foot">Open motion bench <b>↗</b></span>
+          </button>
           <button type="button" class="lab-card" data-open="ideas" data-haptic-group="navigation">
-            <span class="card-top"><span class="lab-icon green">✧</span><span class="index">03 / OPEN</span></span>
+            <span class="card-top"><span class="lab-icon green">✧</span><span class="index">04 / OPEN</span></span>
             <strong>Idea Board</strong><span>Collect questions and weird experiments to build next.</span><span class="card-foot">Add an idea <b>↗</b></span>
           </button>
         </div>
@@ -75,12 +80,20 @@
         <div class="two-col">
           <div class="glass-card">
             <div class="card-head"><div><div class="eyebrow">LIVE TEST BENCH</div><h2>Feel the difference</h2></div><span class="micro-tag">TAP TO TEST</span></div>
-            <label for="presetSelect">Preset profile</label>
-            <select id="presetSelect"></select>
+            <label for="presetDial">Choose a rhythm · swipe the dial or use arrows</label>
+            <div id="presetDial" class="preset-dial" tabindex="0" role="group" aria-label="Haptic preset dial. Swipe or use arrow keys">
+              <button type="button" class="dial-nav" id="presetPrev" aria-label="Previous preset">‹</button>
+              <button type="button" class="dial-core" id="presetPlay" aria-label="Preview selected haptic preset">
+                <span class="dial-ticks" id="dialTicks" aria-hidden="true"></span>
+                <span class="dial-inner"><span class="dial-kicker">RHYTHM</span><strong id="dialPresetLabel">Tick</strong><span class="dial-subtitle">Tap to play</span></span>
+              </button>
+              <button type="button" class="dial-nav" id="presetNext" aria-label="Next preset">›</button>
+            </div>
+            <div class="dial-meta"><span id="presetPosition">01 / 21</span><span id="presetDuration">0 ms</span></div>
             <div class="waveform" id="presetWaveform" aria-label="Vibration on-off duration visualization"></div>
             <p class="hint" id="presetNote">Each bar represents a timed vibration or pause.</p>
             <button type="button" class="btn btn-primary full" id="testPreset">◉ Test selected vibration</button>
-            <p class="inline-note">“Light” and “Long” describe timing, not actual motor amplitude. Your phone controls the physical strength.</p>
+            <p class="inline-note">The dial controls rhythm and timing, not motor amplitude. The same pattern may feel different across phones.</p>
           </div>
           <div class="glass-card">
             <div class="card-head"><div><div class="eyebrow">PATTERN DESIGNER</div><h2>Make your own</h2></div><span class="micro-tag">CUSTOM</span></div>
@@ -124,6 +137,89 @@
           <p class="hint" id="sensorStatus" role="status">No sensor readings yet.</p>
         </div>
         <div class="info-line"><span>!</span> Camera and sensor permissions are device/browser dependent. Use this site through GitHub Pages (HTTPS) in a normal browser. This lab does not yet rotate the phone or stitch panoramas.</div>
+      </section>
+
+      <section id="motion" class="panel" data-panel="motion" aria-labelledby="motion-title" hidden>
+        <div class="section-intro">
+          <div class="eyebrow">EXPERIMENT 03 / VIBRATION PHYSICS</div>
+          <h1 id="motion-title">Vibro<span class="gradient-text">Motion</span></h1>
+          <p>Can phone vibration cause real movement? Run short, repeatable trials, record angular change and motion sensor signals, and annotate what you actually see.</p>
+        </div>
+        <div class="info-line"><span>!</span><div><strong>Safety first.</strong> Flat tests need a padded, enclosed tray away from edges. Upright trials require a stable padded jig that cannot tip over. No open-table upright experiments. This app cannot prevent a physical fall.</div></div>
+        <div class="two-col">
+          <div class="glass-card motion-settings">
+            <div class="card-head"><div><div class="eyebrow">PHYSICAL SETUP</div><h2>Test conditions</h2></div><span class="micro-tag">CONTROLLED</span></div>
+            <label for="motionMode">Device position</label>
+            <select id="motionMode">
+              <option value="screen-up">Flat · screen / selfie camera up</option>
+              <option value="rear-up">Flat · rear camera up (screen down)</option>
+              <option value="upright">Upright · supported in padded jig</option>
+            </select>
+            <p id="motionModeHint" class="hint">The screen faces upward; rear camera faces the surface.</p>
+            <label for="motionSurface">Surface</label>
+            <select id="motionSurface">
+              <option value="Smooth plastic tray">Smooth plastic tray</option>
+              <option value="Wood in padded tray">Wood in padded tray</option>
+              <option value="Rubber mat in tray">Rubber mat in tray</option>
+              <option value="Fabric in tray">Fabric in tray</option>
+              <option value="Other enclosed surface">Other enclosed surface</option>
+            </select>
+            <label for="motionPreset">Vibration rhythm</label>
+            <select id="motionPreset"></select>
+            <label for="motionRounds">Cycles</label>
+            <select id="motionRounds"><option value="1">1 cycle</option><option value="2">2 cycles</option><option value="3">3 cycles</option></select>
+            <label for="motionDelay">Preparation countdown</label>
+            <select id="motionDelay"><option value="0">Start now</option><option value="3">3 seconds</option><option value="5" selected>5 seconds</option><option value="8">8 seconds</option></select>
+            <label class="motion-confirm" for="motionGuard"><input id="motionGuard" type="checkbox"><span>My phone is inside a stable, padded enclosure that prevents falling or reaching an edge.</span></label>
+            <div class="actions-row">
+              <button class="btn btn-primary" id="motionRun" type="button">▶ Run experiment</button>
+              <button class="btn btn-danger-outline" id="motionStop" type="button">■ Emergency stop</button>
+            </div>
+            <p id="motionStatus" class="hint" role="status">Ready. Enable sensors before a measured run.</p>
+          </div>
+          <div class="glass-card">
+            <div class="card-head"><div><div class="eyebrow">SENSOR BENCH</div><h2>What moved?</h2></div><span class="micro-tag">LIVE / LOCAL</span></div>
+            <button type="button" id="motionSensors" class="btn btn-secondary">Enable motion sensors</button>
+            <p id="motionSensorState" class="hint">Not monitoring. Requires browser support and sensor permissions.</p>
+            <div class="telemetry-row">
+              <div><strong id="motionYaw">—</strong><span>RELATIVE YAW °</span></div>
+              <div><strong id="motionAccel">—</strong><span>DYNAMIC ACCEL. m/s²</span></div>
+              <div><strong id="motionPeak">—</strong><span>PEAK IN TRIAL m/s²</span></div>
+            </div>
+            <canvas id="motionChart" width="720" height="168" aria-label="Recent relative yaw signal plot"></canvas>
+            <p class="hint">The chart shows sensor orientation, not travel distance. Vibration itself can cause noisy readings without the phone changing position.</p>
+            <div class="divider-mini"></div>
+            <div class="eyebrow">OPTIONAL CEILING / SKY CAPTURE</div>
+            <p class="hint">For rear-camera-up, arm the rear camera first. Then select a countdown and place the phone gently, screen-down, in a scratch-free support with lens clearance. A short 3-frame contact sheet is saved locally when the trial completes.</p>
+            <video id="motionVideo" class="motion-video" autoplay muted playsinline></video>
+            <div class="actions-row">
+              <button type="button" class="btn btn-secondary" id="motionCameraStart">◎ Arm rear camera</button>
+              <button type="button" class="btn btn-ghost" id="motionCameraStop">Stop camera</button>
+            </div>
+            <p class="hint" id="motionCameraStatus">Camera is off.</p>
+          </div>
+        </div>
+        <div class="glass-card motion-results">
+          <div class="card-head"><div><div class="eyebrow">FIELD NOTES</div><h2>Trial records</h2></div><span class="micro-tag">SAVED ON DEVICE</span></div>
+          <div class="two-col motion-observations">
+            <div><label for="motionObserved">What did you observe?</label><select id="motionObserved">
+              <option value="not assessed">Not assessed yet</option>
+              <option value="no visible movement">No visible movement</option>
+              <option value="rotation">Rotation</option>
+              <option value="sliding">Sliding</option>
+              <option value="wobble">Wobble only</option>
+            </select></div>
+            <div><label for="motionDistance">Measured slide (mm, optional)</label><input id="motionDistance" type="number" min="0" max="1000" step="0.5" placeholder="Use a ruler; not sensor-derived"></div>
+          </div>
+          <label for="motionNotes">Notes</label><textarea id="motionNotes" rows="2" maxlength="280" placeholder="Case, surface, orientation, observation…"></textarea>
+          <div class="toolbar">
+            <button type="button" id="motionAnnotate" class="btn btn-secondary">Save note on last trial</button>
+            <button type="button" id="motionExport" class="btn btn-secondary">↓ Export CSV</button>
+            <button type="button" id="motionClear" class="btn btn-ghost">Clear saved records</button>
+          </div>
+          <div class="motion-result-list" id="motionResults"><p class="hint">No experiments recorded yet.</p></div>
+          <p class="hint">A rotation in the sensor or an acceleration spike is not proof of translation. Compare with a no-vibration control trial and measure physical movement externally.</p>
+        </div>
       </section>
 
       <section id="ideas" class="panel" data-panel="ideas" aria-labelledby="ideas-title">
