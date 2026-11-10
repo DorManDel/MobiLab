@@ -7,6 +7,9 @@ const $ = (id) => document.getElementById(id);
 const RECORDS_KEY = "mobilab.motion.trials.v1";
 const MAX_ROWS = 40;
 const MAX_RUN_MS = 6500;
+// A smaller physical-lab catalog avoids endless dropdown lists.
+const MOTION_PRESETS = ["off", "tick", "light", "medium", "strong", "triple", "heartbeat",
+  "bounce", "roll", "rhythm", "sweep", "rumble", "orbit", "custom", "train"];
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const safeNumber = (value) => typeof value === "number" && Number.isFinite(value) ? value : null;
 const angularDelta = (a, b) => ((a - b + 540) % 360) - 180;
@@ -59,6 +62,7 @@ export function setupVibroMotion({ haptics, notify }) {
   let raf = 0;
   let cameraArmed = false;
   let sensorSampleCount = 0;
+  let motionPresetIndex = MOTION_PRESETS.indexOf("rumble");
 
   const status = (message) => { $("motionStatus").textContent = message; };
   const sensorState = (message) => { $("motionSensorState").textContent = message; };
@@ -179,6 +183,49 @@ export function setupVibroMotion({ haptics, notify }) {
     sensorState("Monitoring stopped. Enable sensors before another measured trial.");
   }
 
+  function trainPattern() {
+    const on = Number($("motionPulseOn").value);
+    const off = Number($("motionPulseOff").value);
+    const count = Number($("motionPulseCount").value);
+    const pattern = [];
+    for (let i = 0; i < count; i++) {
+      if (i > 0) pattern.push(off);
+      pattern.push(on);
+    }
+    return pattern;
+  }
+  function selectedPattern() {
+    const id = $("motionPreset").value;
+    return id === "train" ? trainPattern() : haptics.pattern(id);
+  }
+  function refreshMotionRhythm() {
+    const id = MOTION_PRESETS[motionPresetIndex];
+    $("motionPreset").value = id;
+    const p = selectedPattern();
+    $("motionPresetLabel").textContent = id === "train" ? "Pulse Train" : PRESETS[id]?.name || id;
+    $("motionPresetMeta").textContent =
+      p.filter((_, index) => index % 2 === 0).length + " on-pulses · " + p.reduce((s,n)=>s+n,0) + " ms";
+    $("motionTrainControls").hidden = id !== "train";
+  }
+  function changeMotionRhythm(step) {
+    motionPresetIndex = (motionPresetIndex + step + MOTION_PRESETS.length) % MOTION_PRESETS.length;
+    refreshMotionRhythm();
+    haptics.playPreset("tick");
+  }
+  function refreshPulseTrain() {
+    const on = Number($("motionPulseOn").value);
+    const off = Number($("motionPulseOff").value);
+    const count = Number($("motionPulseCount").value);
+    for (const [id, value, suffix] of [
+      ["motionPulseOn", on, " ms"], ["motionPulseOff", off, " ms"], ["motionPulseCount", count, ""]
+    ]) $(id + "Value").textContent = value + suffix;
+    const pattern = trainPattern();
+    const total = pattern.reduce((s,n)=>s+n,0);
+    const onTime = on * count;
+    $("motionDuty").textContent = "ON duty: " + Math.round(onTime / total * 100) +
+      "% · total " + total + " ms. Not true motor amplitude.";
+    refreshMotionRhythm();
+  }
   function setModeHint() {
     const mode = $("motionMode").value;
     const descriptions = {
@@ -260,7 +307,7 @@ export function setupVibroMotion({ haptics, notify }) {
     if (mode === "upright" && !$("motionGuard").checked) return;
     if (!haptics.supported) { notify("This browser does not expose vibration. Use an Android browser that supports it."); return; }
     const presetId = $("motionPreset").value;
-    const pattern = haptics.pattern(presetId);
+    const pattern = selectedPattern();
     if (presetId !== "off" && !haptics.config.enabled) { notify("Enable the Haptic Studio engine first."); return; }
     if (pattern.length && pattern.every((v) => v === 0)) { notify("Selected pattern contains no vibration."); return; }
     const rounds = Math.max(1, Math.min(3, Number($("motionRounds").value) || 1));
@@ -288,6 +335,9 @@ export function setupVibroMotion({ haptics, notify }) {
       const trial = {
         date: new Date().toISOString(), mode, surface: $("motionSurface").value,
         preset: presetId, rounds, totalPatternMS: total, sensorsEnabled: sensorsOn,
+        pulseOnMS: presetId === "train" ? Number($("motionPulseOn").value) : null,
+        pulseOffMS: presetId === "train" ? Number($("motionPulseOff").value) : null,
+        pulseCount: presetId === "train" ? Number($("motionPulseCount").value) : null,
         startYaw, endYaw: null, yawDelta: null, yawAbsMax: 0,
         peakAccel: null, samples: 0,
         observation: "not assessed", distanceMM: null, notes: ""
@@ -359,7 +409,8 @@ export function setupVibroMotion({ haptics, notify }) {
   function exportCSV() {
     if (!records.length) { notify("No trials to export."); return; }
     const fields = ["date","mode","surface","preset","rounds","totalPatternMS","sensorsEnabled",
-      "startYaw","endYaw","yawDelta","yawAbsMax","peakAccel","samples","observation","distanceMM","notes"];
+      "startYaw","endYaw","yawDelta","yawAbsMax","peakAccel","samples","observation","distanceMM","notes",
+      "pulseOnMS","pulseOffMS","pulseCount"];
     const lines = [fields.join(","), ...records.map((r) => fields.map((f) => escapeCSV(r[f])).join(","))];
     saveFile("mobilab-motion-trials.csv", lines.join("\r\n"), "text/csv;charset=utf-8");
     notify("Trial CSV exported.");
@@ -371,12 +422,13 @@ export function setupVibroMotion({ haptics, notify }) {
     status("Experiment paused. Return and enable sensors for new readings.");
   }
   function setup() {
-    for (const [id, preset] of Object.entries(PRESETS)) {
-      const option = document.createElement("option");
-      option.value = id; option.textContent = preset.name;
-      $("motionPreset").append(option);
+    $("motionPresetPrev").addEventListener("click", () => changeMotionRhythm(-1));
+    $("motionPresetNext").addEventListener("click", () => changeMotionRhythm(1));
+    for (const id of ["motionPulseOn","motionPulseOff","motionPulseCount"]) {
+      $(id).addEventListener("input", refreshPulseTrain);
     }
-    $("motionPreset").value = "rumble";
+    refreshMotionRhythm();
+    refreshPulseTrain();
     $("motionMode").addEventListener("change", setModeHint);
     $("motionSensors").addEventListener("click", enableSensors);
     $("motionCameraStart").addEventListener("click", startCamera);
