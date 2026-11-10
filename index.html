@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0a19">
+  <meta name="description" content="MobiLab — a modular mobile-first lab for haptics, camera sensors and wild ideas.">
+  <title>MobiLab — Experiment everything</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./src/app.js"></script>
+</head>
+<body>
+  <div class="ambient ambient-left" aria-hidden="true"></div>
+  <div class="ambient ambient-right" aria-hidden="true"></div>
+  <div class="site-shell">
+    <header class="topbar">
+      <a class="brand" href="#home" aria-label="MobiLab home">
+        <span class="brand-mark">M<span class="brand-dot">.</span></span>
+        <span class="brand-name">Mobi<span>Lab</span><small>THE EXPERIMENTAL PLAYGROUND</small></span>
+      </a>
+      <div class="topbar-actions">
+        <span class="status-dot"><span class="dot"></span>LOCAL LAB</span>
+        <a class="repo-link" href="https://github.com/DorManDel/MobiLab" target="_blank" rel="noopener noreferrer" aria-label="Open MobiLab source on GitHub">↗ GitHub</a>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Experiment tabs">
+      <button class="tab is-active" type="button" data-tab="home" aria-selected="true">⌂ <span>Overview</span></button>
+      <button class="tab" type="button" data-tab="haptics" aria-selected="false">〰 <span>Haptic Studio</span></button>
+      <button class="tab" type="button" data-tab="camera" aria-selected="false">◎ <span>Camera Lab</span></button>
+      <button class="tab" type="button" data-tab="ideas" aria-selected="false">✧ <span>Idea Board</span></button>
+    </nav>
+
+    <main>
+      <section id="home" class="panel is-active" data-panel="home" aria-labelledby="home-title">
+        <div class="hero">
+          <div class="eyebrow"><span class="eyebrow-line"></span> WELCOME TO MOBILAB / VERSION 0.1</div>
+          <h1 id="home-title">Small experiments.<br><span>Big discoveries.</span></h1>
+          <p>One playground. Endless weird ideas. Test real hardware, explore browser mechanics, and keep each experiment isolated and reusable.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" data-open="haptics" data-haptic-group="primary">Try Haptic Studio <span aria-hidden="true">↗</span></button>
+            <button class="btn btn-secondary" data-open="camera" data-haptic-group="navigation">Open Camera Lab</button>
+          </div>
+          <div class="hero-decoration" aria-hidden="true"><div class="orbit orbit-a"></div><div class="orbit orbit-b"></div><div class="hero-core">M</div></div>
+        </div>
+        <div class="section-heading"><div><div class="eyebrow">EXPERIMENT INDEX</div><h2>Choose your lab</h2></div><span class="count">03 MODULES + 01 BOARD</span></div>
+        <div class="lab-cards">
+          <button type="button" class="lab-card" data-open="haptics" data-haptic-group="navigation">
+            <span class="card-top"><span class="lab-icon purple">〰</span><span class="index">01 / ACTIVE</span></span>
+            <strong>Haptic Studio</strong><span>Design and compare button feedback for different UI groups.</span><span class="card-foot">Try the engine <b>↗</b></span>
+          </button>
+          <button type="button" class="lab-card" data-open="camera" data-haptic-group="navigation">
+            <span class="card-top"><span class="lab-icon yellow">◎</span><span class="index">02 / BETA</span></span>
+            <strong>Camera Lab</strong><span>Test live camera preview, snapshots and relative orientation.</span><span class="card-foot">Explore sensors <b>↗</b></span>
+          </button>
+          <button type="button" class="lab-card" data-open="ideas" data-haptic-group="navigation">
+            <span class="card-top"><span class="lab-icon green">✧</span><span class="index">03 / OPEN</span></span>
+            <strong>Idea Board</strong><span>Collect questions and weird experiments to build next.</span><span class="card-foot">Add an idea <b>↗</b></span>
+          </button>
+        </div>
+        <p class="inline-note">Everything here runs on your device. No server-side database, accounts or telemetry. Settings stay in your current browser unless you export them.</p>
+      </section>
+
+      <section id="haptics" class="panel" data-panel="haptics" aria-labelledby="haptics-title" hidden>
+        <div class="section-intro">
+          <div class="eyebrow">EXPERIMENT 01 / TOUCH INTERACTION</div>
+          <h1 id="haptics-title">Haptic <span class="gradient-text">Studio</span></h1>
+          <p>Build a vibration vocabulary for your UI. Assign different timing profiles to different button groups, test them on your phone, then export your configuration.</p>
+        </div>
+        <div class="status-strip">
+          <div><span class="status-label">DEVICE SUPPORT</span><strong id="hapticSupport">Checking…</strong></div>
+          <div><span class="status-label">ENGINE</span><label class="switch-wrap"><input type="checkbox" id="enableHaptics" checked><span>Feedback enabled</span></label></div>
+          <button type="button" class="btn btn-danger-outline btn-small" id="stopHaptics">■ Stop</button>
+        </div>
+        <div class="two-col">
+          <div class="glass-card">
+            <div class="card-head"><div><div class="eyebrow">LIVE TEST BENCH</div><h2>Feel the difference</h2></div><span class="micro-tag">TAP TO TEST</span></div>
+            <label for="presetSelect">Preset profile</label>
+            <select id="presetSelect"></select>
+            <div class="waveform" id="presetWaveform" aria-label="Vibration on-off duration visualization"></div>
+            <p class="hint" id="presetNote">Each bar represents a timed vibration or pause.</p>
+            <button type="button" class="btn btn-primary full" id="testPreset">◉ Test selected vibration</button>
+            <p class="inline-note">“Light” and “Long” describe timing, not actual motor amplitude. Your phone controls the physical strength.</p>
+          </div>
+          <div class="glass-card">
+            <div class="card-head"><div><div class="eyebrow">PATTERN DESIGNER</div><h2>Make your own</h2></div><span class="micro-tag">CUSTOM</span></div>
+            <div class="slider-field"><label for="pulseA">First pulse <output id="pulseAValue">25 ms</output></label><input id="pulseA" type="range" min="0" max="160" step="5" value="25"></div>
+            <div class="slider-field"><label for="gap">Pause <output id="gapValue">45 ms</output></label><input id="gap" type="range" min="0" max="200" step="5" value="45"></div>
+            <div class="slider-field"><label for="pulseB">Second pulse <output id="pulseBValue">35 ms</output></label><input id="pulseB" type="range" min="0" max="160" step="5" value="35"></div>
+            <div class="waveform waveform-small" id="customWaveform" aria-label="Custom vibration pattern visualization"></div>
+            <div class="actions-row">
+              <button type="button" class="btn btn-secondary" id="testCustom">▶ Preview</button>
+              <button type="button" class="btn btn-primary" id="saveCustom">Save custom</button>
+            </div>
+            <p class="hint">Save the pattern, then assign “Custom” to any button group below.</p>
+          </div>
+        </div>
+        <div class="section-heading spaced"><div><div class="eyebrow">GROUP CONFIGURATION</div><h2>Button categories</h2></div><span class="count">SAVED LOCALLY</span></div>
+        <p class="section-description">Each category has its own profile. Tap a sample button to experience its currently assigned pattern.</p>
+        <div id="groupGrid" class="group-grid"></div>
+        <div class="toolbar">
+          <button type="button" id="exportHaptics" class="btn btn-secondary">↓ Export JSON config</button>
+          <button type="button" id="resetHaptics" class="btn btn-ghost">↺ Restore defaults</button>
+        </div>
+        <div class="info-line"><span>!</span> Browser vibration support varies. A request can succeed even when system settings suppress the actual motor. iPhones generally do not support web vibration. Test in an Android browser with vibration enabled.</div>
+      </section>
+
+      <section id="camera" class="panel" data-panel="camera" aria-labelledby="camera-title" hidden>
+        <div class="section-intro"><div class="eyebrow">EXPERIMENT 02 / OPTICS & SENSORS</div><h1 id="camera-title">Camera <span class="gradient-text">Lab</span></h1><p>Local camera preview and orientation telemetry. Next we'll use this as a starting point for VibroCam experiments.</p></div>
+        <div class="glass-card camera-card">
+          <div class="camera-screen"><video id="cameraVideo" autoplay playsinline muted></video><span class="camera-placeholder" id="cameraPlaceholder">◎<small>Camera offline · No image is uploaded</small></span><span class="camera-live" id="cameraLive" hidden><span class="dot"></span> LIVE</span></div>
+          <div class="toolbar camera-toolbar">
+            <button class="btn btn-primary" type="button" id="cameraFront">Start selfie camera</button>
+            <button class="btn btn-secondary" type="button" id="cameraBack">Rear camera</button>
+            <button class="btn btn-secondary" type="button" id="cameraCapture">↓ Snapshot</button>
+            <button class="btn btn-ghost" type="button" id="cameraStop">Stop camera</button>
+          </div>
+          <p class="hint" id="cameraStatus" role="status">Camera permission is only requested when you tap Start.</p>
+        </div>
+        <div class="glass-card sensor-card">
+          <div><div class="eyebrow">SENSOR MONITOR</div><h2>Relative rotation</h2><p class="hint">The browser sensor alpha angle can drift and is not necessarily a compass heading. A reading of 0° means the first observed orientation.</p></div>
+          <div class="sensor-value"><strong id="angleReadout">—°</strong><span>RELATIVE ALPHA</span></div>
+          <button class="btn btn-secondary" type="button" id="startSensors">Enable / Re-zero sensor</button>
+          <p class="hint" id="sensorStatus" role="status">No sensor readings yet.</p>
+        </div>
+        <div class="info-line"><span>!</span> Camera and sensor permissions are device/browser dependent. Use this site through GitHub Pages (HTTPS) in a normal browser. This lab does not yet rotate the phone or stitch panoramas.</div>
+      </section>
+
+      <section id="ideas" class="panel" data-panel="ideas" aria-labelledby="ideas-title">
+        <div class="section-intro"><div class="eyebrow">EXPERIMENT 03 / THE BACKLOG</div><h1 id="ideas-title">Idea <span class="gradient-text">Board</span></h1><p>Every experiment starts as a curious question. Keep a list of things to test and explore next.</p></div>
+        <form class="glass-card idea-form" id="ideaForm">
+          <label for="ideaInput">New experiment idea</label>
+          <div class="actions-row"><input id="ideaInput" type="text" maxlength="160" placeholder="What if we could…" required><button type="submit" class="btn btn-primary">+ Add idea</button></div>
+          <p class="hint">Stored in this browser only; export a copy before clearing browser data.</p>
+        </form>
+        <div class="glass-card"><div class="card-head"><h2>Ideas to explore</h2><span class="micro-tag" id="ideaCount">0 IDEAS</span></div><ul class="idea-list" id="ideasList"></ul><div class="toolbar"><button id="exportIdeas" type="button" class="btn btn-secondary">↓ Export ideas</button></div></div>
+      </section>
+    </main>
+    <footer><span>MOBILAB / BUILD • TEST • LEARN</span><span>Experimental by design · <a href="https://github.com/DorManDel/MobiLab" target="_blank" rel="noopener noreferrer">Source on GitHub ↗</a></span></footer>
+  </div>
+  <div id="toast" class="toast" aria-live="polite" role="status"></div>
+</body>
+</html>
