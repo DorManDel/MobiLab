@@ -264,6 +264,7 @@ async function startCamera(mode) {
   $("cameraStatus").textContent = "Requesting camera access…";
   try {
     await camera.start(mode);
+    if (currentTab !== "camera") { shutdownCamera(); return; }
     $("cameraPlaceholder").hidden = true;
     $("cameraLive").hidden = false;
     $("cameraStatus").textContent = (mode === "user" ? "Selfie" : "Rear") + " camera is active. Frames stay on this device.";
@@ -286,6 +287,7 @@ function setupCamera() {
     try {
       $("sensorStatus").textContent = "Requesting orientation access…";
       await camera.watchOrientation(({ relative, alpha }) => {
+        if (currentTab !== "camera") { camera.stopOrientation(); return; }
         $("angleReadout").textContent = relative.toFixed(1) + "°";
         $("sensorStatus").textContent = "Sensor alpha: " + alpha.toFixed(1) + "°. Relative to the first received sample.";
       });
