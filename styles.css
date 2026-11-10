@@ -243,3 +243,17 @@ footer a{text-decoration:none;color:#aa92d5}
   .telemetry-row{gap:6px}.telemetry-row>div{padding:11px 4px}
   .motion-settings .actions-row .btn{flex:1 1 140px}
 }
+
+/* Compact experimental rhythm selector */
+.motion-rhythm-picker{
+ display:grid;grid-template-columns:48px minmax(0,1fr) 48px;
+ align-items:center;gap:10px;padding:13px 10px;margin-bottom:14px;
+ border-radius:14px;border:1px solid var(--border);
+ background:radial-gradient(circle at center,#4228685c,#100d1c 75%);
+}
+.motion-rhythm-picker>button{height:49px;min-height:49px;width:48px;padding:0;font-size:28px}
+.motion-rhythm-center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;min-width:0}
+.motion-rhythm-center strong{color:var(--yellow);font-size:18px;line-height:1.2;overflow-wrap:anywhere}
+.motion-rhythm-center span{color:var(--muted);font-size:11px}
+#motionTrainControls{padding:16px;background:#100d1c;border-radius:12px;border:1px solid var(--border);margin-bottom:17px}
+#motionTrainControls .slider-field{margin:12px 0}
