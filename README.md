@@ -9,6 +9,7 @@ A mobile-first collection of experimental web mechanics and hardware exploration
 - **VibroMotion** — short timed vibration trials with motion/orientation telemetry, protected flat/upright setup modes, no-vibration control, custom pulse trains (on/off/duty), optional local rear-camera contact sheets, physical observations and CSV export.
 - **Blink Lab** — touch-first profile eyelid overlay calibration, image-space relative eye anchors, auto/manual blink, zoom, crop and tilt preview, local settings and JSON export. Open at [`labs/blink/`](./labs/blink/).
 - **WSLX Terminal Lab** — safe, mobile-ready Ubuntu/WSLX command simulator. Supports Linux `cd`, `wcd`, `wslx cd`, path conversion, virtual filesystem commands and clearly labeled future addon previews. Open at [`labs/wslx/`](./labs/wslx/).
+- **Media Dock** — browser-based URL queue, link deduplication, manual yt-dlp PowerShell commands, and Windows .ps1 launcher export. This is a companion to the full desktop toolkit; it cannot execute downloads inside GitHub Pages. Open at [`labs/media-dock/`](./labs/media-dock/).
 - **Idea Board** — locally saved experiment ideas.
 
 ## Run
@@ -38,6 +39,8 @@ src/
 labs/
   blink/
     index.html    # self-contained Blink Lab v0.2, linked from overview and tabs
+  media-dock/
+    index.html    # Media Dock queue and PowerShell launcher generator
   wslx/
     index.html    # WSLX command simulator (R0.2), also supports ?embed=1
     src/          # reusable engine, Linux/WSLX command modules, UI + CSS
@@ -84,3 +87,7 @@ For a small native panel, add a `data-panel` section and matching `data-tab` but
 - `wslx path`, `--win`, `--link`, `doctor`, and `version` are modeled from the current WSLX project. Other addons (for example `wopen`, `wclip`, `wpaste`) are **planned-feature previews**, not actual machine integrations.
 - All files, clipboard state and commands are virtual; nothing executes against the visitor's real computer.
 - `labs/wslx/index.html?embed=1` provides a compact preview for future MyPortfolio integration, but MyPortfolio is intentionally unchanged.
+
+## Media Dock · Windows / mobile
+
+Open the Media Dock navigation tab, paste HTTP(S) URLs and select **Add to queue**. Choose MP3, original audio or MP4. **Prepare Windows one-click launcher** downloads a PowerShell `.ps1` file. It must be run locally on a Windows PC with `yt-dlp` and `ffmpeg` installed and present on `PATH`; review downloaded scripts before running. In PowerShell, navigate to the download folder and run `& .\MediaDock-Download.ps1` (execution policy permitting). Alternatively, expand **Manual mode** and copy the displayed commands. The queue/configuration is saved only to the current browser. The `downloaded.txt` archive is kept in the chosen output directory and used to skip completed videos. Playlists and Mixes are resolved by the local downloader, not by GitHub Pages. On Android the lab can organize/export URLs but cannot run the local Windows download tools. The full v1.2 desktop toolkit’s scheduler and background runner are not part of this browser companion.
