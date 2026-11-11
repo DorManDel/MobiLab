@@ -8,6 +8,7 @@ A mobile-first collection of experimental web mechanics and hardware exploration
 - **Camera Lab** — permission-based front/back preview, local snapshot and relative orientation.
 - **VibroMotion** — short timed vibration trials with motion/orientation telemetry, protected flat/upright setup modes, no-vibration control, custom pulse trains (on/off/duty), optional local rear-camera contact sheets, physical observations and CSV export.
 - **Blink Lab** — touch-first profile eyelid overlay calibration, image-space relative eye anchors, auto/manual blink, zoom, crop and tilt preview, local settings and JSON export. Open at [`labs/blink/`](./labs/blink/).
+- **WSLX Terminal Lab** — safe, mobile-ready Ubuntu/WSLX command simulator. Supports Linux `cd`, `wcd`, `wslx cd`, path conversion, virtual filesystem commands and clearly labeled future addon previews. Open at [`labs/wslx/`](./labs/wslx/).
 - **Idea Board** — locally saved experiment ideas.
 
 ## Run
@@ -37,12 +38,15 @@ src/
 labs/
   blink/
     index.html    # self-contained Blink Lab v0.2, linked from overview and tabs
+  wslx/
+    index.html    # WSLX command simulator (R0.2), also supports ?embed=1
+    src/          # reusable engine, Linux/WSLX command modules, UI + CSS
 README.md
 ```
 
 ## Adding a new experiment
 
-For a small native panel, add a `data-panel` section and matching `data-tab` button in `index.html`, then connect it through `src/app.js`. For a full-screen mobile workbench, follow the **Blink Lab** pattern: create a standalone experiment at `labs/<name>/index.html` and link it from the overview and tab navigation. Preserve a back link to `../../#home`. Keep reusable mechanics in modules where practical.
+For a small native panel, add a `data-panel` section and matching `data-tab` button in `index.html`, then connect it through `src/app.js`. For a full-screen mobile workbench, follow the **Blink Lab** or **WSLX Terminal Lab** pattern: create a standalone experiment at `labs/<name>/index.html` and link it from the overview and tab navigation. Preserve a back link to `../../#home`. Keep reusable mechanics in modules where practical.
 
 ## Planned directions
 
@@ -72,3 +76,11 @@ For a small native panel, add a `data-panel` section and matching `data-tab` but
 - Settings persist separately per browser/device through localStorage. For the **same values across phone and PC**, use **Export settings** on one and **Import settings** on the other; no cloud sync or publishing is implied.
 - The public profile image currently loads from the Dor-s-Profile-Site repository; importing a local photo does not upload it. The Prism control is a lightweight sheen preview, not the portfolio's full shader.
 - Blink Lab is intentionally a separate page instead of an iframe to keep touch calibration and viewport layout reliable on phones.
+
+## WSLX Terminal Lab R0.2
+
+- `cd` changes the simulated current directory, `cd -` returns to the prior directory, `wcd` accepts Windows/WSL paths, and `wslx cd` simulates the actual WSLX Bash-integrated navigation behavior. The prompt and `pwd` update as expected.
+- Example: `wslx cd 'D:\\Projects\\Demo'`, followed by `pwd`, `ls`, `wcd /home/dor`, `cd projects/wslx`.
+- `wslx path`, `--win`, `--link`, `doctor`, and `version` are modeled from the current WSLX project. Other addons (for example `wopen`, `wclip`, `wpaste`) are **planned-feature previews**, not actual machine integrations.
+- All files, clipboard state and commands are virtual; nothing executes against the visitor's real computer.
+- `labs/wslx/index.html?embed=1` provides a compact preview for future MyPortfolio integration, but MyPortfolio is intentionally unchanged.
