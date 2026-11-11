@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Blink Lab v0.2 — MobiLab</title>
+<style>
+:root { --bg:#080913; --panel:#111325; --panel2:#17192e; --border:#ffffff18; --text:#f5f3ff; --muted:#a0a0bf; --purple:#ba98ff; --yellow:#ffe282; --cyan:#82e3fb; --radius:23px; }
+*{box-sizing:border-box} body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(ellipse at 18% -10%,#3921628e,transparent 42%),radial-gradient(ellipse at 100% 100%,#1e29434d,transparent 45%),var(--bg);line-height:1.45}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.13;background-image:linear-gradient(#ffffff0d 1px,transparent 1px),linear-gradient(90deg,#ffffff0d 1px,transparent 1px);background-size:34px 34px;mask-image:linear-gradient(to bottom,black,transparent 85%)}
+button,input,select{font:inherit}button{color:inherit;cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--yellow);outline-offset:3px}a{color:var(--purple)}
+.app{max-width:1280px;margin:auto;padding:28px clamp(15px,3.2vw,42px) 60px;position:relative}
+.top{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-bottom:25px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:14px}.mark{width:50px;height:50px;border-radius:17px;display:grid;place-items:center;font-size:27px;background:linear-gradient(145deg,#b593ff35,#ffe08217);border:1px solid #c8aaff65;box-shadow:0 0 28px #a47aff25}.tagline{font-size:.68rem;letter-spacing:.2em;color:var(--purple);font-weight:800;text-transform:uppercase}.brand strong{display:block;font-size:1.4rem;letter-spacing:-.04em}.topnote{font-size:.78rem;color:var(--muted);border:1px solid var(--border);background:#ffffff08;padding:10px 14px;border-radius:30px}.pill-dot{display:inline-block;width:7px;height:7px;background:#97eeac;box-shadow:0 0 12px #97eeac;border-radius:50%;margin-right:8px}
+h1{margin:0;font-size:clamp(1.8rem,3.5vw,3rem);letter-spacing:-.055em;line-height:1.1}h1 span{color:var(--purple)}.intro{color:var(--muted);margin:9px 0 25px;font-size:.96rem;max-width:740px}
+.layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);align-items:start;gap:20px}.panel{background:linear-gradient(150deg,#1b1c31dc,#101122e8);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 22px 55px #00000035;overflow:hidden}.panel-header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:17px 20px;border-bottom:1px solid var(--border)}.panel-title{font-weight:800;font-size:.92rem}.micro{font-size:.69rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.status{display:flex;align-items:center;gap:7px;color:#b8eec6;font-size:.73rem}.status::before{content:"";height:6px;width:6px;background:#93eab1;border-radius:50%}
+.viewer-panel{padding-bottom:0}.viewer-inner{padding:22px;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,#b19bff1e,transparent 72%)}.viewport{position:relative;width:min(100%,450px);aspect-ratio:1;overflow:hidden;border-radius:50%;background:linear-gradient(135deg,#292446,#15172c);border:3px solid #b497e866;box-shadow:0 0 0 9px #b28aff12,0 0 0 10px #ffffff14,0 25px 70px #0009;touch-action:pan-y;isolation:isolate;}
+.viewport[data-shape="square"]{border-radius:27px}.viewport.calibrating{touch-action:none}.pose-layer{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}.artwork{position:absolute;overflow:visible;left:0;top:0;width:100%;height:100%;}.artwork img{position:absolute;width:100%;height:100%;inset:0;display:block;user-select:none;-webkit-user-drag:none}.artwork canvas,.artwork svg,.prism-preview{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.artwork canvas{z-index:2}.prism-preview{z-index:3;mix-blend-mode:soft-light;background:linear-gradient(115deg,transparent 18%,#e8ccff 31%,#89fff5 39%,transparent 48%,#ffe7a9 62%,transparent 76%);opacity:0;transition:opacity .25s;}.calibration-overlay{z-index:4;overflow:visible}.calibration-overlay.active{pointer-events:auto}.calibration-overlay .eye-area{fill:#ae8aff16;stroke:#ffe28e;stroke-width:2;stroke-dasharray:7 5}.calibration-overlay .eye-area.selected{fill:#ffe28e18;stroke:#ae89ff;stroke-width:3}.calibration-overlay .handle{stroke:#161022;stroke-width:3;cursor:grab}.calibration-overlay .handle:active{cursor:grabbing}.calibration-overlay .center-handle{fill:#ffe28e}.calibration-overlay .edge-handle{fill:#b69dff}.calibration-overlay .height-handle{fill:#82e3fb}.calibration-overlay .connector{stroke:#c0aaff;stroke-width:1.5;stroke-dasharray:4 4}.stage-fallback{position:absolute;inset:0;display:grid;place-items:center;text-align:center;gap:8px;padding:30px;color:#d2c7e8;font-size:.9rem}.stage-fallback.hidden{display:none}.stage-fallback span{font-size:2.5rem}
+.viewer-foot{padding:12px 18px;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;border-top:1px solid var(--border);color:var(--muted);font-size:.72rem}.viewer-foot strong{color:var(--yellow);font-variant-numeric:tabular-nums}
+.actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:16px 18px 8px}.btn{border:1px solid #ffffff26;background:#ffffff0b;padding:11px 10px;min-height:42px;border-radius:12px;font-size:.78rem;font-weight:700;transition:background .15s,border-color .15s,transform .15s}.btn:hover{background:#b396ff20;border-color:#b396ff7b}.btn:active{transform:scale(.97)}.btn.primary{background:linear-gradient(130deg,#966bff,#d0b1ff);color:#1c102f;border:0;box-shadow:0 4px 22px #9a6aff45}.secondary-actions{display:flex;flex-wrap:wrap;gap:8px;padding:4px 18px 17px}.secondary-actions button{flex:1;min-width:115px}.tiny-help{margin:0 18px 18px;color:var(--muted);font-size:.77rem}
+.settings{display:grid;gap:0}.setting-section{padding:18px 20px;border-bottom:1px solid var(--border)}.setting-section:last-child{border-bottom:0}.section-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:13px}.section-row h2{font-size:.96rem;margin:0;letter-spacing:-.01em}.note{font-size:.72rem;color:var(--muted)}.toggle{display:flex;align-items:center;gap:8px;color:#d4d0e5;font-size:.79rem;cursor:pointer}.toggle input{accent-color:#ad8aff;width:16px;height:16px}.duo{display:grid;grid-template-columns:1fr 1fr;gap:13px}.control{margin:0 0 12px}.control:last-child{margin-bottom:0}.control label{display:flex;justify-content:space-between;gap:10px;color:#c5c3d8;font-size:.78rem;font-weight:650;margin-bottom:7px}.control output{color:var(--yellow);font-variant-numeric:tabular-nums}.control input[type=range]{display:block;width:100%;accent-color:var(--purple);cursor:pointer}.control select,.control input[type=text],.control input[type=url]{background:#090b18;border:1px solid #ffffff27;border-radius:10px;padding:10px;color:var(--text);width:100%;font-size:.83rem}.control select option{background:#151629}.switches{display:flex;gap:14px;flex-wrap:wrap}.switches .toggle{font-size:.76rem}.seg{display:flex;gap:4px;padding:4px;border-radius:12px;background:#090b18;border:1px solid var(--border)}.seg button{flex:1;border:0;border-radius:9px;background:transparent;color:var(--muted);padding:9px 8px;font-size:.79rem}.seg button[aria-pressed="true"]{color:#1c1231;background:#bd9aff;font-weight:800}.tip{color:#b9b4ce;background:#9f8cff0e;border:1px solid #b09bff26;padding:12px;border-radius:12px;font-size:.76rem;margin-top:8px}.hint-hot{color:var(--yellow)}
+.info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin-top:20px}.info article{border:1px solid var(--border);border-radius:17px;background:#ffffff07;padding:16px}.info-num{font-size:.66rem;letter-spacing:.12em;color:var(--purple);font-weight:800}.info h3{font-size:.88rem;margin:9px 0 5px}.info p{margin:0;font-size:.76rem;color:var(--muted)}.disclaimer{margin-top:17px;color:var(--muted);font-size:.72rem}.disclaimer code{color:#ebd2ff}.kbd{font-family:ui-monospace,monospace;color:#ffe282}
+.toast{position:fixed;right:18px;bottom:16px;padding:10px 15px;border:1px solid #bba3ff68;background:#201b35;border-radius:13px;box-shadow:0 8px 35px #0007;color:#eee4ff;font-size:.82rem;z-index:100;max-width:350px;opacity:0;transform:translateY(10px);pointer-events:none;transition:opacity .2s,transform .2s}.toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:940px){.layout{grid-template-columns:1fr}.viewer-inner{padding:24px}.viewport{width:min(430px,90vw)}.info{grid-template-columns:1fr 1fr}}
+@media(max-width:550px){.app{padding-top:18px}.top{padding-bottom:22px}.viewer-inner{padding:22px 16px}.viewport{width:min(350px,77vw)}.info{grid-template-columns:1fr}.actions{grid-template-columns:repeat(2,1fr)}.duo{grid-template-columns:1fr 1fr}.panel-header{padding:14px 16px}.setting-section{padding:17px}.topnote{font-size:.69rem}.viewer-foot{font-size:.66rem}.mark{width:42px;height:42px}}
+
+/* v0.2 — Touch-first workbench and responsive anchor controls. */
+.version{display:inline-block;color:var(--yellow);font-size:.68rem;font-weight:750;margin-left:.3rem}
+.live-tools{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);background:#0c0d1a80}
+.live-tools .toggle{margin-right:auto;white-space:nowrap}
+.toggle-guides input{width:19px;height:19px}
+.btn.compact{min-height:36px;padding:8px 12px;font-size:.72rem;border-radius:10px;white-space:nowrap}
+.btn.compact[aria-pressed=true]{color:#1d1233;background:var(--yellow);border-color:var(--yellow)}
+.file-drawer{border-top:1px solid var(--border);}
+.file-drawer summary{padding:9px 16px;font-size:.73rem;font-weight:750;color:var(--muted);cursor:pointer;list-style-position:inside}
+.file-drawer[open] summary{color:var(--yellow)}.file-drawer .secondary-actions{padding:7px 12px 12px}
+.nudge-tools{display:flex;align-items:center;gap:6px;margin:12px 0 6px;flex-wrap:wrap}
+.nudge-tools .nudge-label{color:var(--muted);font-weight:700;font-size:.74rem;margin-right:auto}
+.nudge-tools .nudge{min-height:39px;min-width:39px;padding:4px 6px;font-size:1.18rem;touch-action:manipulation}
+.nudge-tools select{height:39px;border:1px solid #ffffff27;background:#090b18;border-radius:8px;color:var(--text);padding:0 7px;font-size:.75rem}
+.calibration-overlay{user-select:none;-webkit-user-select:none}
+.calibration-overlay .eye-area{stroke-width:2.5;stroke-dasharray:6 5;fill:#ffe28210}
+.calibration-overlay .eye-area.selected{stroke:#ffe282;fill:#ffe28224;stroke-width:3.8}
+.calibration-overlay .handle{filter:drop-shadow(0 0 4px #07040b);}
+.calibration-overlay .hit-handle{fill:transparent;stroke:none;pointer-events:all;cursor:grab;touch-action:none}
+.calibration-overlay .eye-label{font-family:system-ui,sans-serif;font-weight:900;paint-order:stroke;stroke:#130b20;stroke-width:4px;fill:white;pointer-events:none}
+.calibration-overlay .eye-target{stroke:white;stroke-width:1.5;fill:none;opacity:.6;pointer-events:none}
+.viewport.calibrating{border-color:#ffe282b0;box-shadow:0 0 0 4px #ffe28216,0 12px 45px #0009}
+@media(max-width:700px){
+  .app{padding:10px 10px 22px}.top{padding-bottom:8px}.mark{width:35px;height:35px;border-radius:11px;font-size:19px}.brand{gap:8px}.brand strong{font-size:1.15rem}.tagline{font-size:.57rem}
+  .topnote,h1,.intro,.info,.disclaimer{display:none}
+  .layout{display:flex;flex-direction:column;gap:7px;max-width:560px;margin:auto;height:calc(100svh - 69px);min-height:440px;overflow:hidden}
+  .panel{border-radius:15px;}
+  .viewer-panel{flex:0 0 auto;min-height:0;box-shadow:0 5px 18px #0008}
+  .settings{display:block;flex:1 1 0;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch}
+  .viewer-inner{padding:8px;background:#0b0b1b}
+  .viewport{width:min(100%,34svh,300px);border-width:2px}
+  .panel-header{padding:7px 11px}.panel-title{font-size:.76rem}.status{font-size:.67rem}
+  .live-tools{padding:6px 9px;gap:6px}.live-tools .toggle{font-size:.72rem}.btn.compact{font-size:.7rem;padding:6px 9px;min-height:33px}
+  .viewer-foot{padding:5px 9px;gap:6px;font-size:.55rem}.viewer-foot span:first-child{display:none}
+  .actions{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding:7px 9px 6px}
+  .actions .btn{min-height:34px;font-size:.66rem;line-height:1.12;padding:5px 4px;border-radius:9px}
+  .tiny-help{display:none}
+  .file-drawer summary{padding:6px 12px;font-size:.68rem}
+  .setting-section{padding:13px 13px 14px}.section-row{margin-bottom:10px}.section-row h2{font-size:.87rem}
+  .control{margin-bottom:12px}.control label{margin-bottom:5px;font-size:.77rem}.control input[type=range]{height:25px}
+  .seg button{padding:9px 5px}.tip{font-size:.73rem;margin-top:9px}
+  .nudge-tools{margin:8px 0 3px}.nudge-tools .nudge{min-width:40px}.nudge-tools .nudge-label{width:100%;margin-bottom:0}
+  .toast{bottom:10px;left:10px;right:10px;text-align:center}
+}
+@media(max-width:700px) and (max-height:680px){
+  .layout{height:calc(100svh - 60px);min-height:390px}.viewport{width:min(100%,28svh,240px)}
+  .file-drawer summary{padding:4px 12px}
+}
+@media(max-width:700px) and (orientation:landscape){
+  .layout{flex-direction:row;max-width:none;min-height:240px;height:calc(100svh - 58px)}
+  .viewer-panel{flex:0 0 min(48%,380px);overflow-y:auto}
+  .settings{flex:1 1 auto;overflow-y:auto}.viewport{width:min(40svh,220px)}
+  .actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .top{padding-bottom:5px}
+}
+
+
+@media (orientation: landscape) and (max-height:550px) and (max-width:980px){
+  .app{padding:7px 9px 12px}.top{padding-bottom:5px}.mark{width:29px;height:29px;font-size:16px}.brand strong{font-size:1rem}.tagline{font-size:.5rem}
+  .topnote,h1,.intro,.info,.disclaimer{display:none}
+  .layout{display:flex;flex-direction:row;gap:8px;max-width:none;height:calc(100svh - 49px);min-height:245px;overflow:hidden;align-items:stretch}
+  .viewer-panel{flex:0 0 47%;overflow-y:auto;min-width:0}.settings{display:block;flex:1 1 0;min-width:0;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+  .panel{border-radius:12px}.viewer-inner{padding:6px}.viewport{width:min(41svh,210px)}.panel-header{padding:7px 10px}
+  .live-tools{padding:5px 8px}.actions{grid-template-columns:repeat(4,minmax(0,1fr));padding:5px;gap:4px}.actions .btn{font-size:.63rem;padding:4px;min-height:30px}
+  .viewer-foot{padding:5px 8px;font-size:.58rem}.viewer-foot span:first-child{display:none}
+  .tiny-help{display:none}.file-drawer summary{padding:5px 9px}.setting-section{padding:11px 13px}
+}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+.back-to-mobilab{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:9px 14px;border:1px solid #ba98ff70;border-radius:12px;color:var(--yellow);background:#17152b;text-decoration:none;font-size:.82rem;font-weight:750}
+.back-to-mobilab:hover,.back-to-mobilab:focus-visible{background:#31244c}
+@media(max-width:700px){.back-to-mobilab{min-height:38px;font-size:.75rem;padding:7px 10px}}
+</style>
+</head>
+<body>
+<main class="app">
+<header class="top"><div class="brand"><div class="mark" aria-hidden="true">◉</div><div><div class="tagline">MobiLab / experiment 04</div><strong>BLINK<span style="color:var(--purple)">/</span>LAB</strong></div></div><a class="back-to-mobilab" href="../../#home" aria-label="Return to MobiLab overview">← MobiLab</a></header>
+<h1>Give your portrait <span>a life of its own.</span></h1><p class="intro">Touch-first calibration: drag eye anchors, zoom to adjust details, and preview blinking without leaving the portrait.</p>
+<div class="layout">
+  <section class="panel viewer-panel" aria-label="Live blink preview">
+   <div class="panel-header stage-header"><span class="panel-title">LIVE / Portrait stage <span class="version">v0.2</span></span><span class="status" id="stage-status">Initializing</span></div>
+   <div class="live-tools" aria-label="Portrait calibration tools">
+    <label class="toggle toggle-guides"><input type="checkbox" id="guides-toggle" checked> <span>Show anchors</span></label>
+    <button class="btn compact" id="edit-btn" type="button" aria-pressed="false">Edit: off</button>
+    <button class="btn compact" id="zoom-btn" type="button" aria-label="Zoom in for calibration">Zoom 1×</button>
+   </div>
+   <div class="viewer-inner"><div class="viewport" id="viewport" data-shape="round" aria-label="Portrait with live eyelids">
+    <div class="pose-layer" id="pose-layer"><div class="artwork" id="artwork">
+      <img id="portrait" alt="Portrait used in blink experiment" draggable="false">
+      <canvas id="lid-canvas" aria-hidden="true"></canvas>
+      <div class="prism-preview" id="prism-preview" aria-hidden="true"></div>
+      <svg class="calibration-overlay" id="calibration" aria-label="Draggable eye anchor handles"></svg>
+    </div></div>
+    <div class="stage-fallback" id="stage-fallback"><div><span>◌</span><p>Loading the portfolio portrait...<br>Or choose your own photo below.</p></div></div>
+   </div></div>
+   <div class="viewer-foot"><span>PHOTO SPACE <strong id="image-size">—</strong></span><span>BLINK FRAME <strong id="frame-status">IDLE</strong></span><span>ANCHORS <strong id="anchor-status">NORMALIZED</strong></span></div>
+   <div class="actions"><button class="btn primary" id="blink-btn" type="button">Blink both</button><button class="btn" id="left-btn" type="button">Left wink</button><button class="btn" id="right-btn" type="button">Right wink</button><button class="btn" id="double-btn" type="button">Double blink</button></div>
+   <details class="file-drawer"><summary>Photo / JSON tools</summary><div class="secondary-actions"><button class="btn" id="upload-btn" type="button">Upload a photo</button><button class="btn" id="export-btn" type="button">Export settings</button><button class="btn" id="import-btn" type="button">Import settings</button></div></details>
+   <p class="tiny-help">Yellow dots = drag the eye. Purple (outside eye) = width / angle. Cyan (above eye) = height. <span class="hint-hot">Tap “Edit” to adjust; “Zoom” to fine-tune.</span></p>
+   <input type="file" id="photo-input" accept="image/*" hidden><input type="file" id="config-input" accept=".json,application/json" hidden>
+  </section>
+  <aside class="panel settings" aria-label="Blink parameters">
+   <section class="setting-section"><div class="section-row"><h2>01 / Eye anchors</h2><label class="toggle"><input type="checkbox" id="calibrate-toggle"> Calibrate</label></div>
+    <p class="note">Drag an eye marker on the photo, or use the controls below. The selected eye stays centered when zoomed.</p>
+    <div class="seg" role="group" aria-label="Choose which eye to edit"><button type="button" data-eye="left" aria-pressed="true" id="left-eye-select">Left eye</button><button type="button" data-eye="right" aria-pressed="false" id="right-eye-select">Right eye</button></div>
+    <div class="nudge-tools" aria-label="Fine tuning selected eye">
+      <span class="nudge-label">Fine position</span>
+      <button type="button" class="btn nudge" data-move="-1,0" aria-label="Move eye left">←</button>
+      <button type="button" class="btn nudge" data-move="0,-1" aria-label="Move eye up">↑</button>
+      <button type="button" class="btn nudge" data-move="0,1" aria-label="Move eye down">↓</button>
+      <button type="button" class="btn nudge" data-move="1,0" aria-label="Move eye right">→</button>
+      <select id="nudge-step" aria-label="Nudge step"><option value=".001">Fine</option><option value=".005">Normal</option><option value=".01">Large</option></select>
+    </div>
+    <div class="duo" style="margin-top:15px"><div class="control"><label for="eye-x">X position <output id="eye-x-out"></output></label><input id="eye-x" type="range" min=".02" max=".98" step=".001"></div><div class="control"><label for="eye-y">Y position <output id="eye-y-out"></output></label><input id="eye-y" type="range" min=".02" max=".98" step=".001"></div></div>
+    <div class="duo"><div class="control"><label for="eye-w">Eye width <output id="eye-w-out"></output></label><input id="eye-w" type="range" min=".045" max=".25" step=".001"></div><div class="control"><label for="eye-h">Eye height <output id="eye-h-out"></output></label><input id="eye-h" type="range" min=".008" max=".09" step=".001"></div></div>
+    <div class="duo"><div class="control"><label for="eye-angle">Rotation <output id="eye-angle-out"></output></label><input id="eye-angle" type="range" min="-30" max="30" step=".5"></div><div class="control"><label for="skin-offset">Skin sample <output id="skin-offset-out"></output></label><input id="skin-offset" type="range" min=".4" max="3" step=".1"></div></div>
+    <div class="tip">Anchors use <strong>native-image normalized coordinates (0–1)</strong>. They do not depend on CSS pixels, zoom, crop, orientation, or browser refresh. Show anchors and edit mode are independent.</div>
+   </section>
+   <section class="setting-section"><div class="section-row"><h2>02 / Blink behavior</h2><label class="toggle"><input type="checkbox" id="auto-toggle" checked> Auto-blink</label></div>
+    <div class="duo"><div class="control"><label for="frequency">Interval <output id="frequency-out"></output></label><input id="frequency" type="range" min="2" max="14" step=".5"></div><div class="control"><label for="duration">Duration <output id="duration-out"></output></label><input id="duration" type="range" min="90" max="650" step="10"></div></div>
+    <div class="control"><label for="double-chance">Double-blink chance <output id="double-chance-out"></output></label><input id="double-chance" type="range" min="0" max="70" step="5"></div>
+    <div class="tip">Blinking uses a short animation burst and a sleeping timer—not an always-running render loop. Auto-blink pauses when the tab/portrait is hidden.</div>
+   </section>
+   <section class="setting-section"><div class="section-row"><h2>03 / Motion & composition</h2></div>
+    <div class="switches"><label class="toggle"><input type="checkbox" id="tilt-toggle"> Pointer tilt</label><label class="toggle"><input type="checkbox" id="prism-toggle"> Prism sheen preview</label></div>
+    <div class="duo" style="margin-top:15px"><div class="control"><label for="tilt-strength">Tilt strength <output id="tilt-strength-out"></output></label><input type="range" id="tilt-strength" min="0" max="16" step="1"></div><div class="control"><label for="parallax">Parallax <output id="parallax-out"></output></label><input type="range" id="parallax" min="0" max="28" step="1"></div></div>
+    <div class="duo"><div class="control"><label for="frame-ratio">Frame ratio</label><select id="frame-ratio"><option value="1">1 : 1</option><option value=".8">4 : 5</option><option value=".75">3 : 4</option><option value="1.333333">4 : 3</option></select></div><div class="control"><label for="frame-shape">Frame shape</label><select id="frame-shape"><option value="round">Circular</option><option value="square">Rounded rectangle</option></select></div></div>
+    <div class="duo"><div class="control"><label for="image-fit">Image fit</label><select id="image-fit"><option value="cover">Cover / crop</option><option value="contain">Contain / full photo</option></select></div><div class="control"><label for="crop-y">Crop Y focus <output id="crop-y-out"></output></label><input id="crop-y" type="range" min="0" max="100" step="1"></div></div>
+    <div class="tip">This is only a <em>prism-style sheen</em>, not your full Prism Tilt shader. The <strong>photo + eyelids + highlights share one motion parent</strong>.</div>
+   </section>
+   <section class="setting-section"><div class="section-row"><h2>04 / Experiment controls</h2></div><div class="secondary-actions" style="padding:0"><button class="btn" id="reset-eyes" type="button">Reset eye anchors</button><button class="btn" id="reset-all" type="button">Reset lab settings</button></div><p class="note" style="margin-bottom:0">Auto-saves on this browser. Export JSON for a portable, Git-friendly config. Uploaded photos stay on your device and are not stored or transmitted by this lab.</p></section>
+  </aside>
+</div>
+<div class="info">
+ <article><div class="info-num">ENGINE 01 / Coordinate model</div><h3>Anchor on the source image</h3><p>Eye positions are ratios in the original photo, not offsets from the viewport. The renderer compensates for cover/contain crop offsets.</p></article>
+ <article><div class="info-num">ENGINE 02 / Layer stack</div><h3>One shared transform</h3><p>Photo, canvas eyelids and prism placeholder live inside a single moving layer. Future motion cannot separate the eyelids from the face.</p></article>
+ <article><div class="info-num">ENGINE 03 / Runtime budget</div><h3>Animate only when needed</h3><p>Only eyelid masks redraw during a blink. Pointer transforms remain CSS-composited; idle portraits have no continuous animation frame loop.</p></article>
+</div>
+<p class="disclaimer">Standalone mobile prototype v0.2 · Uses the public image at <code>Dor-s-Profile-Site/images/profile_pic.jpg</code> by default. Upload your local image if that URL cannot be reached. Hosted by MobiLab. Calibration settings stay in this browser. Export your JSON to carry the same anchors between phone and PC.</p>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(()=>{'use strict';
+  const DEFAULT_IMAGE='https://raw.githubusercontent.com/DorManDel/Dor-s-Profile-Site/main/images/profile_pic.jpg';
+  const STORE='dor.portfolio.blinklab.v2';
+  const DEFAULTS={version:1, eyes:{
+    left:{x:.478,y:.338,w:.108,h:.021,angle:3.5},
+    right:{x:.663,y:.348,w:.112,h:.021,angle:4.0}
+  }, auto:true, frequency:5, duration:240, doubleChance:20, skinOffset:1.25,
+  tilt:true, tiltStrength:6, parallax:8, prism:false, fit:'cover', cropY:42, ratio:'1',shape:'round', guides:true};
+  const clone=o=>JSON.parse(JSON.stringify(o));
+  const $=id=>document.getElementById(id);
+  const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
+  const validNumber=(n,low,high,d)=>typeof n==='number' && Number.isFinite(n)?clamp(n,low,high):d;
+  let config=clone(DEFAULTS);
+  try{let saved=JSON.parse(localStorage.getItem(STORE)||'null');if(saved&&saved.version===1){for(const key of Object.keys(DEFAULTS)){if(key==='eyes')continue;if(Object.prototype.hasOwnProperty.call(saved,key))config[key]=saved[key];}for(const side of ['left','right']){let e=saved.eyes?.[side];if(e){for(let k of ['x','y','w','h','angle']){if(typeof e[k]==='number' && Number.isFinite(e[k]))config.eyes[side][k]=e[k];}}}}}catch(e){/* private browsing / invalid previous data */}
+  // Validate imported and browser-persisted values before using them.
+  function normalize(){for(const side of ['left','right']){let e=config.eyes[side],d=DEFAULTS.eyes[side];e.x=validNumber(e.x,.02,.98,d.x);e.y=validNumber(e.y,.02,.98,d.y);e.w=validNumber(e.w,.045,.25,d.w);e.h=validNumber(e.h,.008,.09,d.h);e.angle=validNumber(e.angle,-30,30,d.angle)}
+  for(let key of ['auto','tilt','prism','guides'])config[key]=Boolean(config[key]);
+  for(let [k,min,max] of [['frequency',2,14],['duration',90,650],['doubleChance',0,70],['skinOffset',.4,3],['tiltStrength',0,16],['parallax',0,28],['cropY',0,100]])config[k]=validNumber(config[k],min,max,DEFAULTS[k]);
+  if(!['cover','contain'].includes(config.fit))config.fit='cover';if(!['1','.8','.75','1.333333'].includes(config.ratio))config.ratio='1';if(!['round','square'].includes(config.shape))config.shape='round';}
+  normalize();
+  const viewport=$('viewport'), pose=$('pose-layer'), artwork=$('artwork'), portrait=$('portrait'), canvas=$('lid-canvas'), ctx=canvas.getContext('2d'), svg=$('calibration'), fallback=$('stage-fallback');
+  let nativeW=0,nativeH=0,sourceURL=null,objectURL=null,selected='left',calibrating=false,zoom=1,frameRAF=0,blinkQueue=[],blinkStart=0,blinkDuration=0,blinkEye='both',autoTimer=0,visible=true,inView=true,drag=null,toastTimer=0,pendingTilt=0,tiltX=0,tiltY=0,photoLoaded=false;
+  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
+  function toast(s){$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2500)}
+  function save(){try{localStorage.setItem(STORE,JSON.stringify(config))}catch(e){/* storage unavailable */}}
+  function loadImage(url){photoLoaded=false;fallback.classList.remove('hidden');$('stage-status').textContent='Loading image';sourceURL=url;portrait.onload=()=>{nativeW=portrait.naturalWidth;nativeH=portrait.naturalHeight;photoLoaded=true;fallback.classList.add('hidden');$('stage-status').textContent='Ready';$('image-size').textContent=nativeW+' × '+nativeH;resize();scheduleBlink();};portrait.onerror=()=>{photoLoaded=false;$('stage-status').textContent='Image unavailable';fallback.innerHTML='<div><span>◌</span><p>Could not load the public photo.<br>Select a local image with “Upload a photo”.</p></div>';fallback.classList.remove('hidden');};portrait.src=url;}
+  // All geometry is derived from natural image dimensions and the viewport's current size.
+  // Do not persist computed px positions: a resize/reload must produce the same normalized anchors.
+  function resize(){if(!photoLoaded)return;const vw=viewport.clientWidth,vh=viewport.clientHeight;const scale=config.fit==='cover'?Math.max(vw/nativeW,vh/nativeH):Math.min(vw/nativeW,vh/nativeH);const rw=nativeW*scale,rh=nativeH*scale;const left=(vw-rw)*.5,top=(vh-rh)*(config.cropY/100);Object.assign(artwork.style,{left:left+'px',top:top+'px',width:rw+'px',height:rh+'px'});
+    // Large original images can produce huge DPR surfaces; cap at natural resolution here.
+    canvas.width=nativeW;canvas.height=nativeH;svg.setAttribute('viewBox',`0 0 ${nativeW} ${nativeH}`);applyZoom();drawBlink(0,'both');drawGuides();}
+  function selectEye(side){selected=side;$('left-eye-select').setAttribute('aria-pressed',String(side==='left'));$('right-eye-select').setAttribute('aria-pressed',String(side==='right'));refreshEyeControls();applyZoom();drawGuides();}
+  function refreshEyeControls(){let e=config.eyes[selected];for(let [id,key,format] of [['eye-x','x',v=>(v*100).toFixed(1)+'%'],['eye-y','y',v=>(v*100).toFixed(1)+'%'],['eye-w','w',v=>(v*100).toFixed(1)+'%'],['eye-h','h',v=>(v*100).toFixed(1)+'%'],['eye-angle','angle',v=>v.toFixed(1)+'°']]){$(id).value=e[key];$(id+'-out').textContent=format(e[key]);}}
+  // Guidelines can be visible without editing; only editing enables pointer capture.
+  // SVG viewBox uses native photo pixels, so anchors scale with the image on every device.
+  function drawGuides(){
+    svg.replaceChildren();
+    svg.classList.toggle('active',calibrating&&photoLoaded);
+    svg.style.display=(config.guides && photoLoaded)?'block':'none';
+    if(!config.guides||!photoLoaded)return;
+    const scale=artwork.getBoundingClientRect().width/nativeW||1;
+    const r=Math.max(4.5,7/scale),hitR=Math.max(12,21/scale);
+    const NS='http://www.w3.org/2000/svg';
+    function node(tag,attrs,parent){const n=document.createElementNS(NS,tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,v);parent.appendChild(n);return n}
+    for(const side of ['left','right']){
+      const e=config.eyes[side],x=e.x*nativeW,y=e.y*nativeH,hw=e.w*nativeW/2,hh=e.h*nativeH/2;
+      const a=e.angle*Math.PI/180,g=node('g',{},svg),active=calibrating&&selected===side;
+      node('ellipse',{cx:x,cy:y,rx:hw,ry:hh,transform:`rotate(${e.angle},${x},${y})`,class:'eye-area'+(selected===side?' selected':'')},g);
+      // For phone usability, move adjustment knobs OUTSIDE the eye area. Only
+      // the selected eye gets these knobs; the other eye keeps its center handle.
+      if(active){
+        const sideSign=side==='left'?-1:1;
+        const len=hw+42/scale;
+        const wx=x+sideSign*len*Math.cos(a),wy=y+sideSign*len*Math.sin(a);
+        const hhLen=hh+42/scale;
+        const hx=x+hhLen*Math.sin(a),hy=y-hhLen*Math.cos(a);
+        node('line',{x1:x,y1:y,x2:wx,y2:wy,class:'connector'},g);
+        node('line',{x1:x,y1:y,x2:hx,y2:hy,class:'connector'},g);
+        for(const [role,px,py,cls] of [['width',wx,wy,'edge-handle'],['height',hx,hy,'height-handle']]){
+          node('circle',{cx:px,cy:py,r:r*1.18,class:'handle '+cls},g);
+          node('circle',{cx:px,cy:py,r:Math.max(12,18/scale),class:'hit-handle','data-eye':side,'data-role':role},g);
+        }
+      }
+      node('circle',{cx:x,cy:y,r:r,class:'handle center-handle'},g);
+      if(calibrating)node('circle',{cx:x,cy:y,r:hitR,class:'hit-handle','data-eye':side,'data-role':'center'},g);
+      const label=node('text',{x:x,y:y-hh-15/scale,'font-size':Math.max(9,12/scale),'text-anchor':'middle',class:'eye-label'},g);
+      label.textContent=side==='left'?'L':'R';
+    }
+  }
+  // Editing magnifier: zoom around selected eye and keep it centered in the viewport.
+  // Geometry remains in native image-space; only the display transform changes.
+  function applyZoom(){
+    if(!photoLoaded)return;
+    const vw=viewport.clientWidth,vh=viewport.clientHeight;
+    const rw=parseFloat(artwork.style.width)||vw,rh=parseFloat(artwork.style.height)||vh;
+    const left=parseFloat(artwork.style.left)||0,top=parseFloat(artwork.style.top)||0;
+    if(zoom===1){artwork.style.transform='none';return}
+    const e=config.eyes[selected],tx=vw*.5-left-zoom*e.x*rw,ty=vh*.50-top-zoom*e.y*rh;
+    artwork.style.transformOrigin='0 0';artwork.style.transform=`translate(${tx}px,${ty}px) scale(${zoom})`;
+  }
+  function curve(ctx,hw,hh,upper,p){let edge=upper?(-hh+1.25*hh*p):(hh-.75*hh*p);ctx.beginPath();ctx.moveTo(-hw,0);if(upper){ctx.bezierCurveTo(-hw*.63,-hh*1.35,hw*.63,-hh*1.35,hw,0);ctx.bezierCurveTo(hw*.50,edge*1.33,-hw*.50,edge*1.33,-hw,0)}else{ctx.bezierCurveTo(-hw*.63,hh*1.35,hw*.63,hh*1.35,hw,0);ctx.bezierCurveTo(hw*.50,edge*1.33,-hw*.50,edge*1.33,-hw,0)}ctx.closePath()}
+  function paintEye(side,p){if(p<=.002||!photoLoaded)return;let e=config.eyes[side],cx=e.x*nativeW,cy=e.y*nativeH,hw=e.w*nativeW*.5,hh=e.h*nativeH*.5,a=e.angle*Math.PI/180;
+    for(let upper of [true,false]){ctx.save();ctx.translate(cx,cy);ctx.rotate(a);curve(ctx,hw,hh,upper,p);ctx.clip();ctx.setTransform(1,0,0,1,0,0);
+      // The upper lid samples nearby skin above the eye; lower samples below it.
+      // This creates an image-textured covering instead of a flat painted rectangle.
+      let sampleShift=(upper?1:-1)*hh*config.skinOffset;ctx.drawImage(portrait,0,sampleShift,nativeW,nativeH);ctx.restore();}
+    if(p>.52){ctx.save();ctx.translate(cx,cy);ctx.rotate(a);ctx.beginPath();let y=.21*hh;ctx.moveTo(-hw*.92,0);ctx.bezierCurveTo(-hw*.42,y*1.8,hw*.42,y*1.8,hw*.92,0);ctx.lineWidth=Math.max(1,nativeW*.002);ctx.strokeStyle=`rgba(28,16,28,${((p-.52)/.48*.62).toFixed(3)})`;ctx.lineCap='round';ctx.stroke();ctx.restore()}}
+  function drawBlink(p,target){if(!photoLoaded)return;ctx.clearRect(0,0,nativeW,nativeH);if(target==='both'||target==='left')paintEye('left',p);if(target==='both'||target==='right')paintEye('right',p)}
+  function easedBlink(t){if(t<.4){let f=t/.4;return .5-.5*Math.cos(Math.PI*f)}let f=(t-.4)/.6;return .5+.5*Math.cos(Math.PI*f)}
+  function pauseBlink(){clearTimeout(autoTimer);autoTimer=0;cancelAnimationFrame(frameRAF);frameRAF=0;blinkQueue=[];drawBlink(0,'both');$('frame-status').textContent='IDLE'}
+  function canAuto(){return photoLoaded && config.auto && !calibrating && !reduced.matches && visible && inView}
+  function scheduleBlink(){clearTimeout(autoTimer);autoTimer=0;if(!canAuto()||frameRAF)return;let seconds=config.frequency*(.75+Math.random()*.6);autoTimer=setTimeout(()=>startBlink('both',Math.random()*100<config.doubleChance),seconds*1000)}
+  function startBlink(eye='both',double=false){if(!photoLoaded)return;clearTimeout(autoTimer);autoTimer=0;cancelAnimationFrame(frameRAF);frameRAF=0;blinkQueue=double?[eye,eye]:[eye];nextBlink();}
+  function nextBlink(){if(!blinkQueue.length){frameRAF=0;$('frame-status').textContent='IDLE';scheduleBlink();return}blinkEye=blinkQueue.shift();blinkStart=performance.now();blinkDuration=config.duration;$('frame-status').textContent=blinkEye==='both'?'BLINKING':blinkEye.toUpperCase()+' WINK';frameRAF=requestAnimationFrame(animate)}
+  function animate(now){let t=clamp((now-blinkStart)/blinkDuration,0,1);drawBlink(easedBlink(t),blinkEye);if(t<1){frameRAF=requestAnimationFrame(animate)}else{drawBlink(0,blinkEye);frameRAF=0;if(blinkQueue.length){autoTimer=setTimeout(()=>{autoTimer=0;nextBlink()},105)}else{nextBlink()}}}
+  function setCalibration(value){if(value){config.guides=true;$('guides-toggle').checked=true;save()}calibrating=value;viewport.classList.toggle('calibrating',value);$('calibrate-toggle').checked=value;$('edit-btn').setAttribute('aria-pressed',String(value));$('edit-btn').textContent=value?'Edit: on':'Edit: off';resetTilt();drawGuides();if(value)pauseBlink();else scheduleBlink();$('anchor-status').textContent=value?'EDITING':'NORMALIZED'}
+  function resetTilt(){pose.style.transition='transform .4s ease';pose.style.transform='translate3d(0,0,0) perspective(900px) rotateX(0deg) rotateY(0deg) scale(1.035)';setTimeout(()=>{pose.style.transition='';},420)}
+  function requestTilt(ev){if((ev.pointerType&&ev.pointerType!=='mouse'&&ev.pointerType!=='pen')||!config.tilt||calibrating||reduced.matches||!photoLoaded)return;let r=viewport.getBoundingClientRect();tiltX=clamp(((ev.clientX-r.left)/r.width-.5)*2,-1,1);tiltY=clamp(((ev.clientY-r.top)/r.height-.5)*2,-1,1);if(pendingTilt)return;pendingTilt=requestAnimationFrame(()=>{pendingTilt=0;pose.style.transition='none';pose.style.transform=`translate3d(${tiltX*config.parallax}px,${tiltY*config.parallax}px,0) perspective(900px) rotateX(${-tiltY*config.tiltStrength}deg) rotateY(${tiltX*config.tiltStrength}deg) scale(1.035)`;})}
+  function applyUI(){for(let [id,key,format] of [['frequency','frequency',v=>v.toFixed(1)+'s'],['duration','duration',v=>Math.round(v)+'ms'],['double-chance','doubleChance',v=>Math.round(v)+'%'],['skin-offset','skinOffset',v=>v.toFixed(1)+'×'],['tilt-strength','tiltStrength',v=>v+'°'],['parallax','parallax',v=>v+'px'],['crop-y','cropY',v=>v+'%']]){$(id).value=config[key];$(id+'-out').textContent=format(config[key])}
+    for(let [id,key] of [['auto-toggle','auto'],['tilt-toggle','tilt'],['prism-toggle','prism']])$(id).checked=config[key];for(let [id,key] of [['frame-ratio','ratio'],['frame-shape','shape'],['image-fit','fit']])$(id).value=config[key];viewport.style.aspectRatio=config.ratio;viewport.dataset.shape=config.shape;$('prism-preview').style.opacity=config.prism?'.74':'0';$('guides-toggle').checked=config.guides;refreshEyeControls();resize();scheduleBlink()}
+  // Bind slider settings with a single mapping, ensuring config and visuals stay synchronized.
+  const generalRanges={frequency:'frequency',duration:'duration','double-chance':'doubleChance','skin-offset':'skinOffset','tilt-strength':'tiltStrength',parallax:'parallax','crop-y':'cropY'};
+  for(let [id,key] of Object.entries(generalRanges))$(id).addEventListener('input',ev=>{config[key]=+ev.target.value;save();const fmt={frequency:v=>v.toFixed(1)+'s',duration:v=>Math.round(v)+'ms',doubleChance:v=>Math.round(v)+'%',skinOffset:v=>v.toFixed(1)+'×',tiltStrength:v=>v+'°',parallax:v=>v+'px',cropY:v=>v+'%'};$(id+'-out').textContent=fmt[key](config[key]);if(key==='frequency'||key==='doubleChance')scheduleBlink();if(key==='cropY')resize()});
+  for(let [id,key] of Object.entries({'auto-toggle':'auto','tilt-toggle':'tilt','prism-toggle':'prism'}))$(id).addEventListener('change',ev=>{config[key]=ev.target.checked;save();applyUI();if(key==='tilt'&&!config.tilt)resetTilt()});
+  for(let [id,key] of Object.entries({'frame-ratio':'ratio','frame-shape':'shape','image-fit':'fit'}))$(id).addEventListener('change',ev=>{config[key]=ev.target.value;save();applyUI()});
+  for(let [id,key] of Object.entries({'eye-x':'x','eye-y':'y','eye-w':'w','eye-h':'h','eye-angle':'angle'}))$(id).addEventListener('input',ev=>{config.eyes[selected][key]=+ev.target.value;save();refreshEyeControls();applyZoom();drawGuides();drawBlink(0,'both')});
+  $('left-eye-select').addEventListener('click',()=>selectEye('left'));
+  $('right-eye-select').addEventListener('click',()=>selectEye('right'));
+  $('calibrate-toggle').addEventListener('change',ev=>setCalibration(ev.target.checked));
+  $('edit-btn').addEventListener('click',()=>setCalibration(!calibrating));
+  $('guides-toggle').addEventListener('change',ev=>{config.guides=ev.target.checked;if(!config.guides && calibrating)setCalibration(false);save();drawGuides()});
+  $('zoom-btn').addEventListener('click',()=>{zoom=zoom===1?1.7:zoom===1.7?2.4:1;$('zoom-btn').textContent='Zoom '+zoom+'×';applyZoom();drawGuides()});
+  for(const btn of document.querySelectorAll('.nudge'))btn.addEventListener('click',()=>{
+    if(!calibrating)setCalibration(true);
+    const [dx,dy]=btn.dataset.move.split(',').map(Number),step=+$('nudge-step').value,e=config.eyes[selected];
+    e.x=clamp(e.x+dx*step,.02,.98);e.y=clamp(e.y+dy*step,.02,.98);
+    save();refreshEyeControls();applyZoom();drawGuides();
+  });
+  // Drag handles operate on image-space coordinates; calibration disables motion to keep this mapping exact.
+  function pointerToImage(ev){let r=artwork.getBoundingClientRect();return{x:((ev.clientX-r.left)/r.width)*nativeW,y:((ev.clientY-r.top)/r.height)*nativeH}}
+  svg.addEventListener('pointerdown',ev=>{
+    const t=ev.target;
+    if(!t.dataset.eye||!calibrating)return;
+    const side=t.dataset.eye, role=t.dataset.role;
+    if(selected!==side)selectEye(side);
+    const p=pointerToImage(ev);
+    drag={side,role,startX:p.x,startY:p.y,initial:{...config.eyes[side]}};
+    svg.setPointerCapture(ev.pointerId);ev.preventDefault();
+  });
+  svg.addEventListener('pointermove',ev=>{
+    if(!drag)return;
+    const p=pointerToImage(ev),e=config.eyes[drag.side],a=drag.initial;
+    const dx=p.x-drag.startX,dy=p.y-drag.startY;
+    if(drag.role==='center'){
+      e.x=clamp(a.x+dx/nativeW,.02,.98);e.y=clamp(a.y+dy/nativeH,.02,.98);
+    }else if(drag.role==='width'){
+      const sign=drag.side==='left'?-1:1;
+      e.w=clamp(a.w+sign*dx/nativeW*.85,.045,.25);
+      e.angle=clamp(a.angle+sign*dy*.20,-30,30);
+    }else if(drag.role==='height'){
+      e.h=clamp(a.h-dy/nativeH*.45,.008,.09);
+    }
+    refreshEyeControls();drawGuides();save();ev.preventDefault();
+  });
+  for(let evt of ['pointerup','pointercancel','lostpointercapture'])svg.addEventListener(evt,()=>{if(drag){drag=null;applyZoom();drawGuides()}});
+  viewport.addEventListener('pointermove',requestTilt);viewport.addEventListener('pointerleave',resetTilt);
+  viewport.addEventListener('click',ev=>{if(!calibrating && photoLoaded)startBlink('both')});
+  for(let [id,eye,double]of [['blink-btn','both',false],['left-btn','left',false],['right-btn','right',false],['double-btn','both',true]])$(id).addEventListener('click',()=>startBlink(eye,double));
+  $('upload-btn').addEventListener('click',()=>$('photo-input').click());$('photo-input').addEventListener('change',ev=>{let file=ev.target.files?.[0];if(!file)return;if(!file.type.startsWith('image/')){toast('Choose an image file.');return}if(objectURL)URL.revokeObjectURL(objectURL);objectURL=URL.createObjectURL(file);pauseBlink();loadImage(objectURL);toast('Local photo loaded. Image is not saved between sessions.');ev.target.value=''});
+  $('export-btn').addEventListener('click',()=>{let blob=new Blob([JSON.stringify(config,null,2)+'\n'],{type:'application/json'});let u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='blink-profile.config.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);toast('Exported portable eye-anchor settings.')});
+  $('import-btn').addEventListener('click',()=>$('config-input').click());$('config-input').addEventListener('change',async ev=>{let file=ev.target.files?.[0];if(!file)return;try{let cfg=JSON.parse(await file.text());if(cfg.version!==1||!cfg.eyes?.left||!cfg.eyes?.right)throw Error('Not a Blink Lab v1 config');config=Object.assign(clone(DEFAULTS),cfg);config.eyes={left:Object.assign({},DEFAULTS.eyes.left,cfg.eyes.left),right:Object.assign({},DEFAULTS.eyes.right,cfg.eyes.right)};normalize();save();applyUI();drawGuides();toast('Configuration imported.')}catch(err){toast('Could not import: '+err.message)}ev.target.value=''});
+  $('reset-eyes').addEventListener('click',()=>{config.eyes=clone(DEFAULTS.eyes);save();refreshEyeControls();applyZoom();drawGuides();toast('Eye anchors restored to starter positions.')});
+  $('reset-all').addEventListener('click',()=>{config=clone(DEFAULTS);zoom=1;$('zoom-btn').textContent='Zoom 1×';selectEye('left');setCalibration(false);save();applyUI();toast('All settings restored.')});
+  document.addEventListener('visibilitychange',()=>{visible=!document.hidden;if(!visible)pauseBlink();else scheduleBlink()});
+  const observer=typeof IntersectionObserver==='function'?new IntersectionObserver(entries=>{inView=entries[0]?.isIntersecting??true;if(!inView)pauseBlink();else scheduleBlink()},{threshold:.12}):null;observer?.observe(viewport);
+  reduced.addEventListener?.('change',()=>{if(reduced.matches){pauseBlink();resetTilt();}else scheduleBlink()});
+  const ro=typeof ResizeObserver==='function'?new ResizeObserver(()=>resize()):null;ro?.observe(viewport);window.addEventListener('resize',resize);
+  // Initial configuration sync happens before the remote image finishes loading.
+  applyUI();resetTilt();loadImage(DEFAULT_IMAGE);if(reduced.matches){toast('Reduced motion detected. Auto-blink and tilt are paused; manual blink still works.')}
+})();
+</script>
+</body>
+</html>
