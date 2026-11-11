@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#090b17">
+  <title>MobiLab · WSLX Terminal Lab</title>
+  <meta name="description" content="Responsive browser-only demo of WSLX and Linux commands. No real shell execution.">
+  <link rel="stylesheet" href="src/terminal.css">
+  <script>if(new URLSearchParams(location.search).get("embed")==="1")document.documentElement.classList.add("embed-mode");</script>
+</head>
+<body>
+<div class="page">
+  <header class="nav">
+    <div class="brand"><div class="brandmark">M.</div><div><div class="brandtitle">MOBILAB / WSLX</div><div class="brandtiny">Standalone experiment · R0.2</div></div></div>
+    <a class="back-link" href="../../#home">← All MobiLab experiments</a>
+  </header>
+  <div class="kicker"><span class="dot"></span> Interactive project preview</div>
+  <h1>Windows <em>↔</em> WSL,<br>inside your browser.</h1>
+  <p class="intro">A working <strong>simulation</strong> of a Linux terminal, with your WSLX path tools, Bash-style navigation and preview adapters for future addons. Explore freely: nothing here touches your real computer.</p>
+  <div class="tags"><span class="pill accent">PURE HTML + JS</span><span class="pill">ZERO DEPENDENCIES</span><span class="pill">RAM-ONLY FILESYSTEM</span><span class="pill">MOBILE-FRIENDLY</span></div>
+  <main class="layout">
+    <div class="terminal-wrap">
+      <section id="terminal" class="terminal" aria-label="Interactive terminal simulator">
+        <div class="term-top"><div class="term-left"><div class="term-dots" aria-hidden="true"><i></i><i></i><i></i></div><div class="term-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 5 5-5 5M12 18h8"/></svg><span id="titlePath">dor@ubuntu:~</span></div></div><div class="term-actions"><button type="button" data-key="copy" id="copyBtn" title="Copy terminal transcript">Copy</button><button type="button" id="clearBtn">Clear</button><button type="button" data-key="expand" id="expandBtn" aria-label="Expand terminal">Expand ↗</button></div></div>
+        <div class="term-body">
+          <div class="output" id="output" role="log" aria-label="Terminal output" aria-live="polite"></div>
+          <form id="terminalForm" class="command-row" autocomplete="off"><label for="terminalInput" id="promptLabel" class="input-prompt">dor@ubuntu:<b>~</b>$</label><input id="terminalInput" type="text" autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text" enterkeyhint="go" placeholder="type a command..." aria-label="Terminal command"><button type="submit" class="enter">↵</button></form>
+        </div>
+        <div class="term-bottom"><span id="status" class="status">Sandbox ready · no real shell</span><span class="kbd-hint">↑ ↓ history · Tab complete · Ctrl+L clear</span></div>
+      </section>
+      <div class="quickbar" id="quickbar" aria-label="Example commands"><button type="button" data-command="wslx help">wslx help</button><button type="button" data-command="wslx doctor">wslx doctor</button><button type="button" data-command="ls">ls</button><button type="button" data-command="tree projects/wslx">tree projects/wslx</button><button type="button" data-command="wslx 'D:\Projects\Demo'">wslx path</button><button type="button" data-command="wslx --win /mnt/d/Projects/Demo">--win</button><button type="button" data-command="cd projects/wslx">cd</button><button type="button" data-command="wcd /mnt/d/Projects/Demo">wcd</button><button type="button" data-command="wslx cd 'D:\Projects\Demo'">wslx cd</button><button type="button" data-command="wpaste">wpaste</button></div>
+      <p class="tip">Tip: select a quick command to execute it, or use the input and terminal keyboard shortcuts.</p>
+    </div>
+    <aside class="sidebar">
+      <section class="panel"><div class="eyebrow">Guided walkthrough</div><h2>Try the actual WSLX syntax</h2><p>These commands follow the conventions in the WSLX repository. Click any example to run it.</p>
+        <div class="guide">
+          <button type="button" class="example" data-command="wslx 'D:\Projects\Demo'"><code>wslx 'D:\Projects\Demo'</code><span class="tag">PATH</span></button>
+          <button type="button" class="example" data-command="wslx --win '/mnt/d/Projects/Demo'"><code>wslx --win '/mnt/d/Projects/Demo'</code><span class="tag">PATH</span></button>
+          <button type="button" class="example" data-command="cd projects/wslx"><code>cd projects/wslx</code><span class="tag">CD</span></button>
+          <button type="button" class="example" data-command="wcd /mnt/d/Projects/Demo"><code>wcd /mnt/d/Projects/Demo</code><span class="tag">WCD</span></button>
+          <button type="button" class="example" data-command="wslx cd 'D:\Projects\Demo'"><code>wslx cd 'D:\Projects\Demo'</code><span class="tag">WSLX CD</span></button>
+          <button type="button" class="example" data-command="wslx doctor"><code>wslx doctor</code><span class="tag">CHECK</span></button>
+          <button type="button" class="example" data-command="wopen ."><code>wopen .</code><span class="tag">PLANNED</span></button>
+          <button type="button" class="example" data-command="wclip hello from WSLX"><code>wclip hello from WSLX</code><span class="tag">PLANNED</span></button>
+        </div>
+      </section>
+      <section class="panel"><div class="eyebrow">Engine overview</div><h2>Designed to be reused.</h2><p>The terminal interface, command parser, fake filesystem and command implementations are separate modules. Custom commands register through one JavaScript API.</p>
+        <div class="feature-grid"><div class="feature"><b id="commandCount">—</b><span>Registered commands</span></div><div class="feature"><b id="sessionCount">0</b><span>Commands executed</span></div><div class="feature"><b>0</b><span>External libraries</span></div><div class="feature"><b>0</b><span>Real shell calls</span></div></div>
+        <div class="divider"></div><button type="button" class="smallbtn" id="resetBtn">↻ Reset virtual machine</button>
+        <p style="margin-top:12px"><small><span class="warning-inline">Not a real WSL terminal.</span> Disk, clipboard and Windows integration are simulated. No server, downloads or OS permissions are used.</small></p>
+      </section>
+    </aside>
+  </main>
+  <footer class="footer"><span>MOBILAB / WSLX TERMINAL LAB / R0.2 · NOT CONNECTED TO YOUR MACHINE</span><span>Source project: <a href="https://github.com/DorManDel/wslx" rel="noopener noreferrer" target="_blank">github.com/DorManDel/wslx</a></span></footer>
+</div>
+<script src="src/terminal-engine.js"></script>
+<script src="src/commands-linux.js"></script>
+<script src="src/commands-wslx.js"></script>
+<script src="src/terminal-ui.js"></script>
+</body>
+</html>
