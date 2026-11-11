@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#110c20"><title>Media Dock · MobiLab</title>
+<style>
+:root{color-scheme:dark;font:16px/1.5 system-ui,Segoe UI,sans-serif;background:#0d0a19;color:#f7f3ff}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 5% 0%,#51208066,transparent 40%),radial-gradient(ellipse at 95% 30%,#aa831e24,transparent 40%),#0d0a19}
+main{max-width:1080px;margin:auto;padding:20px clamp(14px,4vw,40px) 60px}a{color:#d9befc}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{font-weight:900;font-size:1.3rem}.logo span{color:#ffc95e}
+.tag{font-size:.75rem;letter-spacing:.12em;color:#c5acff;font-weight:800;text-transform:uppercase}
+h1{font-size:clamp(2.1rem,6vw,4rem);line-height:1.08;margin:14px 0}h1 span{color:#d4aeff}
+p{color:#d1c6df;margin:8px 0 16px}.muted{font-size:.87rem;color:#ac9cbf}
+.grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,1fr);gap:18px}
+.panel{background:#21182dcb;border:1px solid #66507978;border-radius:20px;padding:22px;box-shadow:0 16px 60px #0003;min-width:0}
+h2{font-size:1.12rem;margin:0 0 14px}label{display:block;font-size:.9rem;font-weight:700;margin:15px 0 8px}
+textarea,select,input{width:100%;background:#0d0a19;color:#fff;border:1px solid #645374;border-radius:12px;padding:12px;font:inherit}
+textarea{min-height:180px;resize:vertical}textarea:focus,select:focus,input:focus{outline:2px solid #a678ec}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>*{flex:1}button{border:0;border-radius:12px;padding:12px 16px;min-height:46px;cursor:pointer;font:inherit;font-weight:750}
+.primary{background:linear-gradient(110deg,#b47dff,#ffdc7e);color:#170c25}.secondary{background:#49355d;color:#f9f1ff;border:1px solid #78618d}.quiet{background:transparent;color:#ccb5e2;border:1px solid #635378}
+button:focus-visible,a:focus-visible{outline:3px solid #ffdc7e;outline-offset:3px}.wide{width:100%;margin-top:12px}
+details{border:1px solid #66507978;border-radius:14px;margin-top:16px;padding:14px;background:#171123}summary{font-weight:800;cursor:pointer}
+code,pre{font-family:Consolas,monospace}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0a0813;padding:15px;border-radius:10px;max-height:270px;overflow:auto;font-size:.8rem}
+.queue{list-style:none;padding:0;margin:12px 0;max-height:370px;overflow:auto}.queue li{border-bottom:1px solid #6b56824d;padding:9px 0;display:flex;gap:8px;align-items:center;justify-content:space-between}
+.queue small{display:block;color:#bba8cf}.queue code{font-size:.75rem;overflow-wrap:anywhere}
+.ghost{background:#3b2b4c;color:#ffcd76;padding:7px 11px;min-height:35px;flex:0 0 auto}
+.status{min-height:24px;color:#ffd584;font-size:.9rem}.steps li{margin-bottom:10px}.pill{display:inline-block;background:#49335f;color:#ffdb80;border-radius:99px;padding:4px 10px;font-size:.75rem}
+footer{margin-top:18px;color:#bcaace;font-size:.82rem}@media(max-width:760px){.grid{grid-template-columns:1fr}.panel{padding:17px}.row>*{flex-basis:100%}button{min-height:48px}}
+</style></head>
+<body><main>
+<header><a href="../../#home" aria-label="Back to MobiLab">← MobiLab</a><div class="logo">MEDIA <span>DOCK</span></div><span class="pill">LOCAL-FIRST · V0.1</span></header>
+<section><div class="tag" style="margin-top:35px">MobiLab / Download Utilities</div><h1>Paste. Queue. <span>Launch.</span></h1><p>Organize links from YouTube and other yt-dlp-supported websites, generate safe local commands, and prepare a Windows download launcher. Nothing is downloaded by this web page.</p></section>
+<div class="grid"><section class="panel"><h2>01 · Quick Mode</h2>
+<label for="urls">Paste one or more video / playlist URLs</label><textarea id="urls" placeholder="https://www.youtube.com/watch?v=...&#10;https://www.youtube.com/playlist?list=..."></textarea>
+<div class="row"><button id="add" class="secondary">＋ Add to queue</button><button id="clear" class="quiet">Clear input</button></div>
+<label for="format">Download format</label><select id="format"><option value="mp3">MP3 · best quality</option><option value="audio">Original audio</option><option value="mp4">MP4 · best available compatible format</option></select>
+<label for="folder">Windows output folder</label><input id="folder" value="$HOME\Music\Media Dock" placeholder="$HOME\Music\Media Dock">
+<button id="make" class="primary wide">↓ Prepare Windows one-click launcher (.ps1)</button>
+<p class="muted">Run the downloaded script in PowerShell on your own Windows PC. It checks for yt-dlp and FFmpeg and uses your download archive to skip completed media. The browser cannot execute local programs.</p>
+<div id="status" class="status" role="status" aria-live="polite"></div>
+<details><summary>Manual mode · copy exact commands</summary>
+<p class="muted">For advanced use: select a format and copy the PowerShell command. URLs are passed individually to yt-dlp.</p>
+<pre id="command"></pre><button class="secondary" id="copy">Copy commands</button>
+<ol class="steps"><li>Install <a href="https://github.com/yt-dlp/yt-dlp#installation" target="_blank" rel="noopener">yt-dlp</a> and <a href="https://ffmpeg.org/download.html" target="_blank" rel="noopener">FFmpeg</a> on Windows and ensure both are on PATH.</li><li>Paste URLs and press <strong>Add to queue</strong>.</li><li>Copy the commands into PowerShell, or download and run the launcher from Quick Mode.</li><li>Keep <code>downloaded.txt</code> in the output folder to avoid downloading media twice.</li></ol>
+</details>
+<details><summary>About browser limitations and supported URLs</summary><p>This interface recognizes HTTP(S) links, labels common platforms, and stores your pending queue in this browser. Actual site support and playlist availability depend on the installed yt-dlp version and the source website. URL recognition here is not an online availability check. Video and playlist content is downloaded only by your local tools.</p></details>
+</section>
+<section class="panel"><h2>02 · Your queue <span id="count" class="pill">0</span></h2><p class="muted">Duplicate URLs are removed. Saved locally on this device only.</p><ul class="queue" id="queue"></ul>
+<div class="row"><button id="export" class="secondary">↓ Export links</button><button id="empty" class="quiet">Empty queue</button></div>
+<details><summary>Windows setup · first time only</summary><ol class="steps"><li>Install Python/yt-dlp and FFmpeg. The launcher expects executable tools on PATH.</li><li>Use <code>winget install yt-dlp.yt-dlp</code> if that package is available, and <code>winget install Gyan.FFmpeg</code> for FFmpeg.</li><li>Open a fresh PowerShell window and check <code>yt-dlp --version</code> and <code>ffmpeg -version</code>.</li><li>Use the generated launcher for subsequent batches. Keep your existing archive file.</li></ol></details>
+</section></div>
+<footer>For content you own or have permission to download. This lab is a companion to the original Media Dock desktop toolkit; it does not replace its background queue runner, scheduler, or dependency installer.</footer>
+</main>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id), KEY='mobilab.mediaDock.queue.v1', PREF='mobilab.mediaDock.settings.v1';
+let queue=[];try{const q=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(q))queue=q.filter(x=>typeof x==='string'&&/^https?:\/\//i.test(x)).slice(0,500)}catch{}
+try{const s=JSON.parse(localStorage.getItem(PREF)||'{}');if(['mp3','audio','mp4'].includes(s.format))$('format').value=s.format;if(typeof s.folder==='string')$('folder').value=s.folder}catch{}
+const ps=s=>"'"+s.replace(/'/g,"''")+"'";
+function extract(raw){return (raw.match(/https?:\/\/[^\s<>"'\\]+/gi)||[]).map(s=>s.replace(/[),.;\]]+$/,''))}
+function classify(url){try{let h=new URL(url).hostname.toLowerCase().replace(/^www\./,'');return h.includes('youtube.com')||h==='youtu.be'?'YouTube':h.includes('instagram.com')?'Instagram':h.includes('tiktok.com')?'TikTok':h.includes('soundcloud.com')?'SoundCloud':h.includes('reddit.com')?'Reddit':h==='x.com'||h.includes('twitter.com')?'X':h.includes('vimeo.com')?'Vimeo':h.includes('twitch.tv')?'Twitch':h.includes('facebook.com')?'Facebook':h}catch{return 'Unknown'}}
+function safeUrl(s){try{const u=new URL(s);return ['http:','https:'].includes(u.protocol)&&Boolean(u.hostname)&&!u.username&&!u.password&&s.length<4096}catch{return false}}
+function config(){return {format:$('format').value,folder:$('folder').value.trim()||'$HOME\\Music\\Media Dock'}}
+function save(){localStorage.setItem(KEY,JSON.stringify(queue));localStorage.setItem(PREF,JSON.stringify(config()))}
+function options(){switch(config().format){case 'mp3':return ['-x','--audio-format','mp3','--audio-quality','0'];case 'audio':return ['-f','bestaudio/best'];default:return ['-f','bv*+ba/b','--merge-output-format','mp4']}}
+function render(){save();$('count').textContent=queue.length;$('queue').replaceChildren();queue.forEach((u,i)=>{const li=document.createElement('li'),div=document.createElement('div'),name=document.createElement('strong'),url=document.createElement('small'),b=document.createElement('button');name.textContent=classify(u);url.textContent=u;div.append(name,url);b.textContent='Remove';b.className='ghost';b.setAttribute('aria-label','Remove URL '+(i+1));b.onclick=()=>{queue.splice(i,1);render()};li.append(div,b);$('queue').append(li)});if(!queue.length){const li=document.createElement('li');li.textContent='No URLs yet. Add some links to get started.';$('queue').append(li)}$('command').textContent=commands()}
+function commands(){const c=config(),opt=options().map(ps).join(' '),d=ps(c.folder);return ['$destination = '+d,'$destination = $ExecutionContext.InvokeCommand.ExpandString($destination)','New-Item -ItemType Directory -Force -Path $destination | Out-Null',...queue.map(u=>'yt-dlp --ignore-errors --continue --no-overwrites --download-archive (Join-Path $destination '+ps('downloaded.txt')+') -P $destination -o '+ps('%(title).180B [%(id)s].%(ext)s')+' '+opt+' -- '+ps(u))].join('\n')}
+function status(s){$('status').textContent=s}
+function saveBlob(text,name,type){const a=document.createElement('a'),url=URL.createObjectURL(new Blob([text],{type}));a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$('add').onclick=()=>{const vals=extract($('urls').value);let n=0;for(const v of vals){if(!safeUrl(v)||queue.includes(v)||queue.length>=500)continue;queue.push(v);n++}render();status(n+' new valid URL(s) added. '+(vals.length-n)+' duplicate/invalid/skipped.');};
+$('clear').onclick=()=>{$('urls').value='';status('Input cleared; queue preserved.')};
+$('empty').onclick=()=>{if(queue.length&&confirm('Remove all queued URLs from this browser?')){queue=[];render();status('Queue cleared.')}}; 
+$('format').onchange=render;$('folder').oninput=render;
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(commands());status('PowerShell commands copied.')}catch{status('Clipboard unavailable. Select the command text and copy it manually.')}};
+$('export').onclick=()=>{if(!queue.length)return status('Add a URL first.');saveBlob(queue.join('\r\n')+'\r\n','media-dock-urls.txt','text/plain');status('URL list exported.')};
+$('make').onclick=()=>{if(!queue.length)return status('Add a URL to your queue first.');const body=commands(),script=['# Media Dock launcher - generated locally by MobiLab','# Review before running. Requires yt-dlp and FFmpeg on PATH.','$ErrorActionPreference = '+ps('Stop'),'if (-not (Get-Command yt-dlp -ErrorAction SilentlyContinue)) { Write-Host '+ps('yt-dlp not found. See setup guide in MobiLab.')+'; Read-Host '+ps('Press Enter')+'; exit 1 }','if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { Write-Host '+ps('FFmpeg not found. See setup guide in MobiLab.')+'; Read-Host '+ps('Press Enter')+'; exit 1 }',body,'Write-Host '+ps('Batch completed. Check output and errors above.'),'Read-Host '+ps('Press Enter to close')].join('\r\n');saveBlob(script+'\r\n','MediaDock-Download.ps1','text/plain');status('Launcher prepared. Run the downloaded .ps1 file locally from PowerShell.')}
+render();
+})();
+</script></body></html>
