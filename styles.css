@@ -257,3 +257,8 @@ footer a{text-decoration:none;color:#aa92d5}
 .motion-rhythm-center span{color:var(--muted);font-size:11px}
 #motionTrainControls{padding:16px;background:#100d1c;border-radius:12px;border:1px solid var(--border);margin-bottom:17px}
 #motionTrainControls .slider-field{margin:12px 0}
+
+/* Blink Lab v0.2: full-page experiment route, styled as a native MobiLab tab. */
+.tabs a.blink-tab-link{text-decoration:none;flex:0 0 auto}
+.lab-cards a.blink-lab-card{text-decoration:none;cursor:pointer}
+.lab-cards a.blink-lab-card:focus-visible{outline:2px solid var(--yellow);outline-offset:3px}
