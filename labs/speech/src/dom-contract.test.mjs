@@ -11,4 +11,10 @@ assert.deepEqual(missing,[],"All app.js control IDs must be present in HTML");
 assert.match(html,/src="\.\/src\/app\.js"/,"HTML must load the mobile app module");
 assert.ok(!html.includes('id="startMic"'),"Legacy two-button mic controls must be gone");
 assert.ok(html.includes('id="recordToggle"'),"Single accessible mic toggle must exist");
+for(const id of ["liveDeck","livePartial","liveTranslation","chunkMode","earlyPreview","liveApiMs","liveSttMs","liveTotalMs"]){
+ assert.ok(ids.includes(id),"Missing live mode element: "+id);
+}
+assert.ok(html.indexOf('id="recordDock"')<html.indexOf('id="controlTitle"'),
+  "Mic button must appear before advanced controls.");
+assert.ok(html.includes('src/live-captions.css'),"Live deck CSS must load.");
 console.log("HTML DOM contract passed ("+ids.length+" IDs, "+required.length+" JS bindings).");
