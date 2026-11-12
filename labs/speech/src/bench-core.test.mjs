@@ -49,3 +49,23 @@ queue.enqueue({id:5,text:"next",source:"he",target:"en"},[
 await new Promise(done=>setTimeout(done,0));
 assert.ok(events.some(e=>e[0]===5&&e[2]==="success"&&e[3]==="Works after immediate cancel"));
 console.log("unabortable job cannot block next session");
+
+
+// Live priority must drop *queued translations* but retain their transcript rows.
+const realtimeEvents=[];
+let releaseActive;
+const active=new Promise(resolve=>{releaseActive=resolve;});
+const live=new TranslationQueue({
+  onChange:(row,id,patch)=>realtimeEvents.push([row?.id,id,patch.status,patch.text])
+});
+live.enqueue({id:10,text:"original",source:"en",target:"he"},[{id:"cloud",run:()=>active}]);
+live.enqueueRealtime({id:11,text:"older",source:"en",target:"he"},[{id:"cloud",run:async()=>"skip me"}],2);
+live.enqueueRealtime({id:12,text:"next",source:"en",target:"he"},[{id:"cloud",run:async()=>"keep 12"}],2);
+live.enqueueRealtime({id:13,text:"latest",source:"en",target:"he"},[{id:"cloud",run:async()=>"keep 13"}],2);
+assert.ok(realtimeEvents.some(e=>e[0]===11&&e[1]==="queue"&&e[2]==="skipped"));
+assert.ok(!realtimeEvents.some(e=>e[0]===11&&e[2]==="success"));
+releaseActive("active done");
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.ok(realtimeEvents.some(e=>e[0]===12&&e[2]==="success"));
+assert.ok(realtimeEvents.some(e=>e[0]===13&&e[2]==="success"));
+console.log("Live queue catch-up: older queued translation skipped and newer rows preserved.");
