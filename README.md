@@ -8,7 +8,7 @@ A mobile-first collection of experimental web mechanics and hardware exploration
 - **Camera Lab** — permission-based front/back preview, local snapshot and relative orientation.
 - **VibroMotion** — short timed vibration trials with motion/orientation telemetry, protected flat/upright setup modes, no-vibration control, custom pulse trains (on/off/duty), optional local rear-camera contact sheets, physical observations and CSV export.
 - **Blink Lab** — touch-first profile eyelid overlay calibration, image-space relative eye anchors, auto/manual blink, zoom, crop and tilt preview, local settings and JSON export. Open at [`labs/blink/`](./labs/blink/).
-- **WSLX Terminal Lab** — safe, mobile-ready Ubuntu/WSLX command simulator. Supports Linux `cd`, `wcd`, `wslx cd`, path conversion, virtual filesystem commands and clearly labeled future addon previews. Open at [`labs/wslx/`](./labs/wslx/).
+- **WSLX Terminal Lab** — safe Ubuntu/WSLX command simulator with an editable File Explorer, Windows ↔ WSL path navigation, text editing, virtual filesystem operations, opt-in device file/folder imports and read-only linked-folder refresh where supported. Open at [`labs/wslx/`](./labs/wslx/).
 - **Idea Board** — locally saved experiment ideas.
 
 ## Run
@@ -84,3 +84,13 @@ For a small native panel, add a `data-panel` section and matching `data-tab` but
 - `wslx path`, `--win`, `--link`, `doctor`, and `version` are modeled from the current WSLX project. Other addons (for example `wopen`, `wclip`, `wpaste`) are **planned-feature previews**, not actual machine integrations.
 - All files, clipboard state and commands are virtual; nothing executes against the visitor's real computer.
 - `labs/wslx/index.html?embed=1` provides a compact preview for future MyPortfolio integration, but MyPortfolio is intentionally unchanged.
+
+## WSLX Explorer R0.3
+
+- Open `labs/wslx/`: Explorer and terminal use the **same virtual filesystem and working directory**. Full-width experience for PC, stacked layout on phone. Compact `?embed=1` hides the Explorer for future MyPortfolio embedding.
+- Use the editable path field with `/home/dor`, `/mnt/d/Projects/Demo`, or `D:\\Projects\\Demo`. Folder `⋯` selects it for rename/move/delete without navigating into it.
+- Create files/folders, edit text, rename/move/delete virtual entries, Undo the last Explorer operation, and export/restore a virtual workspace JSON. RAM-only by default: reloading resets state unless exported.
+- `Import files` or `Import folder` copies **only explicitly selected** small text files into the virtual filesystem (max 120 files, 200 KB each, 2 MB per batch); no original files are written to.
+- `Link folder · read only` uses `showDirectoryPicker({mode:'read'})` on supporting **HTTPS** browsers. The selected folder is mirrored under `~/device/<selected-folder>` in virtual space; refresh is explicit and may overwrite edited **virtual** copies, never real device files. Linked handles disappear on reload.
+- Browsers cannot expose arbitrary absolute paths to devices (for example `/storage/emulated/0`); path conversions refer to the simulator's *virtual* tree. Browser support for directory linking varies.
+- Run tests from `labs/wslx`: `node tests.cjs && node explorer-tests.cjs` (no dependencies). Browser UI verified in headless Chromium at 1440px and 390px; real-device UX still needs testing.
