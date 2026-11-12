@@ -117,4 +117,5 @@
   banner();prompt();scrollEnd();
   global.WSLXLab.engine=engine;
   global.WSLXLab.run=run;
+  global.WSLXLab.refreshTerminal=()=>{prompt();setStatus('Virtual workspace updated');};
 })(window);
