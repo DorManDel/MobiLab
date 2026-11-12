@@ -319,7 +319,7 @@ function updateRow(row,id,patch) {
     }
     if(patch.status==="success" && patch.text && row.finalToSubtitleMs===null) {
       row.finalToSubtitleMs=Math.max(0,now-row.finalPerf);
-      liveView.latencies.push(row.finalToSubtitleMs);
+      if(row.fromSpeech)liveView.latencies.push(row.finalToSubtitleMs);
       if(liveView.latencies.length>60)liveView.latencies.shift();
     }
   }
@@ -358,7 +358,7 @@ function addPhrase(text,source,target,candidates=null,automatic=true,sttMs=null,
   if (candidates && previous && previous.text.toLocaleLowerCase() === text.toLocaleLowerCase()
     && Date.now()-previous.at < 1500) return;
   const row = { id:++rowId,at:Date.now(),offset:Date.now()-sessionStart,text,source,target,
-    candidates,results:{},queueStatus:"saved",sttMs,finalPerf,queueWaitMs:null,finalToSubtitleMs:null };
+    candidates,results:{},queueStatus:"saved",sttMs,finalPerf,fromSpeech:Array.isArray(candidates),queueWaitMs:null,finalToSubtitleMs:null };
   rows.push(row);
   interimActive=false;
   renderRows();showCaption(row);showComparison(row);showCandidates(row);
