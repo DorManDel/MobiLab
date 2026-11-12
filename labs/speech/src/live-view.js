@@ -45,6 +45,7 @@ export class LiveCaptionView {
     this.el("livePhase").textContent="Translating final subtitle…";
     this.el("liveTranslation").textContent="…";
     this.el("liveNotice").textContent="Recognized final words. Waiting for a translation provider.";
+    this.el("liveTotalLabel").textContent=row.fromSpeech?"Final → subtitle":"Submit → subtitle";
     this.el("liveSttMs").textContent=formatLatency(row.sttMs);
     this.el("liveQueueMs").textContent="—";
     this.el("liveApiMs").textContent="—";
@@ -52,6 +53,7 @@ export class LiveCaptionView {
   }
   showQueue(row) {
     if(!row)return;
+    this.el("liveTotalLabel").textContent=row.fromSpeech?"Final → subtitle":"Submit → subtitle";
     this.el("liveSttMs").textContent=formatLatency(row.sttMs);
     this.el("liveQueueMs").textContent=formatLatency(row.queueWaitMs);
     const results=Object.values(row.results||{}).filter(v=>v?.text);
@@ -109,6 +111,7 @@ export class LiveCaptionView {
     this.el("livePhase").textContent="Ready";
     this.el("liveNotice").textContent="Interim text appears instantly; translations are final unless Early Draft is enabled.";
     for(const id of ["liveSttMs","liveQueueMs","liveApiMs","liveTotalMs"])this.el(id).textContent="—";
+    this.el("liveTotalLabel").textContent="Final → subtitle";
     this.el("livePercentile").textContent="p50/p90: —";
     this.drawHistory();
   }
