@@ -36,3 +36,16 @@ queue.enqueue({id:3,text:"z",source:"en",target:"he"},[
 await new Promise(done=>setTimeout(done,0));
 assert.deepEqual(events.filter(e=>e[0]===3&&e[2]==="success").map(e=>e[3]).sort(),["ABC","DEF"]);
 console.log("bench core: WER, character similarity, endpoint validation, canceled queue and parallel providers passed");
+
+const unending=new Promise(()=>{});
+queue.start();
+queue.enqueue({id:4,text:"hung",source:"he",target:"en"},[{id:"never",run:()=>unending}]);
+await Promise.resolve();
+queue.stop();
+queue.start();
+queue.enqueue({id:5,text:"next",source:"he",target:"en"},[
+  {id:"ok",run:async()=>"Works after immediate cancel"}
+]);
+await new Promise(done=>setTimeout(done,0));
+assert.ok(events.some(e=>e[0]===5&&e[2]==="success"&&e[3]==="Works after immediate cancel"));
+console.log("unabortable job cannot block next session");
