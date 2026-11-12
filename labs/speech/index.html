@@ -148,7 +148,7 @@
   const languageNames = {he:"Hebrew",en:"English",es:"Spanish",fr:"French",de:"German",ar:"Arabic",ru:"Russian",it:"Italian"};
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recog = null, wantListening = false, restartTimer = null, finalizedIndices = new Set();
-  let rows = [], sequence = 0, sessionStarted = Date.now(), lastTranslated = "", lastTarget = "en";
+  let rows = [], sequence = 0, sessionStarted = Date.now(), sessionGeneration = 0, lastTranslated = "", lastTarget = "en";
   const cache = new Map();
   $("browserSupport").textContent = Recognition ? "STT available*" : "STT unavailable";
   $("startMic").disabled = !Recognition || !window.isSecureContext;
@@ -186,7 +186,7 @@
       if (interim.trim()) $("captionOriginal").textContent = interim.trim() + " …";
     };
     recog.onerror = (event) => {
-      const fatal = ["not-allowed", "service-not-allowed", "audio-capture", "language-not-supported"];
+      const fatal = ["not-allowed", "service-not-allowed", "audio-capture", "language-not-supported", "network"];
       if (fatal.includes(event.error)) {
         wantListening = false;
         setListeningUI();
@@ -298,15 +298,18 @@
     text=text.trim();
     if (!text) return;
     const row={id:++sequence,at:Date.now(),offset:Date.now()-sessionStarted,text,source,target,confidence,translated:"",error:""};
+    const myGeneration=sessionGeneration;
     rows.push(row); renderRows(); showCaption(row);
     const began=performance.now();
     try {
       const translated=await translate(text,source,target);
+      if(myGeneration!==sessionGeneration)return;
       row.translated=translated;
-      lastTranslated=translated; lastTarget=target;
+      if(rows[rows.length-1]?.id===row.id){lastTranslated=translated;lastTarget=target;}
       $("latency").textContent=Math.round(performance.now()-began)+"ms";
       setStatus("Translated phrase #" + row.id + " · " + source + " → " + target);
     } catch(error) {
+      if(myGeneration!==sessionGeneration)return;
       row.error=error.message || String(error);
       setStatus("Translation failed: " + row.error, true);
     }
@@ -325,7 +328,7 @@
     submitPhrase(text,source,$("targetLang").value);
   });
   $("clearAll").addEventListener("click", () => {
-    rows=[];sequence=0;sessionStarted=Date.now();lastTranslated="";
+    sessionGeneration++;rows=[];sequence=0;sessionStarted=Date.now();lastTranslated="";cache.clear();
     $("latency").textContent="—";$("wer").textContent="—";
     $("captionOriginal").textContent="Waiting for input…";$("captionTranslated").textContent="Translation will appear here.";
     renderRows();setStatus("Session cleared; no previous text stored in this app.");
