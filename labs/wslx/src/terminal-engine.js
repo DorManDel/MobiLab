@@ -50,11 +50,68 @@
       const parts=p.split('/').filter(Boolean);
       this.entries.set('/', {kind:'dir'});
       let at='';
-      for(const part of parts) {at += '/' + part;if(!this.entries.has(at)) this.entries.set(at,{kind:'dir'});}
+      for(const part of parts) {
+        at += '/' + part;
+        const prior=this.entries.get(at);
+        if(prior?.kind==='file')throw new Error('Not a directory: '+at);
+        if(!prior)this.entries.set(at,{kind:'dir'});
+      }
     }
     addFile(p,content='') {
-      p=posixNormalize(p); this.addDir(p.slice(0,p.lastIndexOf('/')) || '/');
+      p=posixNormalize(p);
+      if(p==='/')throw new Error('Cannot overwrite root');
+      if(this.entries.get(p)?.kind==='dir')throw new Error('Is a directory: '+p);
+      this.addDir(p.slice(0,p.lastIndexOf('/')) || '/');
       this.entries.set(p,{kind:'file',content:String(content)});
+    }
+    mkdir(p,{recursive=false}={}) {
+      p=posixNormalize(p);
+      if(this.entries.has(p))throw new Error('Already exists: '+p);
+      const parent=p.slice(0,p.lastIndexOf('/'))||'/';
+      if(!recursive&&this.get(parent)?.kind!=='dir')throw new Error('Parent directory missing: '+parent);
+      this.addDir(p);
+    }
+    writeFile(p,content,{create=false}={}) {
+      p=posixNormalize(p);
+      const previous=this.get(p);
+      if(!previous&&!create)throw new Error('File not found: '+p);
+      if(previous?.kind==='dir')throw new Error('Is a directory: '+p);
+      const parent=p.slice(0,p.lastIndexOf('/'))||'/';
+      if(this.get(parent)?.kind!=='dir')throw new Error('Parent directory missing: '+parent);
+      this.entries.set(p,{kind:'file',content:String(content)});
+    }
+    move(source,destination) {
+      source=posixNormalize(source);destination=posixNormalize(destination);
+      if(source==='/'||destination==='/')throw new Error('Cannot move filesystem root');
+      if(!this.get(source))throw new Error('Source does not exist: '+source);
+      if(source===destination)return destination;
+      if(destination.startsWith(source+'/'))throw new Error('Cannot move a folder into itself');
+      if(this.get(destination))throw new Error('Destination already exists: '+destination);
+      const parent=destination.slice(0,destination.lastIndexOf('/'))||'/';
+      if(this.get(parent)?.kind!=='dir')throw new Error('Destination parent does not exist: '+parent);
+      const moving=[...this.entries].filter(([key])=>key===source||key.startsWith(source+'/'));
+      for(const [key] of moving)this.entries.delete(key);
+      for(const [key,value] of moving)this.entries.set(destination+key.slice(source.length),{...value});
+      return destination;
+    }
+    snapshot(){return [...this.entries].map(([path,item])=>[path,{...item}]);}
+    restore(entries){this.entries=new Map(entries.map(([path,item])=>[path,{...item}]));}
+    exportData(){return {format:'wslx-lab-v1',entries:this.snapshot()};}
+    importData(data){
+      if(!data||data.format!=='wslx-lab-v1'||!Array.isArray(data.entries)||data.entries.length>600)throw new Error('Invalid or oversized snapshot');
+      const next=new Map(), maxLength=4*1024*1024;let total=0;
+      for(const row of data.entries){
+        if(!Array.isArray(row)||row.length!==2)throw new Error('Invalid filesystem record');
+        const [path,item]=row;
+        if(typeof path!=='string'||path!==posixNormalize(path)||!/^\//.test(path)||path.length>350||path.includes('\0')||!item||!['dir','file'].includes(item.kind)||next.has(path))throw new Error('Invalid filesystem path');
+        if(item.kind==='file'&&(typeof item.content!=='string'||item.content.length>250000))throw new Error('Invalid or oversized file');
+        total+=path.length+(item.kind==='file'?item.content.length:0);
+        if(total>maxLength)throw new Error('Snapshot too large');
+        next.set(path,item.kind==='dir'?{kind:'dir'}:{kind:'file',content:item.content});
+      }
+      if(next.get('/')?.kind!=='dir'||next.get('/home/dor')?.kind!=='dir')throw new Error('Required virtual directories missing');
+      for(const [path] of next){if(path==='/')continue;const parent=path.slice(0,path.lastIndexOf('/'))||'/';if(next.get(parent)?.kind!=='dir')throw new Error('Missing parent: '+path);}
+      this.entries=next;
     }
     get(p){return this.entries.get(posixNormalize(p));}
     children(p){p=posixNormalize(p);const prefix=p==='/'?'/':p+'/';return [...this.entries].filter(([key])=>key.startsWith(prefix) && key!==p && !key.slice(prefix.length).includes('/')).map(([name,item])=>({name:name.slice(prefix.length), ...item})).sort((a,b)=>Number(b.kind==='dir')-Number(a.kind==='dir') || a.name.localeCompare(b.name));}
@@ -82,9 +139,11 @@
       this.username=options.username || 'dor';this.hostname=options.hostname || 'ubuntu';
       this.home='/home/'+this.username;this.fs=new VirtualFS();
       this.cwd=this.home;this.history=[];this.env={HOME:this.home,USER:this.username,PWD:this.home,OLDPWD:'',SHELL:'/bin/bash',TERM:'xterm-256color'};
-      this.commands=new Map();this.commandMeta=new Map();this.clipboard='';this.lastCode=0;
+      this.commands=new Map();this.commandMeta=new Map();this.clipboard='';this.lastCode=0;this.listeners=new Set();
     }
-    reset(){this.cwd=this.home;this.history=[];this.fs.seed();this.clipboard='';this.lastCode=0;this.env.PWD=this.home;this.env.OLDPWD='';}
+    reset(){this.cwd=this.home;this.history=[];this.fs.seed();this.clipboard='';this.lastCode=0;this.env.PWD=this.home;this.env.OLDPWD='';this.notify();}
+    subscribe(fn){this.listeners.add(fn);return ()=>this.listeners.delete(fn);}
+    notify(){for(const fn of this.listeners){try{fn(this);}catch(e){console.warn('WSLX observer failed',e);}}}
     register({name,aliases=[],description='',section='Addon',handler,status='demo'}) {
       if(typeof name!=='string'||!name.trim()||typeof handler!=='function') throw new TypeError('register requires a name and handler');
       const meta={name,aliases,description,section,status,handler};
@@ -145,7 +204,7 @@
           if(result.lines)for(const l of result.lines)print(l.text,l.tone);
         }
       }catch(e){print(`${name}: ${e.message}`,'error');code=1;}
-      this.lastCode=code;
+      this.lastCode=code;this.notify();
       return {lines,code,clear,prompt:this.prompt(),empty:false};
     }
   }
