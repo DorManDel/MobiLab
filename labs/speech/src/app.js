@@ -21,17 +21,18 @@ function scheduleDraft(text) {
   draftTimer=setTimeout(async()=>{
     if(version!==draftVersion || !micActive)return;
     draftAbort?.abort();
-    draftAbort=new AbortController();
+    const controller=new AbortController();
+    draftAbort=controller;
     const began=performance.now();
     lastDraftRequest=began;
     try{
       const out=await translateMyMemory(Array.from(trimmed).slice(0,180).join(""),
-        $("sourceLang").value,$("targetLang").value,draftAbort.signal);
-      if(version===draftVersion && micActive && !draftAbort.signal.aborted){
+        $("sourceLang").value,$("targetLang").value,controller.signal);
+      if(version===draftVersion && micActive && !controller.signal.aborted){
         liveView.early(out,performance.now()-began);
       }
     }catch(error){
-      if(version===draftVersion && micActive && !draftAbort.signal.aborted){
+      if(version===draftVersion && micActive && !controller.signal.aborted){
         $("liveNotice").textContent="Early draft unavailable: "+(error.message||"translation error");
       }
     }
@@ -307,16 +308,38 @@ function activeProviders() {
 }
 function updateRow(row,id,patch) {
   if (!row) return;
-  if (id === "queue") row.queueStatus = patch.status;
-  else row.results[id] = {...(row.results[id] || {}),...patch};
-  renderRows();
+  if (id === "queue") {
+    row.queueStatus=patch.status;
+  } else {
+    row.results[id] = {...(row.results[id] || {}),...patch};
+    const now=performance.now();
+    if(patch.status==="running" && row.queueWaitMs===null) {
+      row.queueWaitMs=Math.max(0,now-row.finalPerf);
+    }
+    if(patch.status==="success" && patch.text && row.finalToSubtitleMs===null) {
+      row.finalToSubtitleMs=Math.max(0,now-row.finalPerf);
+      liveView.latencies.push(row.finalToSubtitleMs);
+      if(liveView.latencies.length>60)liveView.latencies.shift();
+    }
+  }
+  // Rendering a long transcript for every provider progress callback causes UI lag.
+  if(patch.status!=="running" || id==="queue")renderRows();
   if (rows[rows.length-1]?.id === row.id) {
     if (!interimActive) showCaption(row);
     showComparison(row);
+    if(patch.status==="success" && patch.text && !interimActive) {
+      const best=row.results.cloud?.text || row.results.local?.text || row.results.libre?.text;
+      const provider=row.results.cloud?.text?"MyMemory":
+        row.results.local?.text?"Chrome":"LibreTranslate";
+      liveView.translated(row,best,provider);
+    } else if (id==="queue" && patch.status==="skipped" && !interimActive) {
+      liveView.skipped(row);
+    }
+    liveView.showQueue(row);
   }
 }
 const queue = new TranslationQueue({onChange:updateRow,maxPending:8});
-function addPhrase(text,source,target,candidates=null,automatic=true) {
+function addPhrase(text,source,target,candidates=null,automatic=true,sttMs=null,finalPerf=performance.now()) {
   text=text.trim();
   if (!text || rows.length >= MAX_PHRASES) {
     if (rows.length >= MAX_PHRASES) { if(micActive)stopMic();status("Session capped at 250 phrases. Export or clear before recording more.",true);}
@@ -326,17 +349,22 @@ function addPhrase(text,source,target,candidates=null,automatic=true) {
   if (candidates && previous && previous.text.toLocaleLowerCase() === text.toLocaleLowerCase()
     && Date.now()-previous.at < 1500) return;
   const row = { id:++rowId,at:Date.now(),offset:Date.now()-sessionStart,text,source,target,
-    candidates,results:{},queueStatus:"saved" };
+    candidates,results:{},queueStatus:"saved",sttMs,finalPerf,queueWaitMs:null,finalToSubtitleMs:null };
   rows.push(row);
   interimActive=false;
   renderRows();showCaption(row);showComparison(row);showCandidates(row);
+  liveView.final(row);
   if (automatic) translateRow(row);
   else status("Phrase saved. Tap 'Translate saved' whenever you're ready.");
 }
 function translateRow(row) {
   try {
     const providers = activeProviders();
-    if (!queue.enqueue(row,providers)) status("Translation queue is full; transcript was still saved.",true);
+    const realtime=micActive && $("subtitlePriority").value==="live";
+    const accepted=realtime
+      ? queue.enqueueRealtime(row,providers,2)
+      : queue.enqueue(row,providers);
+    if (!accepted) status("Translation queue is full; transcript was still saved.",true);
   } catch (error) {
     row.queueStatus="skipped";
     status("Comparison setting: "+error.message,true);
@@ -400,6 +428,7 @@ $("clearAll").addEventListener("click",()=>{
   $("captionTranslated").textContent="Translation will appear here.";
   $("speechCandidates").replaceChildren();
   renderRows();showComparison(null);
+  cancelDraft();liveView.reset();
   status("Session cleared. Nothing is uploaded by the app itself.");
 });
 $("compareLocal").disabled=!localTranslator.supported();
