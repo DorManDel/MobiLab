@@ -1,0 +1,34 @@
+name: Speech Lab static checks
+on:
+  pull_request:
+    paths:
+      - 'labs/speech/**'
+      - '.github/workflows/speech-lab.yml'
+  push:
+    branches:
+      - main
+      - feat/speech-lab-v02-mobile-tts-queue
+    paths:
+      - 'labs/speech/**'
+      - '.github/workflows/speech-lab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse app modules
+        run: |
+          node --check labs/speech/src/app.js
+          node --check labs/speech/src/bench-core.js
+          node --check labs/speech/src/engine-compare.js
+      - name: Run pure unit tests and DOM contract
+        working-directory: labs/speech
+        run: npm test
