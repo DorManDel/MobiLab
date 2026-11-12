@@ -93,8 +93,10 @@ export class TranslationQueue {
     if (current) {
       this.onChange(current.row, "queue", { status: "canceled" });
       for (const task of current.tasks) {
-        this.onChange(current.row, task.id, { status: "canceled", error: "Stopped by user." });
-        task.controller.abort();
+        if (!task.done) {
+          this.onChange(current.row, task.id, { status: "canceled", error: "Stopped by user." });
+          task.controller.abort();
+        }
       }
       current.interrupt(); // Allows a fresh session without waiting on an unabortable provider.
     }
@@ -114,7 +116,7 @@ export class TranslationQueue {
       while (this.enabled && this.pending.length) {
         const { row, providers } = this.pending.shift();
         const generation = this.generation;
-        const tasks = providers.map(({ id }) => ({ id, controller: new AbortController() }));
+        const tasks = providers.map(({ id }) => ({ id, controller: new AbortController(), done: false }));
         let interrupt;
         const canceled = new Promise(resolve => { interrupt = resolve; });
         this.current = { row, tasks, interrupt };
@@ -130,12 +132,14 @@ export class TranslationQueue {
                 }
               });
             if (this.enabled && generation === this.generation && !controller.signal.aborted) {
+              tasks[i].done = true;
               this.onChange(row, provider.id, {
                 status: "success", text, ms: Math.round(this.clock() - begin)
               });
             }
           } catch (error) {
             if (this.enabled && generation === this.generation && !controller.signal.aborted) {
+              tasks[i].done = true;
               this.onChange(row, provider.id, {
                 status: "error", error: error?.message || String(error),
                 ms: Math.round(this.clock() - begin)
