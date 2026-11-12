@@ -63,3 +63,19 @@
 .embed-mode .file-explorer{display:none}
 
 .fx-file-row{display:flex;align-items:center;gap:3px;min-width:0}.fx-file-row>button:first-child{flex:1}.fx-files .fx-inspect{flex:none;width:35px;min-height:34px;text-align:center;font-size:18px;color:var(--yellow);background:rgba(173,128,255,.075);border:1px solid rgba(173,128,255,.15)}
+
+/* R0.4 · shell-style completion tray + explicit mobile Tab button. */
+.command-row .tab-key{flex:none;min-width:52px;min-height:44px;padding:8px 9px;border:1px solid rgba(176,142,245,.48);border-radius:9px;background:rgba(173,128,255,.14);color:#d9c4ff;font:700 12px var(--mono);touch-action:manipulation}
+.command-row .tab-key:hover,.command-row .tab-key:focus-visible{background:rgba(173,128,255,.28);outline:2px solid rgba(173,128,255,.35);outline-offset:1px}
+.command-row .enter{min-width:45px;min-height:44px;font-size:18px;touch-action:manipulation}
+.command-row button:disabled{opacity:.4}
+.command-row input{flex:1;width:0}
+.completion-tray{padding:6px 12px 7px;background:rgba(12,14,29,.99);border-top:1px solid rgba(177,142,255,.2);max-height:208px;overflow:auto;scrollbar-width:thin}
+.completion-tray[hidden]{display:none}
+.completion-head,.completion-more{font:10px/1.5 var(--mono);color:#938daf;padding:5px 7px}
+.completion-option{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 9px;min-height:36px;border:0;border-radius:8px;background:transparent;color:#eae5ff;font:12px var(--mono);text-align:left;touch-action:manipulation}
+.completion-option:hover,.completion-option[aria-selected=true],.completion-option:focus-visible{background:rgba(174,136,255,.19);outline:1px solid rgba(170,133,250,.25)}
+.completion-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.completion-kind{font:9px var(--mono);color:var(--yellow);opacity:.85}
+@media(max-width:600px){.command-row{gap:6px}.command-row .input-prompt{font-size:10px;max-width:29%}.command-row input{font-size:16px;min-width:0}.command-row .tab-key{min-width:52px;padding:7px 6px}.command-row .enter{min-width:44px}.completion-tray{max-height:170px;padding:4px 8px}}
+@media(max-width:390px){.command-row .input-prompt{max-width:25%}}
