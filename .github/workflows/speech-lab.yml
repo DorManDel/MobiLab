@@ -7,7 +7,7 @@ on:
   push:
     branches:
       - main
-      - feat/speech-lab-v02-mobile-tts-queue
+      - feat/speech-live-captions-latency-v03
     paths:
       - 'labs/speech/**'
       - '.github/workflows/speech-lab.yml'
@@ -29,6 +29,8 @@ jobs:
           node --check labs/speech/src/app.js
           node --check labs/speech/src/bench-core.js
           node --check labs/speech/src/engine-compare.js
+          node --check labs/speech/src/live-captions.js
+          node --check labs/speech/src/live-view.js
       - name: Run pure unit tests and DOM contract
         working-directory: labs/speech
         run: npm test
