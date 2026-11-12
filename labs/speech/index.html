@@ -50,11 +50,21 @@
     .metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
     .metric-box{background:#0e0c19;border:1px solid var(--line);border-radius:11px;padding:12px;min-width:0}
     .metric-box label{font-size:10px}
+    .compare-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+    .engine-box{background:#0d0c18;border:1px solid var(--line);padding:13px;border-radius:11px;min-width:0}
+    .engine-box strong{font-size:13px;display:block;margin:8px 0;overflow-wrap:anywhere}
+    .engine-box .caption{color:var(--yellow);min-height:43px;font-size:14px;line-height:1.5;overflow-wrap:anywhere;white-space:pre-wrap}
+    .engine-tag{color:var(--muted);font-size:10px;letter-spacing:.4px}
+    .candidate-list{font-size:12px;line-height:1.7;color:var(--muted);padding-left:19px;max-width:100%;overflow-wrap:anywhere}
+    .candidate-list li{margin:5px 0}
+    #agreement{font-size:12px}
+
     .check{display:flex;align-items:center;gap:8px;font-size:12px;margin-top:12px}.check input{width:18px;height:18px;accent-color:var(--purple)}
     .alert{padding:13px 16px;background:#33281855;border:1px solid #f5d66b4d;border-radius:12px;font-size:12px;line-height:1.65;color:#eedfc0;margin:16px 0}
     .notes{margin-top:16px}.notes li{margin-bottom:8px;color:var(--muted);font-size:12px;line-height:1.6}
     code{color:#e8d4ff}
     @media(max-width:740px){.grid{grid-template-columns:1fr}.stage{min-height:215px}.card{padding:17px}.metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.metric{font-size:17px}}
+    @media(max-width:380px){.compare-grid{grid-template-columns:1fr}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
   </style>
 </head>
@@ -117,6 +127,32 @@
         <div class="metric-box"><label>WORD ERROR RATE</label><strong class="metric" id="wer">—</strong></div>
       </div>
       <div class="divider"></div>
+      <div class="eyebrow">OPTIONAL ENGINE COMPARISON · REAL RESULTS</div>
+      <h2>Compare translation engines</h2>
+      <label class="check" for="compareLocal">
+        <input id="compareLocal" type="checkbox">
+        Also run Chrome's on-device translator (supported desktop browsers only)
+      </label>
+      <p class="hint" id="localStatus" role="status">Checking whether a second translation engine is available…</p>
+      <div class="compare-grid">
+        <div class="engine-box">
+          <span class="engine-tag">ENGINE A · CLOUD</span>
+          <strong>MyMemory</strong>
+          <p id="cloudEngineResult" class="caption">No result yet.</p>
+          <span class="engine-tag" id="cloudEngineTime">—</span>
+        </div>
+        <div class="engine-box">
+          <span class="engine-tag">ENGINE B · DEVICE</span>
+          <strong>Chrome Translator</strong>
+          <p id="localEngineResult" class="caption">Not enabled.</p>
+          <span class="engine-tag" id="localEngineTime">—</span>
+        </div>
+      </div>
+      <p id="agreement" class="hint">Different translations can both be correct. Word overlap is not an accuracy score.</p>
+      <h3>Speech recognition candidates</h3>
+      <p class="hint">If available, these are alternatives from the <strong>same</strong> browser recognizer — not independent models.</p>
+      <ol id="speechCandidates" class="candidate-list"><li>Speak a final phrase to view candidates.</li></ol>
+      <div class="divider"></div>
       <div class="row between"><h2 style="margin:0">Session transcript</h2><span class="tag">RAM only</span></div>
       <div id="segments" class="segments" aria-live="polite"><p class="hint">Finalized phrases will appear here. Interim results appear above but are not translated or stored.</p></div>
       <div class="row" style="margin-top:14px"><button id="copyTranscript">Copy text</button><button id="exportTxt">↓ Export TXT</button><button id="exportVtt">↓ Export VTT*</button></div>
@@ -132,6 +168,7 @@
   <section class="card notes" aria-labelledby="notesTitle">
     <div class="eyebrow">ENGINE NOTES</div><h2 id="notesTitle">What's real and what's next?</h2>
     <ul>
+      <li><strong>Engine comparison:</strong> MyMemory cloud and Chrome on-device Translator may run in parallel when enabled and supported. The second translation model is only available on supported desktop browsers and may require an opt-in model download. Both translate the <em>same finalized text</em>; this does not compare two independent speech recognizers.</li>
       <li><strong>Speech recognition:</strong> Web Speech API on supporting browsers, typically cloud-backed; Android may stop listening after pauses. The lab attempts safe restarts while you keep the mic enabled.</li>
       <li><strong>Translation:</strong> MyMemory public API (anonymous quota 5,000 characters/day; each request max 500 UTF-8 bytes). Final phrases only; errors are displayed, never replaced with made-up translations.</li>
       <li><strong>Automatic spoken-language detection:</strong> Not implemented in this version. Later: audio-language-ID + Whisper or a comparable multilingual recognizer.</li>
@@ -142,6 +179,7 @@
   </section>
 </div>
 <script type="module">
+  import { createChromeTranslatorAdapter, lexicalAgreement } from "./src/engine-compare.js";
   "use strict";
   const $ = (id) => document.getElementById(id);
   const langLocales = {he:"he-IL",en:"en-US",es:"es-ES",fr:"fr-FR",de:"de-DE",ar:"ar-SA",ru:"ru-RU",it:"it-IT"};
@@ -150,6 +188,20 @@
   let recog = null, wantListening = false, restartTimer = null, finalizedIndices = new Set();
   let rows = [], sequence = 0, sessionStarted = Date.now(), sessionGeneration = 0, lastTranslated = "", lastTarget = "en";
   const cache = new Map();
+  const localAdapter = createChromeTranslatorAdapter(window);
+  $("compareLocal").disabled = !localAdapter.supported();
+  $("localStatus").textContent = localAdapter.supported()
+    ? "Optional desktop engine available. Tick the box to compare. First use may download a language pack."
+    : "On-device comparison is unavailable here (desktop Chrome/Edge only). Cloud translation remains available.";
+  $("compareLocal").addEventListener("change", () => {
+    if ($("compareLocal").checked) {
+      $("localStatus").textContent = "Comparison enabled. The first request may download a model to this device.";
+      $("localEngineResult").textContent = "Waiting for a new phrase…";
+    } else {
+      $("localStatus").textContent = "Local comparison paused. Previously loaded models may remain cached by the browser.";
+      $("localEngineResult").textContent = "Comparison off.";
+    }
+  });
   $("browserSupport").textContent = Recognition ? "STT available*" : "STT unavailable";
   $("startMic").disabled = !Recognition || !window.isSecureContext;
   if (!window.isSecureContext) setStatus("Microphone requires HTTPS or localhost.", true);
@@ -170,7 +222,7 @@
     recog.lang = langLocales[$("sourceLang").value];
     recog.continuous = true;
     recog.interimResults = true;
-    recog.maxAlternatives = 1;
+    recog.maxAlternatives = 3;
     recog.onstart = () => setStatus("Listening · " + languageNames[$("sourceLang").value] + ". Speak now.");
     recog.onresult = (event) => {
       let interim = "";
@@ -180,7 +232,11 @@
         if (!value) continue;
         if (item.isFinal && !finalizedIndices.has(i)) {
           finalizedIndices.add(i);
-          submitPhrase(value, $("sourceLang").value, $("targetLang").value, item[0]?.confidence);
+          const candidates = Array.from(item, (entry) => ({
+            text: entry.transcript?.trim() || "",
+            confidence: Number.isFinite(entry.confidence) ? entry.confidence : null
+          })).filter((candidate) => candidate.text);
+          submitPhrase(value, $("sourceLang").value, $("targetLang").value, item[0]?.confidence, candidates);
         } else if (!item.isFinal) interim += " " + value;
       }
       if (interim.trim()) $("captionOriginal").textContent = interim.trim() + " …";
@@ -275,8 +331,45 @@
   }
   function showCaption(row) {
     $("captionOriginal").textContent = row.text;
-    $("captionTranslated").textContent = row.translated || (row.error ? "Translation failed: " + row.error : "Translating…");
+    $("captionTranslated").textContent = row.translated || row.localTranslated || (
+      row.error && (!row.localEnabled || row.localError)
+        ? "Translation failed. See engine results below."
+        : "Translating…"
+    );
     $("detectedLang").textContent = "Source: " + row.source;
+  }
+  function showCandidates(candidates, fromMic) {
+    const el = $("speechCandidates");
+    el.replaceChildren();
+    if (!fromMic) {
+      const item = document.createElement("li");
+      item.textContent = "Typed input — no speech candidates.";
+      el.append(item);
+      return;
+    }
+    for (const entry of candidates || []) {
+      const item = document.createElement("li");
+      const confidence = entry.confidence !== null && entry.confidence > 0
+        ? " · recognizer confidence " + Math.round(entry.confidence * 100) + "%"
+        : " · confidence not provided";
+      item.textContent = entry.text + confidence;
+      el.append(item);
+    }
+    if (!el.childNodes.length) {
+      const item=document.createElement("li");item.textContent="Browser returned no alternatives.";el.append(item);
+    }
+  }
+  function showEngineResults(row) {
+    $("cloudEngineResult").textContent = row.translated || (row.error ? "Error: " + row.error : "Translating…");
+    $("cloudEngineTime").textContent = row.cloudLatency === null ? "—" : row.cloudLatency + " ms";
+    $("localEngineResult").textContent = !row.localEnabled ? "Comparison off / unsupported" :
+      (row.localTranslated || (row.localError ? "Error: " + row.localError : "Preparing on-device model…"));
+    $("localEngineTime").textContent = row.localLatency === null ? "—" : row.localLatency + " ms";
+    const agreement = row.translated && row.localTranslated
+      ? lexicalAgreement(row.translated, row.localTranslated) : null;
+    $("agreement").textContent = agreement === null
+      ? "Run both engines to see lexical agreement. Similar wording is NOT proof of correctness."
+      : "Word-set overlap: " + Math.round(agreement * 100) + "% (lexical similarity only, NOT an accuracy score).";
   }
   function renderRows() {
     const el = $("segments"); el.replaceChildren();
@@ -294,27 +387,56 @@
     });
     $("phraseCount").textContent=String(rows.length);
   }
-  async function submitPhrase(text, source, target, confidence) {
+  async function submitPhrase(text, source, target, confidence, candidates = null) {
     text=text.trim();
     if (!text) return;
-    const row={id:++sequence,at:Date.now(),offset:Date.now()-sessionStarted,text,source,target,confidence,translated:"",error:""};
+    const localEnabled = $("compareLocal").checked && localAdapter.supported();
+    const row={id:++sequence,at:Date.now(),offset:Date.now()-sessionStarted,text,source,target,confidence,
+      translated:"",error:"",cloudLatency:null,localEnabled,localTranslated:"",localError:"",localLatency:null};
     const myGeneration=sessionGeneration;
-    rows.push(row); renderRows(); showCaption(row);
-    const began=performance.now();
-    try {
-      const translated=await translate(text,source,target);
-      if(myGeneration!==sessionGeneration)return;
-      row.translated=translated;
-      if(rows[rows.length-1]?.id===row.id){lastTranslated=translated;lastTarget=target;}
-      $("latency").textContent=Math.round(performance.now()-began)+"ms";
-      setStatus("Translated phrase #" + row.id + " · " + source + " → " + target);
-    } catch(error) {
-      if(myGeneration!==sessionGeneration)return;
-      row.error=error.message || String(error);
-      setStatus("Translation failed: " + row.error, true);
-    }
-    renderRows();
-    if (rows[rows.length-1]?.id===row.id) showCaption(row);
+    rows.push(row); renderRows(); showCaption(row); showEngineResults(row);
+    showCandidates(candidates, Array.isArray(candidates));
+    const latest = () => myGeneration===sessionGeneration && rows[rows.length-1]?.id===row.id;
+    const cloudTask = (async () => {
+      const began=performance.now();
+      try {
+        const translated = await translate(text,source,target);
+        if(myGeneration!==sessionGeneration)return;
+        row.translated = translated;
+        row.cloudLatency = Math.round(performance.now()-began);
+        if(latest()){
+          lastTranslated=translated;lastTarget=target;
+          $("latency").textContent=row.cloudLatency+"ms";
+          setStatus("Cloud translation completed for phrase #" + row.id + ".");
+        }
+      } catch(error) {
+        if(myGeneration!==sessionGeneration)return;
+        row.error=error.message || String(error);
+        if(latest())setStatus("Cloud translation error: " + row.error,true);
+      } finally {
+        if(myGeneration===sessionGeneration){renderRows();if(latest()){showCaption(row);showEngineResults(row);}}
+      }
+    })();
+    const localTask = localEnabled ? (async () => {
+      const began=performance.now();
+      try {
+        const result = await localAdapter.translate(text,source,target,(status)=>{
+          if(latest())$("localStatus").textContent=status;
+        });
+        if(myGeneration!==sessionGeneration)return;
+        row.localTranslated = result;
+        row.localLatency = Math.round(performance.now()-began);
+        if(latest() && !row.translated){lastTranslated=result;lastTarget=target;}
+        if(latest())$("localStatus").textContent="On-device comparison ready.";
+      } catch(error) {
+        if(myGeneration!==sessionGeneration)return;
+        row.localError=error.message || String(error);
+        if(latest())$("localStatus").textContent="Local engine error: "+row.localError;
+      } finally {
+        if(myGeneration===sessionGeneration){renderRows();if(latest()){showCaption(row);showEngineResults(row);}}
+      }
+    })() : Promise.resolve();
+    await Promise.allSettled([cloudTask,localTask]);
   }
   $("translateManual").addEventListener("click", async () => {
     const text=$("manualText").value.trim();
@@ -329,6 +451,12 @@
   });
   $("clearAll").addEventListener("click", () => {
     sessionGeneration++;rows=[];sequence=0;sessionStarted=Date.now();lastTranslated="";cache.clear();
+    $("cloudEngineResult").textContent="No result yet.";
+    $("cloudEngineTime").textContent="—";
+    $("localEngineResult").textContent="No result yet.";
+    $("localEngineTime").textContent="—";
+    $("agreement").textContent="Different translations can both be correct. Word overlap is not an accuracy score.";
+    $("speechCandidates").replaceChildren();
     $("latency").textContent="—";$("wer").textContent="—";
     $("captionOriginal").textContent="Waiting for input…";$("captionTranslated").textContent="Translation will appear here.";
     renderRows();setStatus("Session cleared; no previous text stored in this app.");
@@ -403,7 +531,7 @@
     download("mobilab-subtitles-approx.vtt",output,"text/vtt;charset=utf-8");
   });
   document.addEventListener("visibilitychange",()=>{if(document.hidden && wantListening) stopListening();});
-  window.addEventListener("pagehide",()=>{if(wantListening)stopListening();window.speechSynthesis?.cancel();});
+  window.addEventListener("pagehide",()=>{if(wantListening)stopListening();window.speechSynthesis?.cancel();localAdapter.dispose();});
   renderRows();
 </script>
 </body>
