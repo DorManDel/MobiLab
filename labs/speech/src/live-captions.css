@@ -78,3 +78,5 @@
   .ticker-rail{padding-left:0;white-space:normal;min-width:0;padding:6px 12px}
   .live-deck[data-mode=ticker] .live-ticker{overflow-y:auto}
 }
+
+.live-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
