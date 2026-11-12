@@ -60,6 +60,7 @@ let sessionTimer = null;
 let interimActive = false;
 let currentUtterance = null;
 let voiceChoices = [];
+let lastSubtitleShownId=0;
 const MAX_PHRASES = 250;
 
 function status(message, warning = false) {
@@ -327,12 +328,14 @@ function updateRow(row,id,patch) {
   if (rows[rows.length-1]?.id === row.id) {
     if (!interimActive) showCaption(row);
     showComparison(row);
-    if(patch.status==="success" && patch.text && !interimActive) {
+    if(patch.status==="success" && patch.text && row.id>=lastSubtitleShownId) {
       const best=row.results.cloud?.text || row.results.local?.text || row.results.libre?.text;
       const provider=row.results.cloud?.text?"MyMemory":
         row.results.local?.text?"Chrome":"LibreTranslate";
-      liveView.translated(row,best,provider);
-    } else if (id==="queue" && patch.status==="skipped" && !interimActive) {
+      lastSubtitleShownId=row.id;
+      liveView.translated(row,best,provider,interimActive);
+    } else if (id==="queue" && patch.status==="skipped" && !interimActive
+      && row.id>=lastSubtitleShownId) {
       liveView.skipped(row);
     }
     liveView.showQueue(row);
@@ -420,7 +423,7 @@ $("clearAll").addEventListener("click",()=>{
   if(micActive) stopMic();
   queue.stop();
   translationCache.clear();
-  rows=[];rowId=0;sessionStart=Date.now();recordingStart=sessionStart;
+  rows=[];rowId=0;lastSubtitleShownId=0;sessionStart=Date.now();recordingStart=sessionStart;
   interimActive=false;
   $("recordTime").textContent="00:00";
   $("wer").textContent="—";
@@ -447,9 +450,11 @@ function showCaption(row) {
   if (!row) return;
   $("captionOriginal").textContent=row.text;
   const result = row.results.cloud?.text || row.results.local?.text || row.results.libre?.text;
-  const finished = row.queueStatus==="stopped" || row.queueStatus==="saved" || row.queueStatus==="skipped"
+  const finished = ["stopped","saved","skipped","canceled","completed"].includes(row.queueStatus)
     || Object.values(row.results).some(x=>x.status==="canceled");
-  $("captionTranslated").textContent=result || (finished ? "Saved transcript · not translated." : "Translating final phrase…");
+  $("captionTranslated").textContent=result || (finished
+    ? "No completed translation · inspect provider status or translate again."
+    : "Translating final phrase…");
   $("detectedLang").textContent=row.source.toUpperCase()+" → "+row.target.toUpperCase();
 }
 function showCandidates(row) {
