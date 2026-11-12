@@ -325,19 +325,25 @@ function updateRow(row,id,patch) {
   }
   // Rendering a long transcript for every provider progress callback causes UI lag.
   if(patch.status!=="running" || id==="queue")renderRows();
-  if (rows[rows.length-1]?.id === row.id) {
-    if (!interimActive) showCaption(row);
+  const latest=rows[rows.length-1]?.id===row.id;
+  if(latest){
+    if (!interimActive)showCaption(row);
     showComparison(row);
-    if(patch.status==="success" && patch.text && row.id>=lastSubtitleShownId) {
-      const best=row.results.cloud?.text || row.results.local?.text || row.results.libre?.text;
-      const provider=row.results.cloud?.text?"MyMemory":
-        row.results.local?.text?"Chrome":"LibreTranslate";
-      lastSubtitleShownId=row.id;
-      liveView.translated(row,best,provider,interimActive);
-    } else if (id==="queue" && patch.status==="skipped" && !interimActive
+  }
+  // A recognized final phrase may be split into multiple queued caption lines.
+  // Render any newly completed line in timestamp order, not just the last row.
+  if(patch.status==="success" && patch.text && row.id>=lastSubtitleShownId) {
+    const best=row.results.cloud?.text || row.results.local?.text || row.results.libre?.text;
+    const provider=row.results.cloud?.text?"MyMemory":
+      row.results.local?.text?"Chrome":"LibreTranslate";
+    lastSubtitleShownId=row.id;
+    liveView.translated(row,best,provider,interimActive);
+    liveView.showQueue(row);
+  } else if(id==="queue" && patch.status==="skipped" && !interimActive
       && row.id>=lastSubtitleShownId) {
-      liveView.skipped(row);
-    }
+    liveView.skipped(row);
+    liveView.showQueue(row);
+  } else if(latest && row.id>=lastSubtitleShownId) {
     liveView.showQueue(row);
   }
 }
