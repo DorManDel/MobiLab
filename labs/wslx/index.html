@@ -13,13 +13,13 @@
 <body>
 <div class="page">
   <header class="nav">
-    <div class="brand"><div class="brandmark">M.</div><div><div class="brandtitle">MOBILAB / WSLX</div><div class="brandtiny">Standalone experiment · R0.2</div></div></div>
+    <div class="brand"><div class="brandmark">M.</div><div><div class="brandtitle">MOBILAB / WSLX</div><div class="brandtiny">Standalone experiment · R0.3</div></div></div>
     <a class="back-link" href="../../#home">← All MobiLab experiments</a>
   </header>
   <div class="kicker"><span class="dot"></span> Interactive project preview</div>
   <h1>Windows <em>↔</em> WSL,<br>inside your browser.</h1>
-  <p class="intro">A working <strong>simulation</strong> of a Linux terminal, with your WSLX path tools, Bash-style navigation and preview adapters for future addons. Explore freely: nothing here touches your real computer.</p>
-  <div class="tags"><span class="pill accent">PURE HTML + JS</span><span class="pill">ZERO DEPENDENCIES</span><span class="pill">RAM-ONLY FILESYSTEM</span><span class="pill">MOBILE-FRIENDLY</span></div>
+  <p class="intro">A working <strong>simulation</strong> of a Linux terminal, with your WSLX path tools, Bash-style navigation and preview adapters for future addons. Edit virtual files, explore paths and import files you explicitly choose. No real device folder is accessed without your selection.</p>
+  <div class="tags"><span class="pill accent">PURE HTML + JS</span><span class="pill">ZERO DEPENDENCIES</span><span class="pill">EDITABLE VIRTUAL FILES</span><span class="pill">MOBILE-FRIENDLY</span></div>
   <main class="layout">
     <div class="terminal-wrap">
       <section id="terminal" class="terminal" aria-label="Interactive terminal simulator">
@@ -31,7 +31,18 @@
         <div class="term-bottom"><span id="status" class="status">Sandbox ready · no real shell</span><span class="kbd-hint">↑ ↓ history · Tab complete · Ctrl+L clear</span></div>
       </section>
       <div class="quickbar" id="quickbar" aria-label="Example commands"><button type="button" data-command="wslx help">wslx help</button><button type="button" data-command="wslx doctor">wslx doctor</button><button type="button" data-command="ls">ls</button><button type="button" data-command="tree projects/wslx">tree projects/wslx</button><button type="button" data-command="wslx 'D:\Projects\Demo'">wslx path</button><button type="button" data-command="wslx --win /mnt/d/Projects/Demo">--win</button><button type="button" data-command="cd projects/wslx">cd</button><button type="button" data-command="wcd /mnt/d/Projects/Demo">wcd</button><button type="button" data-command="wslx cd 'D:\Projects\Demo'">wslx cd</button><button type="button" data-command="wpaste">wpaste</button></div>
-      <p class="tip">Tip: select a quick command to execute it, or use the input and terminal keyboard shortcuts.</p>
+      <p class="tip">Tip: the Explorer and terminal share the same filesystem and working directory. No real device writes.</p>
+      <section class="file-explorer" id="fileExplorer" aria-label="Editable virtual filesystem explorer">
+        <div class="fx-heading"><div><div class="fx-eyebrow">SANDBOX / WORKSPACE</div><h2><span aria-hidden="true">▤</span> File Explorer</h2><p>Edit the virtual filesystem. Navigate using Linux or Windows-style paths.</p></div><span class="fx-chip">VIRTUAL</span></div>
+        <form class="fx-path-bar" id="fxGoForm"><label for="fxPath">Path</label><input id="fxPath" spellcheck="false" autocomplete="off" aria-label="Editable virtual or Windows-style path"><button type="submit">Go ↵</button><button type="button" id="fxHome" title="Go to virtual home">⌂</button><button type="button" id="fxUp" title="Go to parent">↑</button></form>
+        <div class="fx-breadcrumbs" id="fxCrumbs" aria-label="Folder breadcrumbs"></div>
+        <div class="fx-workspace">
+          <div class="fx-browser"><div class="fx-subhead"><strong>FILES</strong><span id="fxCount"></span></div><div id="fxFiles" class="fx-files" role="list" aria-label="Virtual files and directories"></div></div>
+          <div class="fx-editor"><div class="fx-subhead"><strong>INSPECTOR / EDITOR</strong><span id="fxFileType">—</span></div><p class="fx-selection" id="fxSelection">Select a file or folder to inspect.</p><label for="fxTarget">Rename / move selected to this path</label><input id="fxTarget" spellcheck="false" placeholder="/home/dor/projects/new-name.txt" disabled><div class="fx-inline-actions"><button id="fxMove" type="button" disabled>Move / rename</button><button id="fxDelete" type="button" disabled class="fx-danger">Delete</button><button id="fxUndo" type="button" disabled>↶ Undo</button></div><label for="fxContent">Text file content</label><textarea id="fxContent" rows="7" spellcheck="false" placeholder="Select a text file to edit..." disabled></textarea><div class="fx-inline-actions"><button type="button" id="fxSave" disabled>Save virtual file</button><span id="fxDirtyNote">No selection</span></div></div>
+        </div>
+        <div class="fx-create"><label for="fxNewName">Create in current folder</label><div><input id="fxNewName" placeholder="notes.txt or new-folder" spellcheck="false"><button type="button" id="fxNewFile">+ File</button><button type="button" id="fxNewFolder">+ Folder</button></div></div>
+        <div class="fx-device"><div class="fx-device-copy"><strong>Device → sandbox</strong><p>Choose files or a folder from your phone/PC. Only selected small text files are copied into this virtual folder; original device files are never modified. Browsers do not reveal their real absolute paths. On supported browsers you can also link a selected folder for read-only refresh.</p></div><div class="fx-import-actions"><button type="button" id="fxPickFiles">Import files</button><button type="button" id="fxPickFolder">Import folder</button><button type="button" id="fxConnectFolder">Link folder · read only</button><button type="button" id="fxRefreshFolder" disabled>Refresh link</button><button type="button" id="fxExport">Export workspace JSON</button><button type="button" id="fxImportSnapshot">Restore JSON</button></div><input type="file" id="fxFileInput" multiple hidden><input type="file" id="fxFolderInput" multiple webkitdirectory directory hidden><input type="file" id="fxSnapshotInput" accept=".json,application/json" hidden><div class="fx-notice" id="fxNotice" role="status">RAM-only until you export; reset restores the demo.</div></div>
+      </section>
     </div>
     <aside class="sidebar">
       <section class="panel"><div class="eyebrow">Guided walkthrough</div><h2>Try the actual WSLX syntax</h2><p>These commands follow the conventions in the WSLX repository. Click any example to run it.</p>
@@ -49,15 +60,16 @@
       <section class="panel"><div class="eyebrow">Engine overview</div><h2>Designed to be reused.</h2><p>The terminal interface, command parser, fake filesystem and command implementations are separate modules. Custom commands register through one JavaScript API.</p>
         <div class="feature-grid"><div class="feature"><b id="commandCount">—</b><span>Registered commands</span></div><div class="feature"><b id="sessionCount">0</b><span>Commands executed</span></div><div class="feature"><b>0</b><span>External libraries</span></div><div class="feature"><b>0</b><span>Real shell calls</span></div></div>
         <div class="divider"></div><button type="button" class="smallbtn" id="resetBtn">↻ Reset virtual machine</button>
-        <p style="margin-top:12px"><small><span class="warning-inline">Not a real WSL terminal.</span> Disk, clipboard and Windows integration are simulated. No server, downloads or OS permissions are used.</small></p>
+        <p style="margin-top:12px"><small><span class="warning-inline">Not a real WSL terminal.</span> Disk, clipboard and Windows integration are simulated. No server or OS shell is used. Device files are read only after you pick them; imported copies live in RAM.</small></p>
       </section>
     </aside>
   </main>
-  <footer class="footer"><span>MOBILAB / WSLX TERMINAL LAB / R0.2 · NOT CONNECTED TO YOUR MACHINE</span><span>Source project: <a href="https://github.com/DorManDel/wslx" rel="noopener noreferrer" target="_blank">github.com/DorManDel/wslx</a></span></footer>
+  <footer class="footer"><span>MOBILAB / WSLX TERMINAL LAB / R0.3 · NOT CONNECTED TO YOUR MACHINE</span><span>Source project: <a href="https://github.com/DorManDel/wslx" rel="noopener noreferrer" target="_blank">github.com/DorManDel/wslx</a></span></footer>
 </div>
 <script src="src/terminal-engine.js"></script>
 <script src="src/commands-linux.js"></script>
 <script src="src/commands-wslx.js"></script>
 <script src="src/terminal-ui.js"></script>
+<script src="src/file-explorer.js"></script>
 </body>
 </html>
