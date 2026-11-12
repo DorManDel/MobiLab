@@ -33,7 +33,8 @@ jobs:
         working-directory: labs/speech
         run: npm test
   browser-smoke:
-    runs-on: ubuntu-latest
+    # Playwright Chromium 1.56 supports Ubuntu 24.04, not the newer 26.04 runner.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
