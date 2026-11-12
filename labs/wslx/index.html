@@ -13,7 +13,7 @@
 <body>
 <div class="page">
   <header class="nav">
-    <div class="brand"><div class="brandmark">M.</div><div><div class="brandtitle">MOBILAB / WSLX</div><div class="brandtiny">Standalone experiment · R0.3</div></div></div>
+    <div class="brand"><div class="brandmark">M.</div><div><div class="brandtitle">MOBILAB / WSLX</div><div class="brandtiny">Standalone experiment · R0.4</div></div></div>
     <a class="back-link" href="../../#home">← All MobiLab experiments</a>
   </header>
   <div class="kicker"><span class="dot"></span> Interactive project preview</div>
@@ -26,9 +26,10 @@
         <div class="term-top"><div class="term-left"><div class="term-dots" aria-hidden="true"><i></i><i></i><i></i></div><div class="term-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 5 5-5 5M12 18h8"/></svg><span id="titlePath">dor@ubuntu:~</span></div></div><div class="term-actions"><button type="button" data-key="copy" id="copyBtn" title="Copy terminal transcript">Copy</button><button type="button" id="clearBtn">Clear</button><button type="button" data-key="expand" id="expandBtn" aria-label="Expand terminal">Expand ↗</button></div></div>
         <div class="term-body">
           <div class="output" id="output" role="log" aria-label="Terminal output" aria-live="polite"></div>
-          <form id="terminalForm" class="command-row" autocomplete="off"><label for="terminalInput" id="promptLabel" class="input-prompt">dor@ubuntu:<b>~</b>$</label><input id="terminalInput" type="text" autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text" enterkeyhint="go" placeholder="type a command..." aria-label="Terminal command"><button type="submit" class="enter">↵</button></form>
+          <div id="completionList" class="completion-tray" role="listbox" aria-label="Command and path suggestions" hidden></div>
+          <form id="terminalForm" class="command-row" autocomplete="off"><label for="terminalInput" id="promptLabel" class="input-prompt">dor@ubuntu:<b>~</b>$</label><input id="terminalInput" type="text" aria-autocomplete="list" aria-controls="completionList" autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text" enterkeyhint="go" placeholder="type a command..." aria-label="Terminal command"><button type="button" class="tab-key" id="tabBtn" aria-label="Autocomplete using Tab" title="Complete command or path">Tab ↹</button><button type="submit" class="enter" id="enterBtn" aria-label="Run terminal command" title="Run command">↵</button></form>
         </div>
-        <div class="term-bottom"><span id="status" class="status">Sandbox ready · no real shell</span><span class="kbd-hint">↑ ↓ history · Tab complete · Ctrl+L clear</span></div>
+        <div class="term-bottom"><span id="status" class="status">Sandbox ready · no real shell</span><span class="kbd-hint">↑ ↓ history · Tab / ⇧ Tab cycle · Ctrl+L clear</span></div>
       </section>
       <div class="quickbar" id="quickbar" aria-label="Example commands"><button type="button" data-command="wslx help">wslx help</button><button type="button" data-command="wslx doctor">wslx doctor</button><button type="button" data-command="ls">ls</button><button type="button" data-command="tree projects/wslx">tree projects/wslx</button><button type="button" data-command="wslx 'D:\Projects\Demo'">wslx path</button><button type="button" data-command="wslx --win /mnt/d/Projects/Demo">--win</button><button type="button" data-command="cd projects/wslx">cd</button><button type="button" data-command="wcd /mnt/d/Projects/Demo">wcd</button><button type="button" data-command="wslx cd 'D:\Projects\Demo'">wslx cd</button><button type="button" data-command="wpaste">wpaste</button></div>
       <p class="tip">Tip: the Explorer and terminal share the same filesystem and working directory. No real device writes.</p>
@@ -64,11 +65,12 @@
       </section>
     </aside>
   </main>
-  <footer class="footer"><span>MOBILAB / WSLX TERMINAL LAB / R0.3 · NOT CONNECTED TO YOUR MACHINE</span><span>Source project: <a href="https://github.com/DorManDel/wslx" rel="noopener noreferrer" target="_blank">github.com/DorManDel/wslx</a></span></footer>
+  <footer class="footer"><span>MOBILAB / WSLX TERMINAL LAB / R0.4 · NOT CONNECTED TO YOUR MACHINE</span><span>Source project: <a href="https://github.com/DorManDel/wslx" rel="noopener noreferrer" target="_blank">github.com/DorManDel/wslx</a></span></footer>
 </div>
 <script src="src/terminal-engine.js"></script>
 <script src="src/commands-linux.js"></script>
 <script src="src/commands-wslx.js"></script>
+<script src="src/autocomplete.js"></script>
 <script src="src/terminal-ui.js"></script>
 <script src="src/file-explorer.js"></script>
 </body>

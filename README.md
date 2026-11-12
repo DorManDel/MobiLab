@@ -94,3 +94,12 @@ For a small native panel, add a `data-panel` section and matching `data-tab` but
 - `Link folder · read only` uses `showDirectoryPicker({mode:'read'})` on supporting **HTTPS** browsers. The selected folder is mirrored under `~/device/<selected-folder>` in virtual space; refresh is explicit and may overwrite edited **virtual** copies, never real device files. Linked handles disappear on reload.
 - Browsers cannot expose arbitrary absolute paths to devices (for example `/storage/emulated/0`); path conversions refer to the simulator's *virtual* tree. Browser support for directory linking varies.
 - Run tests from `labs/wslx`: `node tests.cjs && node explorer-tests.cjs` (no dependencies). Browser UI verified in headless Chromium at 1440px and 390px; real-device UX still needs testing.
+
+## WSLX Terminal Lab R0.4 — Live autocomplete
+
+- As you type, a suggestion tray shows available virtual commands, WSLX subcommands, flags, and current-directory files/folders.
+- **Tab ↹** is a standalone 44px+ touch button immediately beside **Enter ↵**, useful for mobile soft keyboards without a Tab key. The physical Tab key uses the same engine; Shift+Tab cycles backward through ambiguous results.
+- Completion resolves Windows drives (`D:\\Projects\\Demo`), Linux paths, quoted directories, filenames with spaces, and paths created/renamed in the Explorer. No real device filesystem or shell execution is involved.
+- Engine: `labs/wslx/src/autocomplete.js`, with a pure `WSLXLab.Autocomplete.suggest(engine, line, caret)` API. It reads only the registered command metadata and the existing virtual filesystem.
+- Run regression tests in `labs/wslx/`: `node tests.cjs && node explorer-tests.cjs && node autocomplete-tests.cjs`.
+- Chromium desktop (1440px) and emulated mobile (390px) behavior tested. Real Samsung Browser keyboard testing still required. MyPortfolio remains unchanged.
