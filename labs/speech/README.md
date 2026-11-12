@@ -1,6 +1,29 @@
-# Speech & Translate Lab — POC 0.1
+# Speech & Translate Lab — Beta 0.2 (Recording Sessions & Voice Output)
 
 Entry point: ./index.html, linked as a tab and overview card in MobiLab.
+
+## Changes in beta 0.2
+
+### Mobile UX and recording sessions
+- A **single, accessible Start recording / Finish recording toggle**, persistent on small screens, with an active REC state and recording timer. The timer resets for each recording, while transcript times stay session-relative.
+- Browser STT still uses manually selected language; interim text is previewed and **only finalized speech** creates an in-memory transcript row.
+- "Translate each finalized phrase" (on by default) can be disabled. "Translate saved phrases / re-run latest" processes stored phrases or re-evaluates a latest completed phrase with newly enabled providers.
+- A bounded queue processes **one phrase at a time**, running selected translation providers in parallel for the same phrase. Eight queued phrases maximum. **Finish recording** aborts the browser recognizer, pending cloud fetches and queued translations; pending entries remain recorded as canceled. Results from a stopped session are never displayed as new translations. Some browser-local translation operations cannot truly be aborted; their late responses are ignored and do not block a new session.
+- Speech recognizer restarts only while the toggle says REC, with a reconnect rate limit that stops repeated failures instead of looping indefinitely. Stop or page background ends recognition.
+
+### Audible text-to-speech diagnostic
+- A **Test voice** button produces a language-specific sample even before any translation. The phone's available voices populate a selector via the \`voiceschanged\` event; Auto chooses a language-matching voice when available.
+- Read latest translation or an individual translated segment, from a real user tap; report \`onstart\`, \`onend\`, and \`onerror\` status. Adjustable volume (app gain, not the OS media volume) and reading speed.
+- Stop the microphone before TTS to prevent feedback. A phone with muted media audio, no downloaded speech engine/voice or browser synthesis restrictions may still remain silent; **test on the physical Android device**.
+
+### Multi-engine translation benchmark
+- **MyMemory** (cloud) baseline; **Chrome on-device Translator** if supported on desktop and explicitly opted in; optional custom **LibreTranslate-compatible HTTPS server** via advanced configuration for a second independent translation engine on Android.
+- A custom endpoint must be a trusted server that the user controls and supports cross-origin browser requests. The public managed LibreTranslate instance requires an API key; this project never ships credentials or silently selects an untrusted public mirror.
+- Compare individual model outputs, errors and per-provider translation latency from **the identical finalized input**. A human-entered expected translation enables **character n-gram similarity** (not an actual semantic correctness percentage).
+- WER evaluates speech recognition against the reference transcript. Browser STT candidate alternatives come from one recognizer and are **not** independent STT models. Majority voting or automatic accuracy claims are not implemented.
+
+### Testing
+- \`cd labs/speech && npm test\` runs provider adapter, cancellable queue, Unicode metrics and HTML DOM contract tests with Node 22, no dependencies. An optional GitHub Actions workflow performs these tests on PR/push. Real device tests still required.
 
 ## Implemented pipeline
 
@@ -37,13 +60,18 @@ Manual text → optional text language detector → translation API → captions
 - Does not transcribe telephone calls, other apps' protected audio, imported audio/video, or YouTube content. OCR and keyboard input are not implemented.
 - The source language must be chosen for microphone recognition. The Auto option applies to typed text, and may fail to classify it reliably.
 
-## QA checklist — before merging
+## QA checklist — beta acceptance
 
 - [ ] In Chrome desktop where supported, explicitly enable local engine comparison and compare real independent translation outputs and latencies. Confirm no automatic model download without opt-in.
 - [ ] In Android verify the unsupported local translator is gracefully disabled (no fake second-model output).
 - [ ] In Android Chrome over HTTPS: allow microphone, dictate Hebrew and verify final transcript.
 - [ ] Dictate English, then translate to Hebrew and inspect actual provider result.
 - [ ] Repeat in Samsung Internet and desktop Chrome; record unsupported APIs/errors.
+- [ ] Verify Finish recording aborts listening and all pending translations. Old canceled tasks must not append new results.
+- [ ] Restart and verify new recordings are not blocked by canceled old provider operations.
+- [ ] Toggle automatic translation off, dictate multiple phrases, finish, then translate saved phrases.
+- [ ] Test Voice using each supported language and installed voice; verify real audibility with device media volume.
+- [ ] Connect a trusted HTTPS LibreTranslate server, test CORS and independent outputs on Android.
 - [ ] Verify Stop ends listening; page backgrounding stops recognition.
 - [ ] Verify manual text translation works without microphone access.
 - [ ] Disconnect network or exhaust provider quota; verify explicit errors instead of fake translations.
@@ -70,4 +98,4 @@ The UI's latency is finalized-text-to-translation timing, NOT full audio-to-subt
 - Add a video subtitle overlay, importable SRT/VTT, optional OCR translation for selected images, summarization, and later a keyboard integration.
 - Keep call recording and protected system audio out of the web POC; do not promise unrestricted access.
 
-Status: code and static checks completed; real audio/browser testing and user approval remain pending.
+Status: beta 0.2 source changes, real device voice/provider and mobile layout verification pending.
