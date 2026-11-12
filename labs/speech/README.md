@@ -1,6 +1,20 @@
-# Speech & Translate Lab — Beta 0.2 (Recording Sessions & Voice Output)
+# Speech & Translate Lab — Live Subtitle Studio beta 0.3
 
 Entry point: ./index.html, linked as a tab and overview card in MobiLab.
+
+## New in beta 0.3 — instantly accessible subtitles
+
+- The live display is now **above the fold** on mobile: spoken/target language selectors and a one-button record control appear immediately under the MobiLab header.
+- **Three GPU-friendly subtitle modes**: Bottom (current translated line), Rising (last three lyrics-like lines fading upward), and Ticker (horizontal RSS/news crawl). The full transcript remains below; animations use CSS and respect reduced-motion.
+- **Interim speech** appears immediately as a provisional source caption. Only finalized speech is stored. Source/translation is written safely using DOM textContent.
+- Finalized speech segmentation: **whole phrase**, **9-word caption lines** (default), or **4-word short chunks**. These are split after recognition; they do NOT make the recognizer finalize earlier and may worsen context in very small chunks.
+- **Live priority** queue is now default while recording: at most two waiting lines; older waiting translations are flagged skipped (not silently dropped) so the latest captions can catch up. Stored text remains available for manual retranslation. Complete mode can backlog and lag.
+- Optional **Early Draft** interim-text translation (off by default) runs with a minimum 650 ms debounce and 3.6s request spacing, plus cancellation guards. It uses translation quota and can be wrong; final output supersedes it.
+- On-screen latency panel shows approximate browser **speechstart→final**, **queue wait**, **provider duration**, and **final speech event→first translated caption**, plus nearest-rank p50/p90 for up to 60 finalized translated lines. There is no claim of absolute acoustic-to-ear or model-only latency. The STT metric includes the time the person spent speaking.
+- Accessible live text announcements and a quick TTS button appear at the top; sound still requires ending microphone recording to avoid echo.
+- Pure caption splitter/statistics in `src/live-captions.js`, render-only view component in `src/live-view.js`, and responsive styles in `src/live-captions.css`.
+
+The detailed instrumentation protocol, overload strategy, permissions and future desktop/audio adapters are in [LIVE_LATENCY.md](./LIVE_LATENCY.md). Actual live-system audio and video-source capture are **not** implemented.
 
 ## Changes in beta 0.2
 
@@ -60,7 +74,16 @@ Manual text → optional text language detector → translation API → captions
 - Does not transcribe telephone calls, other apps' protected audio, imported audio/video, or YouTube content. OCR and keyboard input are not implemented.
 - The source language must be chosen for microphone recognition. The Auto option applies to typed text, and may fail to classify it reliably.
 
-## QA checklist — beta acceptance
+## QA checklist — beta 0.3 mobile acceptance
+
+- [ ] On phone portrait, open the page: mic and language selectors are visible without scrolling.
+- [ ] Test Bottom / Rising / Ticker with live text and translation; inspect reduced motion.
+- [ ] Speak 20 utterances, record actual p50/p90 Final → subtitle, skipped count, provider delay and source language.
+- [ ] Compare Sentence/Line/Short modes, explicitly checking for mistranslation caused by truncated context.
+- [ ] Test Early Draft opt-in with interim results and verify the provisional label and request rate.
+- [ ] Enable Live priority under provider overload; confirm backlog is bounded and transcript still saved.
+- [ ] Test English/Hebrew RTL/LTR subtitle layout and stop/clear cancellation.
+
 
 - [ ] In Chrome desktop where supported, explicitly enable local engine comparison and compare real independent translation outputs and latencies. Confirm no automatic model download without opt-in.
 - [ ] In Android verify the unsupported local translator is gracefully disabled (no fake second-model output).

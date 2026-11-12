@@ -1,7 +1,46 @@
 import { createChromeTranslatorAdapter, lexicalAgreement } from "./engine-compare.js";
 import { TranslationQueue, wordErrorRate, characterSimilarity, safeLibreEndpoint } from "./bench-core.js";
+import { splitCaptionLines } from "./live-captions.js";
+import { LiveCaptionView } from "./live-view.js";
 
 const $ = (id) => document.getElementById(id);
+const liveView = new LiveCaptionView(document);
+let draftTimer=null, draftAbort=null, draftVersion=0, lastDraftRequest=-Infinity;
+function cancelDraft() {
+  draftVersion++;
+  clearTimeout(draftTimer);
+  if(draftAbort){draftAbort.abort();draftAbort=null;}
+}
+function scheduleDraft(text) {
+  clearTimeout(draftTimer);
+  const version=++draftVersion;
+  const trimmed=text.trim();
+  if(!$("earlyPreview").checked || trimmed.split(/\s+/u).length<4 || !micActive)return;
+  // Extra translation requests are opt-in; cap text size and global call rate.
+  const delay=Math.max(650,3600-(performance.now()-lastDraftRequest));
+  draftTimer=setTimeout(async()=>{
+    if(version!==draftVersion || !micActive)return;
+    draftAbort?.abort();
+    const controller=new AbortController();
+    draftAbort=controller;
+    const began=performance.now();
+    lastDraftRequest=began;
+    try{
+      const out=await translateMyMemory(Array.from(trimmed).slice(0,180).join(""),
+        $("sourceLang").value,$("targetLang").value,controller.signal);
+      if(version===draftVersion && micActive && !controller.signal.aborted){
+        liveView.early(out,performance.now()-began);
+      }
+    }catch(error){
+      if(version===draftVersion && micActive && !controller.signal.aborted){
+        $("liveNotice").textContent="Early draft unavailable: "+(error.message||"translation error");
+      }
+    }
+  },delay);
+}
+$("quickSpeak").addEventListener("click",()=>{
+  $("speakLast").click();
+});
 const locale = {he:"he-IL",en:"en-US",es:"es-ES",fr:"fr-FR",de:"de-DE",ar:"ar-SA",ru:"ru-RU",it:"it-IT"};
 const langNames = {he:"Hebrew",en:"English",es:"Spanish",fr:"French",de:"German",ar:"Arabic",ru:"Russian",it:"Italian"};
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -21,6 +60,7 @@ let sessionTimer = null;
 let interimActive = false;
 let currentUtterance = null;
 let voiceChoices = [];
+let lastSubtitleShownId=0;
 const MAX_PHRASES = 250;
 
 function status(message, warning = false) {
@@ -60,6 +100,7 @@ function stopMic() {
     old.onerror = null;
     try { old.abort(); } catch {}
   }
+  cancelDraft();
   queue.stop(); // cancels pending and running provider requests
   interimActive = false;
   refreshRecordingUI();
@@ -75,6 +116,8 @@ function activateRecognizer(token) {
   const instance = new Recognition();
   recognize = instance;
   const finalized = new Set();
+  let speechStartPerf=null;
+  instance.onspeechstart=()=>{speechStartPerf=performance.now();};
   instance.lang = locale[$("sourceLang").value];
   instance.continuous = true;
   instance.interimResults = true;
@@ -96,14 +139,25 @@ function activateRecognizer(token) {
           text: value.transcript?.trim() || "",
           confidence: Number.isFinite(value.confidence) && value.confidence > 0 ? value.confidence : null
         })).filter(x => x.text);
-        addPhrase(phrase, $("sourceLang").value, $("targetLang").value, candidates,
-          $("autoTranslate").checked);
+        cancelDraft();
+        const finalPerf=performance.now();
+        const speechDuration=speechStartPerf===null?null:Math.max(0,finalPerf-speechStartPerf);
+        const chunks=splitCaptionLines(phrase,$("chunkMode").value);
+        chunks.forEach((chunk,index)=>{
+          addPhrase(chunk,$("sourceLang").value,$("targetLang").value,
+            index===chunks.length-1?candidates:[],
+            $("autoTranslate").checked,
+            index===0?speechDuration:null,finalPerf);
+        });
+        speechStartPerf=null;
       } else if (!result.isFinal) interim += " " + phrase;
     }
     if (interim.trim()) {
       interimActive = true;
       $("captionOriginal").textContent = interim.trim() + " …";
       $("captionTranslated").textContent = "Listening for the end of this phrase…";
+      liveView.interim(interim.trim());
+      scheduleDraft(interim.trim());
     } else interimActive = false;
   };
   instance.onerror = (event) => {
@@ -255,16 +309,46 @@ function activeProviders() {
 }
 function updateRow(row,id,patch) {
   if (!row) return;
-  if (id === "queue") row.queueStatus = patch.status;
-  else row.results[id] = {...(row.results[id] || {}),...patch};
-  renderRows();
-  if (rows[rows.length-1]?.id === row.id) {
-    if (!interimActive) showCaption(row);
+  if (id === "queue") {
+    row.queueStatus=patch.status;
+  } else {
+    row.results[id] = {...(row.results[id] || {}),...patch};
+    const now=performance.now();
+    if(patch.status==="running" && row.queueWaitMs===null) {
+      row.queueWaitMs=Math.max(0,now-row.finalPerf);
+    }
+    if(patch.status==="success" && patch.text && row.finalToSubtitleMs===null) {
+      row.finalToSubtitleMs=Math.max(0,now-row.finalPerf);
+      if(row.fromSpeech)liveView.latencies.push(row.finalToSubtitleMs);
+      if(liveView.latencies.length>60)liveView.latencies.shift();
+    }
+  }
+  // Rendering a long transcript for every provider progress callback causes UI lag.
+  if(patch.status!=="running" || id==="queue")renderRows();
+  const latest=rows[rows.length-1]?.id===row.id;
+  if(latest){
+    if (!interimActive)showCaption(row);
     showComparison(row);
+  }
+  // A recognized final phrase may be split into multiple queued caption lines.
+  // Render any newly completed line in timestamp order, not just the last row.
+  if(patch.status==="success" && patch.text && row.id>=lastSubtitleShownId) {
+    const best=row.results.cloud?.text || row.results.local?.text || row.results.libre?.text;
+    const provider=row.results.cloud?.text?"MyMemory":
+      row.results.local?.text?"Chrome":"LibreTranslate";
+    lastSubtitleShownId=row.id;
+    liveView.translated(row,best,provider,interimActive);
+    liveView.showQueue(row);
+  } else if(id==="queue" && patch.status==="skipped" && !interimActive
+      && row.id>=lastSubtitleShownId) {
+    liveView.skipped(row);
+    liveView.showQueue(row);
+  } else if(latest && row.id>=lastSubtitleShownId) {
+    liveView.showQueue(row);
   }
 }
 const queue = new TranslationQueue({onChange:updateRow,maxPending:8});
-function addPhrase(text,source,target,candidates=null,automatic=true) {
+function addPhrase(text,source,target,candidates=null,automatic=true,sttMs=null,finalPerf=performance.now()) {
   text=text.trim();
   if (!text || rows.length >= MAX_PHRASES) {
     if (rows.length >= MAX_PHRASES) { if(micActive)stopMic();status("Session capped at 250 phrases. Export or clear before recording more.",true);}
@@ -274,17 +358,22 @@ function addPhrase(text,source,target,candidates=null,automatic=true) {
   if (candidates && previous && previous.text.toLocaleLowerCase() === text.toLocaleLowerCase()
     && Date.now()-previous.at < 1500) return;
   const row = { id:++rowId,at:Date.now(),offset:Date.now()-sessionStart,text,source,target,
-    candidates,results:{},queueStatus:"saved" };
+    candidates,results:{},queueStatus:"saved",sttMs,finalPerf,fromSpeech:Array.isArray(candidates),queueWaitMs:null,finalToSubtitleMs:null };
   rows.push(row);
   interimActive=false;
   renderRows();showCaption(row);showComparison(row);showCandidates(row);
+  liveView.final(row);
   if (automatic) translateRow(row);
   else status("Phrase saved. Tap 'Translate saved' whenever you're ready.");
 }
 function translateRow(row) {
   try {
     const providers = activeProviders();
-    if (!queue.enqueue(row,providers)) status("Translation queue is full; transcript was still saved.",true);
+    const realtime=micActive && $("subtitlePriority").value==="live";
+    const accepted=realtime
+      ? queue.enqueueRealtime(row,providers,2)
+      : queue.enqueue(row,providers);
+    if (!accepted) status("Translation queue is full; transcript was still saved.",true);
   } catch (error) {
     row.queueStatus="skipped";
     status("Comparison setting: "+error.message,true);
@@ -340,7 +429,7 @@ $("clearAll").addEventListener("click",()=>{
   if(micActive) stopMic();
   queue.stop();
   translationCache.clear();
-  rows=[];rowId=0;sessionStart=Date.now();recordingStart=sessionStart;
+  rows=[];rowId=0;lastSubtitleShownId=0;sessionStart=Date.now();recordingStart=sessionStart;
   interimActive=false;
   $("recordTime").textContent="00:00";
   $("wer").textContent="—";
@@ -348,6 +437,7 @@ $("clearAll").addEventListener("click",()=>{
   $("captionTranslated").textContent="Translation will appear here.";
   $("speechCandidates").replaceChildren();
   renderRows();showComparison(null);
+  cancelDraft();liveView.reset();
   status("Session cleared. Nothing is uploaded by the app itself.");
 });
 $("compareLocal").disabled=!localTranslator.supported();
@@ -366,9 +456,11 @@ function showCaption(row) {
   if (!row) return;
   $("captionOriginal").textContent=row.text;
   const result = row.results.cloud?.text || row.results.local?.text || row.results.libre?.text;
-  const finished = row.queueStatus==="stopped" || row.queueStatus==="saved" || row.queueStatus==="skipped"
+  const finished = ["stopped","saved","skipped","canceled","completed"].includes(row.queueStatus)
     || Object.values(row.results).some(x=>x.status==="canceled");
-  $("captionTranslated").textContent=result || (finished ? "Saved transcript · not translated." : "Translating final phrase…");
+  $("captionTranslated").textContent=result || (finished
+    ? "No completed translation · inspect provider status or translate again."
+    : "Translating final phrase…");
   $("detectedLang").textContent=row.source.toUpperCase()+" → "+row.target.toUpperCase();
 }
 function showCandidates(row) {

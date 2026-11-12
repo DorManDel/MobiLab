@@ -101,22 +101,18 @@
     @media(prefers-reduced-motion:reduce){#recordState.live{animation:none}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
   </style>
+  <link rel="stylesheet" href="./src/live-captions.css">
 </head>
 <body>
 <div class="shell">
   <header><a class="brand" href="../../#home">Mobi<span>Lab</span> / SPEECH</a><a class="back" href="../../#home">← All experiments</a></header>
-  <div class="intro">
-    <div class="eyebrow">EXPERIMENT 07 · LANGUAGE & AUDIO · BETA 0.2</div>
-    <h1>Speech & <em>Translate</em> Lab</h1>
-    <p>A mobile-first listening workbench: record and save transcripts, translate through real engines, compare outputs and hear the result. Designed for reusable components.</p>
-    <div class="row"><span class="tag">🎙 Live microphone</span><span class="tag">🗺 Translation</span><span class="tag">🔊 TTS</span><span class="tag">📊 WER test</span></div>
-  </div>
-  <div class="alert"><strong>Privacy & capability:</strong> Browser recognition may send microphone audio to a speech service. Translating sends finalized text to MyMemory. Nothing is saved on a server by this app. This lab cannot capture telephone calls or other apps' protected audio. Recording starts only when you tap Start. Stop cancels pending API work and preserves completed transcript segments in this page.</div>
-  <div class="grid">
-    <section class="card" aria-labelledby="controlTitle">
-      <div class="row between"><div><div class="eyebrow">01 / INPUT</div><h2 id="controlTitle">Listening controls</h2></div><span class="tag" id="browserSupport">Checking…</span></div>
-      <div class="row">
-        <div class="field"><label for="sourceLang">Spoken / source language</label>
+
+  <section class="live-workspace" aria-label="Instant captions and listening">
+    <div class="live-topline"><strong>◉ LIVE SUBTITLE STUDIO</strong><span>v0.3 · BETA</span></div>
+    <div class="live-controls">
+      <div class="live-languages">
+        <div class="field">
+          <label for="sourceLang">Listening language</label>
           <select id="sourceLang">
             <option value="he" selected>Hebrew · עברית</option>
             <option value="en">English</option><option value="es">Spanish · Español</option>
@@ -125,7 +121,8 @@
             <option value="it">Italian · Italiano</option><option value="auto">Auto · typed text only</option>
           </select>
         </div>
-        <div class="field"><label for="targetLang">Translate to</label>
+        <div class="field">
+          <label for="targetLang">Subtitles in</label>
           <select id="targetLang">
             <option value="en" selected>English</option><option value="he">Hebrew · עברית</option>
             <option value="es">Spanish · Español</option><option value="fr">French · Français</option>
@@ -134,11 +131,73 @@
           </select>
         </div>
       </div>
-      <p class="hint">Microphone recognition requires a selected spoken language. Auto detection is experimental and only available for typed text. The built-in browser recognizer is <strong>not</strong> a reliable multilingual auto-detector.</p>
       <div id="recordDock" class="record-dock">
         <button type="button" id="recordToggle" class="primary big record-toggle" aria-pressed="false">🎙 Start recording</button>
         <div class="record-meta" aria-live="off"><strong id="recordTime">00:00</strong><span id="recordState">OFFLINE</span></div>
       </div>
+    </div>
+    <div class="live-toolbar">
+      <div class="caption-switch" role="group" aria-label="Subtitle visual mode">
+        <button type="button" data-caption-mode="bottom" aria-pressed="true">▱ Subtitles</button>
+        <button type="button" data-caption-mode="roll" aria-pressed="false">↥ Rising</button>
+        <button type="button" data-caption-mode="ticker" aria-pressed="false">⇢ Ticker</button>
+      </div>
+      <button id="quickSpeak" type="button" class="quick-tts" aria-label="Speak the latest translated subtitle" title="Speak latest translation">🔊</button>
+    </div>
+    <div id="liveDeck" class="live-deck" data-mode="bottom">
+      <div class="live-label" id="liveLabel">SUBTITLES · REAL-TIME PREVIEW</div>
+      <div id="livePartial" class="live-partial" dir="auto">Tap Start recording, or translate a typed phrase below.</div>
+      <div class="live-output">
+        <div id="livePhase" class="live-phase">Ready</div>
+        <div id="liveTranslation" class="live-translation" dir="auto">Translation appears here</div>
+      </div>
+      <div id="liveRoll" class="live-roll" aria-hidden="true"></div>
+      <div class="live-ticker" aria-hidden="true"><div id="liveTicker" class="ticker-rail">Translation appears here</div></div>
+    </div>
+    <p class="live-sr-only" id="liveAccessible" role="status" aria-live="polite" aria-atomic="true"></p>
+    <p class="live-source-status" id="liveNotice">Interim text appears instantly; translation accuracy and delay depend on the speech and translation engines.</p>
+    <div class="live-metrics" aria-label="Latency measurements">
+      <div><span>Speech start → final*</span><strong id="liveSttMs">—</strong><small>Approx. + speech duration</small></div>
+      <div><span>Queue wait</span><strong id="liveQueueMs">—</strong><small>Final → API start</small></div>
+      <div><span>Translator</span><strong id="liveApiMs">—</strong><small>Provider duration</small></div>
+      <div><span id="liveTotalLabel">Final → subtitle</span><strong id="liveTotalMs">—</strong><small id="livePercentile">p50/p90: —</small></div>
+    </div>
+    <details class="live-setting-details" id="liveSettings">
+      <summary>⚙ Live translation tuning · chunk size &amp; latency</summary>
+      <div class="live-setting-grid">
+        <div class="field">
+          <label for="chunkMode">Finalize as</label>
+          <select id="chunkMode">
+            <option value="sentence">Whole finalized phrase · best context</option>
+            <option value="line" selected>Subtitle line · up to 9 words</option>
+            <option value="short">Fast chunks · up to 4 words</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="subtitlePriority">Overload strategy</label>
+          <select id="subtitlePriority">
+            <option value="live" selected>Live priority · skip stale queued translations</option>
+            <option value="complete">Complete · translate every phrase (can lag)</option>
+          </select>
+        </div>
+        <label class="check fullrow" for="earlyPreview"><input id="earlyPreview" type="checkbox"> Experimental early translation of interim text (opt-in; may change or use extra API quota)</label>
+        <p class="live-help fullrow">SpeechRecognition decides when its results become final. Smaller chunks split the returned text for reading, but cannot force the speech engine to recognize earlier. Short chunks may lose context. Early translation can show provisional words before finalization, throttled to protect quotas.</p>
+      </div>
+    </details>
+    <a class="live-access" href="#controls">Advanced controls, voice and model comparison ↓</a>
+  </section>
+
+  <div class="intro">
+    <div class="eyebrow">EXPERIMENT 07 · LANGUAGE & AUDIO · LIVE BETA 0.3</div>
+    <h1>Speech & <em>Translate</em> Lab</h1>
+    <p>A mobile-first listening workbench: record and save transcripts, translate through real engines, compare outputs and hear the result. Designed for reusable components.</p>
+    <div class="row"><span class="tag">🎙 Live microphone</span><span class="tag">🗺 Translation</span><span class="tag">🔊 TTS</span><span class="tag">📊 WER test</span></div>
+  </div>
+  <div class="alert"><strong>Privacy & capability:</strong> Browser recognition may send microphone audio to a speech service. Translating sends finalized text to MyMemory. Nothing is saved on a server by this app. This lab cannot capture telephone calls or other apps' protected audio. Recording starts only when you tap Start. Stop cancels pending API work and preserves completed transcript segments in this page.</div>
+  <div class="grid">
+    <section class="card" id="controls" aria-labelledby="controlTitle">
+      <div class="row between"><div><div class="eyebrow">01 / INPUT</div><h2 id="controlTitle">Recording details</h2></div><span class="tag" id="browserSupport">Checking…</span></div>
+      <p class="hint">Microphone recognition requires a selected spoken language. Auto detection is experimental and only available for typed text. The built-in browser recognizer is <strong>not</strong> a reliable multilingual auto-detector.</p>
       <label class="check" for="autoTranslate"><input id="autoTranslate" type="checkbox" checked> Translate each finalized phrase while recording</label>
       <button type="button" id="translateSaved" class="btn-translate-saved">↻ Translate saved phrases / re-run latest</button>
       <p class="hint">Stop immediately ends speech recognition and cancels outstanding translations. The final <strong>text transcript</strong> stays in this page until you clear or close it; <strong>no raw audio recording is saved</strong>.</p>

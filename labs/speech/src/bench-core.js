@@ -86,6 +86,26 @@ export class TranslationQueue {
     return true;
   }
 
+  /**
+   * Realtime mode: preserve ALL transcript rows, but only keep the newest
+   * two waiting translations. Older waiting rows become explicitly skipped,
+   * rather than creating an ever-growing delay.
+   */
+  enqueueRealtime(row, providers, maxWaiting = 2) {
+    if (!this.enabled) return false;
+    const capacity = Math.max(1, Math.floor(maxWaiting));
+    while (this.pending.length >= capacity) {
+      const dropped=this.pending.shift();
+      this.onChange(dropped.row,"queue",{status:"skipped",error:"Skipped stale translation for live catch-up."});
+      for(const provider of dropped.providers) {
+        this.onChange(dropped.row,provider.id,{
+          status:"skipped",error:"Skipped stale translation for live catch-up."
+        });
+      }
+    }
+    return this.enqueue(row,providers);
+  }
+
   stop() {
     this.enabled = false;
     this.generation++;
