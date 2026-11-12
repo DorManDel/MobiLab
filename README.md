@@ -9,7 +9,7 @@ A mobile-first collection of experimental web mechanics and hardware exploration
 - **VibroMotion** — short timed vibration trials with motion/orientation telemetry, protected flat/upright setup modes, no-vibration control, custom pulse trains (on/off/duty), optional local rear-camera contact sheets, physical observations and CSV export.
 - **Blink Lab** — touch-first profile eyelid overlay calibration, image-space relative eye anchors, auto/manual blink, zoom, crop and tilt preview, local settings and JSON export. Open at [`labs/blink/`](./labs/blink/).
 - **WSLX Terminal Lab** — safe Ubuntu/WSLX command simulator with an editable File Explorer, Windows ↔ WSL path navigation, text editing, virtual filesystem operations, opt-in device file/folder imports and read-only linked-folder refresh where supported. Open at [`labs/wslx/`](./labs/wslx/).
-- **Speech & Translate Lab** — experimental browser microphone STT, per-phrase MyMemory translation, subtitle stage, TTS, reference-based WER, transcript/VTT exports. See [labs/speech/](./labs/speech/). No API keys; cloud speech recognition and text translation may transmit user data.
+- **Speech & Translate Lab (beta 0.2)** — one-tap mobile recording session, optional auto-translation of finalized phrases, bounded/cancellable provider queue, voice diagnostics and TTS, up to three translation adapters (MyMemory + optional desktop Chrome Translator + user-controlled HTTPS LibreTranslate server), human-reference similarity/WER, transcript/VTT exports. See [labs/speech/](./labs/speech/). Source provider audio/text may leave the device; no API secrets.
 - **Idea Board** — locally saved experiment ideas.
 
 ## Run
