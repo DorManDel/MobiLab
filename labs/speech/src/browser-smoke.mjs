@@ -23,7 +23,12 @@ try {
       constructor(){this.continuous=true;this.interimResults=true;}
       start(){window.__recognition=this;this.onstart?.();}
       abort(){window.__aborted=(window.__aborted||0)+1;}
+      emitInterim(transcript) {
+        const results=[Object.assign([{transcript,confidence:0.7}],{isFinal:false})];
+        this.onresult?.({resultIndex:0,results});
+      }
       emitFinal(transcript){
+        this.onspeechstart?.();
         const alternatives=[{transcript,confidence:0.95}];
         const results=[Object.assign(alternatives,{isFinal:true})];
         this.onresult?.({resultIndex:0,results});
@@ -66,15 +71,27 @@ try {
   await page.locator("#translateManual").click();
   await page.waitForFunction(()=>document.querySelector("#cloudEngineResult")?.textContent==="Translation A");
   assert.equal(await page.locator("#captionTranslated").textContent(),"Translation A");
+  assert.equal(await page.locator("#liveTranslation").textContent(),"Translation A");
+  await page.locator('[data-caption-mode="roll"]').click();
+  assert.equal(await page.locator("#liveDeck").getAttribute("data-mode"),"roll");
+  assert.ok(await page.locator(".roll-entry").count());
+  await page.locator('[data-caption-mode="ticker"]').click();
+  assert.equal(await page.locator("#liveDeck").getAttribute("data-mode"),"ticker");
+  assert.equal(await page.locator("#liveTicker").textContent(),"Translation A");
+  await page.locator('[data-caption-mode="bottom"]').click();
   await page.locator("#speakLast").click();
   assert.equal(await page.evaluate(()=>window.__spoken),"Translation A");
 
   await page.locator("#recordToggle").click();
   assert.equal(await page.locator("#recordToggle").getAttribute("aria-pressed"),"true");
+  await page.evaluate(()=>window.__recognition.emitInterim("אני מדבר עכשיו וזו בדיקה של כתוביות"));
+  assert.match(await page.locator("#livePartial").textContent(),/אני מדבר עכשיו/);
   await page.evaluate(()=>window.__recognition.emitFinal("עוד משפט"));
   await page.locator("#recordToggle").click();
   assert.equal(await page.locator("#recordToggle").getAttribute("aria-pressed"),"false");
   assert.ok((await page.evaluate(()=>window.__aborted))>=1);
+  assert.match(await page.locator("#liveSttMs").textContent(),/ms|—/);
+  assert.match(await page.locator("#liveTotalMs").textContent(),/ms|—/);
 
   // Optional second remote engine: same source input, real independent response.
   await page.locator(".provider-config summary").click();
