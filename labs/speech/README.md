@@ -18,6 +18,16 @@ Microphone → browser recognition → interim/final transcript → translation 
 
 Manual text → optional text language detector → translation API → captions → optional TTS.
 
+## Optional engine comparison — beta
+
+- Engine A: MyMemory (cloud) receives the finalized text and returns a translation.
+- Engine B: Chrome browser-native `Translator` (available on supported **desktop** Chrome/Edge only). Opt-in via checkbox; browser may download a language pack before the first result. Translation occurs on the device once available.
+- When Engine B is enabled, both translations are launched in parallel against the **same finalized source text**. Each engine displays its own result or explicit error and latency.
+- The UI shows lexical word-set overlap only when both engines have succeeded. **This is NOT translation accuracy**, and automatic merging/voting is not implemented. The user must compare meaning or supply a reference.
+- Browser `SpeechRecognition.maxAlternatives=3` requests up to three candidates from **one recognizer**; this is not model ensembling and other browsers may return just one candidate.
+- To compare two independent *speech recognition* models we will need a real second STT adapter (e.g. Whisper or an external API), a common audio sample, consent and meaningful benchmarks. Do not download big models automatically on mobile.
+- Reusable engine module: `src/engine-compare.js` exports `createChromeTranslatorAdapter()`, `lexicalAgreement()` and language/token helpers. Pure adapter/caching tests live in `src/engine-compare.test.mjs` (run `npm test` from `labs/speech/` with Node installed).
+
 ## Data handling and limitations
 
 - Microphone requires user permission and a secure browser context (HTTPS or localhost). Stopping, closing, or backgrounding the page ends recognition.
@@ -29,6 +39,8 @@ Manual text → optional text language detector → translation API → captions
 
 ## QA checklist — before merging
 
+- [ ] In Chrome desktop where supported, explicitly enable local engine comparison and compare real independent translation outputs and latencies. Confirm no automatic model download without opt-in.
+- [ ] In Android verify the unsupported local translator is gracefully disabled (no fake second-model output).
 - [ ] In Android Chrome over HTTPS: allow microphone, dictate Hebrew and verify final transcript.
 - [ ] Dictate English, then translate to Hebrew and inspect actual provider result.
 - [ ] Repeat in Samsung Internet and desktop Chrome; record unsupported APIs/errors.
