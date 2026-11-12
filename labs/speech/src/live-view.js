@@ -61,13 +61,13 @@ export class LiveCaptionView {
     const stats=timeStats(this.latencies);
     this.el("livePercentile").textContent=stats.count ? "p50 "+formatLatency(stats.p50)+" · p90 "+formatLatency(stats.p90) : "p50/p90: —";
   }
-  translated(row, text, provider) {
+  translated(row, text, provider, keepInterim=false) {
     if(!text)return;
     this.lastTranslation=text;
     this.lastSource=row.text;
-    this.el("livePartial").textContent=row.text;
+    if(!keepInterim)this.el("livePartial").textContent=row.text;
     this.el("liveTranslation").textContent=text;
-    this.el("livePhase").textContent="FINAL TRANSLATION · "+provider;
+    this.el("livePhase").textContent=(keepInterim?"PREVIOUS CAPTION · ":"FINAL TRANSLATION · ")+provider;
     this.el("liveNotice").textContent="Final translation visible. Render delay measured from Web Speech final event.";
     this.history=this.history.filter(item=>item.id!==row.id);
     this.history.push({id:row.id,text});
