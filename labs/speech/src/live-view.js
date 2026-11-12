@@ -64,6 +64,7 @@ export class LiveCaptionView {
   translated(row, text, provider, keepInterim=false) {
     if(!text)return;
     this.lastTranslation=text;
+    this.el("liveAccessible").textContent=text;
     this.lastSource=row.text;
     if(!keepInterim)this.el("livePartial").textContent=row.text;
     this.el("liveTranslation").textContent=text;
@@ -99,6 +100,7 @@ export class LiveCaptionView {
   reset(){
     this.history=[];
     this.latencies=[];
+    this.el("liveAccessible").textContent="";
     this.lastTranslation="";
     this.lastSource="";
     this.el("livePartial").textContent="Tap Start recording, or translate a typed phrase below.";
