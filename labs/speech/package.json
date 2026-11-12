@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node src/engine-compare.test.mjs"
+    "test": "node --test src/engine-compare.test.mjs src/bench-core.test.mjs src/dom-contract.test.mjs"
   }
 }

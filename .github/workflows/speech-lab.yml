@@ -1,0 +1,49 @@
+name: Speech Lab static checks
+on:
+  pull_request:
+    paths:
+      - 'labs/speech/**'
+      - '.github/workflows/speech-lab.yml'
+  push:
+    branches:
+      - main
+      - feat/speech-lab-v02-mobile-tts-queue
+    paths:
+      - 'labs/speech/**'
+      - '.github/workflows/speech-lab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse app modules
+        run: |
+          node --check labs/speech/src/app.js
+          node --check labs/speech/src/bench-core.js
+          node --check labs/speech/src/engine-compare.js
+      - name: Run pure unit tests and DOM contract
+        working-directory: labs/speech
+        run: npm test
+  browser-smoke:
+    # Playwright Chromium 1.56 supports Ubuntu 24.04, not the newer 26.04 runner.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium for CI only
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Exercise mocked mobile browser flows
+        run: node labs/speech/src/browser-smoke.mjs
+
