@@ -1,7 +1,45 @@
 import { createChromeTranslatorAdapter, lexicalAgreement } from "./engine-compare.js";
 import { TranslationQueue, wordErrorRate, characterSimilarity, safeLibreEndpoint } from "./bench-core.js";
+import { splitCaptionLines } from "./live-captions.js";
+import { LiveCaptionView } from "./live-view.js";
 
 const $ = (id) => document.getElementById(id);
+const liveView = new LiveCaptionView(document);
+let draftTimer=null, draftAbort=null, draftVersion=0, lastDraftRequest=-Infinity;
+function cancelDraft() {
+  draftVersion++;
+  clearTimeout(draftTimer);
+  if(draftAbort){draftAbort.abort();draftAbort=null;}
+}
+function scheduleDraft(text) {
+  clearTimeout(draftTimer);
+  const version=++draftVersion;
+  const trimmed=text.trim();
+  if(!$("earlyPreview").checked || trimmed.split(/\s+/u).length<4 || !micActive)return;
+  // Extra translation requests are opt-in; cap text size and global call rate.
+  const delay=Math.max(650,3600-(performance.now()-lastDraftRequest));
+  draftTimer=setTimeout(async()=>{
+    if(version!==draftVersion || !micActive)return;
+    draftAbort?.abort();
+    draftAbort=new AbortController();
+    const began=performance.now();
+    lastDraftRequest=began;
+    try{
+      const out=await translateMyMemory(Array.from(trimmed).slice(0,180).join(""),
+        $("sourceLang").value,$("targetLang").value,draftAbort.signal);
+      if(version===draftVersion && micActive && !draftAbort.signal.aborted){
+        liveView.early(out,performance.now()-began);
+      }
+    }catch(error){
+      if(version===draftVersion && micActive && !draftAbort.signal.aborted){
+        $("liveNotice").textContent="Early draft unavailable: "+(error.message||"translation error");
+      }
+    }
+  },delay);
+}
+$("quickSpeak").addEventListener("click",()=>{
+  $("speakLast").click();
+});
 const locale = {he:"he-IL",en:"en-US",es:"es-ES",fr:"fr-FR",de:"de-DE",ar:"ar-SA",ru:"ru-RU",it:"it-IT"};
 const langNames = {he:"Hebrew",en:"English",es:"Spanish",fr:"French",de:"German",ar:"Arabic",ru:"Russian",it:"Italian"};
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -60,6 +98,7 @@ function stopMic() {
     old.onerror = null;
     try { old.abort(); } catch {}
   }
+  cancelDraft();
   queue.stop(); // cancels pending and running provider requests
   interimActive = false;
   refreshRecordingUI();
@@ -75,6 +114,8 @@ function activateRecognizer(token) {
   const instance = new Recognition();
   recognize = instance;
   const finalized = new Set();
+  let speechStartPerf=null;
+  instance.onspeechstart=()=>{speechStartPerf=performance.now();};
   instance.lang = locale[$("sourceLang").value];
   instance.continuous = true;
   instance.interimResults = true;
@@ -96,14 +137,25 @@ function activateRecognizer(token) {
           text: value.transcript?.trim() || "",
           confidence: Number.isFinite(value.confidence) && value.confidence > 0 ? value.confidence : null
         })).filter(x => x.text);
-        addPhrase(phrase, $("sourceLang").value, $("targetLang").value, candidates,
-          $("autoTranslate").checked);
+        cancelDraft();
+        const finalPerf=performance.now();
+        const speechDuration=speechStartPerf===null?null:Math.max(0,finalPerf-speechStartPerf);
+        const chunks=splitCaptionLines(phrase,$("chunkMode").value);
+        chunks.forEach((chunk,index)=>{
+          addPhrase(chunk,$("sourceLang").value,$("targetLang").value,
+            index===chunks.length-1?candidates:[],
+            $("autoTranslate").checked,
+            index===0?speechDuration:null,finalPerf);
+        });
+        speechStartPerf=null;
       } else if (!result.isFinal) interim += " " + phrase;
     }
     if (interim.trim()) {
       interimActive = true;
       $("captionOriginal").textContent = interim.trim() + " …";
       $("captionTranslated").textContent = "Listening for the end of this phrase…";
+      liveView.interim(interim.trim());
+      scheduleDraft(interim.trim());
     } else interimActive = false;
   };
   instance.onerror = (event) => {
