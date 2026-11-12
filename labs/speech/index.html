@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0914">
+  <title>Speech & Translate Lab — MobiLab</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b0914;--panel:#19152a;--line:rgba(194,168,255,.2);--ink:#f8f5ff;--muted:#b9b0d0;--purple:#b996ff;--yellow:#f5da77;--mint:#78e3c5;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 85% 0,#3c286755,transparent 50%),var(--bg);color:var(--ink)}
+    button,input,select,textarea{font:inherit}button{cursor:pointer}
+    a{color:inherit}button:focus-visible,a:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--yellow);outline-offset:3px}
+    .shell{max-width:1050px;margin:auto;padding:18px clamp(16px,4vw,30px) 55px}
+    header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding-bottom:17px;border-bottom:1px solid var(--line)}
+    .brand{text-decoration:none;font-weight:900;font-size:20px}.brand span{color:var(--purple)}
+    .back{font-size:12px;color:var(--muted);text-decoration:none;border:1px solid var(--line);padding:10px 13px;border-radius:10px}
+    .eyebrow{font-size:11px;letter-spacing:1.5px;font-weight:800;color:var(--purple);text-transform:uppercase}
+    h1{font-size:clamp(34px,7vw,65px);margin:14px 0 10px;letter-spacing:-2px;line-height:1.07}h1 em{font-style:normal;background:linear-gradient(90deg,var(--purple),var(--yellow));color:transparent;background-clip:text}
+    .intro{padding:25px 0 22px}.intro p{max-width:750px;line-height:1.65;color:var(--muted);margin:12px 0}
+    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
+    .card{border:1px solid var(--line);background:linear-gradient(140deg,#211a36c9,#151222de);border-radius:18px;padding:21px;min-width:0}
+    h2{font-size:20px;margin:5px 0 14px}h3{font-size:15px;margin:14px 0 8px}
+    .tag{border:1px solid var(--line);border-radius:99px;padding:6px 9px;font-size:11px;color:var(--muted);white-space:nowrap}
+    .row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.between{justify-content:space-between}
+    .field{display:grid;gap:8px;flex:1;min-width:145px}label{font-size:12px;font-weight:650;color:#ded7f0}
+    select,textarea,input[type=text]{width:100%;background:#0e0d19;border:1px solid #74609478;border-radius:11px;color:var(--ink);padding:12px;font-size:14px;min-height:46px}
+    select{touch-action:manipulation}textarea{min-height:112px;resize:vertical;line-height:1.6}
+    button{min-height:44px;border-radius:11px;border:1px solid var(--line);background:#ffffff0b;color:var(--ink);padding:11px 15px;font-size:13px;font-weight:700}
+    button:hover{border-color:#b393f0}button:disabled{opacity:.45;cursor:not-allowed}
+    .primary{background:linear-gradient(120deg,#c5a9ff,#9670dc);color:#100c20;border-color:transparent}
+    .danger{border-color:#f48e9b66;color:#ffbcc5}
+    .big{font-size:15px;padding:14px 20px;min-height:52px}.full{width:100%}
+    .hint{color:var(--muted);font-size:12px;line-height:1.6}
+    .divider{height:1px;background:var(--line);margin:20px 0}
+    .status{font-size:12px;color:var(--mint);display:flex;align-items:center;gap:9px;min-height:24px}
+    .dot{display:inline-block;width:8px;height:8px;background:var(--mint);border-radius:50%;box-shadow:0 0 12px #78e3c566}
+    .dot.busy{background:#f4c76b;box-shadow:0 0 12px #f4c76b66}
+    .stage{border:1px solid #9275df66;border-radius:18px;background:radial-gradient(ellipse at 50% 80%,#452d7566,#121020);padding:20px;min-height:245px;display:flex;flex-direction:column;justify-content:center;gap:8px;margin-bottom:16px}
+    .stage label{color:#d8c6ff;text-transform:uppercase;letter-spacing:1.2px;font-size:10px}
+    .stage p{margin:1px 0 12px;font-size:clamp(17px,3vw,25px);line-height:1.4;overflow-wrap:anywhere;min-height:28px}
+    .stage #captionTranslated{color:var(--yellow);font-size:clamp(19px,3.5vw,29px);font-weight:750}
+    .segments{display:grid;gap:10px;max-height:365px;overflow:auto}
+    .segment{background:#0d0c18;border:1px solid var(--line);padding:13px;border-radius:11px}
+    .segment .meta{display:flex;justify-content:space-between;gap:9px;color:var(--muted);font-size:11px}
+    .segment .original{font-size:14px;margin:9px 0 4px;overflow-wrap:anywhere}
+    .segment .translated{font-size:14px;color:var(--yellow);margin:0;overflow-wrap:anywhere}
+    .segment .error{color:#ffc1c8}.segment small{color:var(--muted)}
+    .metric{font-variant-numeric:tabular-nums;color:var(--yellow);font-size:21px;font-weight:800;display:block;margin-top:7px}
+    .metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+    .metric-box{background:#0e0c19;border:1px solid var(--line);border-radius:11px;padding:12px;min-width:0}
+    .metric-box label{font-size:10px}
+    .check{display:flex;align-items:center;gap:8px;font-size:12px;margin-top:12px}.check input{width:18px;height:18px;accent-color:var(--purple)}
+    .alert{padding:13px 16px;background:#33281855;border:1px solid #f5d66b4d;border-radius:12px;font-size:12px;line-height:1.65;color:#eedfc0;margin:16px 0}
+    .notes{margin-top:16px}.notes li{margin-bottom:8px;color:var(--muted);font-size:12px;line-height:1.6}
+    code{color:#e8d4ff}
+    @media(max-width:740px){.grid{grid-template-columns:1fr}.stage{min-height:215px}.card{padding:17px}.metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.metric{font-size:17px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header><a class="brand" href="../../#home">Mobi<span>Lab</span> / SPEECH</a><a class="back" href="../../#home">← All experiments</a></header>
+  <div class="intro">
+    <div class="eyebrow">EXPERIMENT 07 · LANGUAGE & AUDIO · POC 0.1</div>
+    <h1>Speech & <em>Translate</em> Lab</h1>
+    <p>Talk, transcribe, translate and read aloud. Test real browser speech recognition and a real translation service, with no secret API keys or fake results.</p>
+    <div class="row"><span class="tag">🎙 Live microphone</span><span class="tag">🗺 Translation</span><span class="tag">🔊 TTS</span><span class="tag">📊 WER test</span></div>
+  </div>
+  <div class="alert"><strong>Privacy & capability:</strong> Browser recognition may send microphone audio to a speech service. Translating sends finalized text to MyMemory. Nothing is saved on a server by this app. This lab cannot capture telephone calls or other apps' protected audio. Recording starts only when you tap Start.</div>
+  <div class="grid">
+    <section class="card" aria-labelledby="controlTitle">
+      <div class="row between"><div><div class="eyebrow">01 / INPUT</div><h2 id="controlTitle">Listening controls</h2></div><span class="tag" id="browserSupport">Checking…</span></div>
+      <div class="row">
+        <div class="field"><label for="sourceLang">Spoken / source language</label>
+          <select id="sourceLang">
+            <option value="he" selected>Hebrew · עברית</option>
+            <option value="en">English</option><option value="es">Spanish · Español</option>
+            <option value="fr">French · Français</option><option value="de">German · Deutsch</option>
+            <option value="ar">Arabic · العربية</option><option value="ru">Russian · Русский</option>
+            <option value="it">Italian · Italiano</option><option value="auto">Auto · typed text only</option>
+          </select>
+        </div>
+        <div class="field"><label for="targetLang">Translate to</label>
+          <select id="targetLang">
+            <option value="en" selected>English</option><option value="he">Hebrew · עברית</option>
+            <option value="es">Spanish · Español</option><option value="fr">French · Français</option>
+            <option value="de">German · Deutsch</option><option value="ar">Arabic · العربية</option>
+            <option value="ru">Russian · Русский</option><option value="it">Italian · Italiano</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint">Microphone recognition requires a selected spoken language. Auto detection is experimental and only available for typed text. The built-in browser recognizer is <strong>not</strong> a reliable multilingual auto-detector.</p>
+      <div class="row" style="margin-top:14px"><button id="startMic" class="primary big">🎙 Start microphone</button><button id="stopMic" class="danger big" disabled>■ Stop</button></div>
+      <p class="status" aria-live="polite"><span id="stateDot" class="dot"></span><span id="status">Ready. Microphone is off.</span></p>
+      <div class="divider"></div>
+      <div class="eyebrow">02 / MANUAL TEXT TEST</div><h2>Paste or type a phrase</h2>
+      <label for="manualText">Input text (no mic needed)</label>
+      <textarea id="manualText" placeholder="שלום, אני רוצה לבדוק איך המתרגם שלנו עובד."></textarea>
+      <div class="row" style="margin-top:10px"><button id="translateManual" class="primary">Translate text</button><button id="clearAll">Clear session</button></div>
+      <p class="hint">When the source is Auto, Hebrew/Arabic/Russian scripts are detected heuristically. Chrome's Language Detector is tried where available; otherwise you'll be asked to select a language.</p>
+      <div class="divider"></div>
+      <div class="eyebrow">03 / VOICE OUTPUT</div><h2>Text to Speech</h2>
+      <div class="row"><button id="speakLast">🔊 Read latest translation</button><button id="stopVoice">Stop voice</button></div>
+      <div class="field" style="margin-top:14px"><label for="speechRate">Reading speed: <output id="speechRateValue">1.0×</output></label><input id="speechRate" type="range" min="0.6" max="1.6" value="1" step="0.1"></div>
+      <p class="hint">To avoid the microphone hearing our own TTS, voice playback is disabled while listening. Voice quality depends on installed system voices.</p>
+    </section>
+    <section class="card" aria-labelledby="captionTitle">
+      <div class="row between"><div><div class="eyebrow">LIVE OUTPUT</div><h2 id="captionTitle">Subtitle stage</h2></div><span class="tag" id="detectedLang">Source: he</span></div>
+      <div class="stage" aria-live="polite" aria-atomic="true">
+        <label>Original / interim</label><p id="captionOriginal">Waiting for input…</p>
+        <label>Translation</label><p id="captionTranslated">Translation will appear here.</p>
+      </div>
+      <div class="metrics">
+        <div class="metric-box"><label>FINAL PHRASES</label><strong class="metric" id="phraseCount">0</strong></div>
+        <div class="metric-box"><label>LAST API LATENCY</label><strong class="metric" id="latency">—</strong></div>
+        <div class="metric-box"><label>WORD ERROR RATE</label><strong class="metric" id="wer">—</strong></div>
+      </div>
+      <div class="divider"></div>
+      <div class="row between"><h2 style="margin:0">Session transcript</h2><span class="tag">RAM only</span></div>
+      <div id="segments" class="segments" aria-live="polite"><p class="hint">Finalized phrases will appear here. Interim results appear above but are not translated or stored.</p></div>
+      <div class="row" style="margin-top:14px"><button id="copyTranscript">Copy text</button><button id="exportTxt">↓ Export TXT</button><button id="exportVtt">↓ Export VTT*</button></div>
+      <p class="hint">* VTT cues use approximate session times; they are NOT synchronized to an external video.</p>
+      <div class="divider"></div>
+      <div class="eyebrow">ACCURACY BENCHMARK</div><h3>Compare against a reference</h3>
+      <label for="referenceText">Type the exact words that should have been recognized</label>
+      <textarea id="referenceText" placeholder="The actual spoken words (ground truth)..." style="min-height:78px"></textarea>
+      <button id="scoreWer">Calculate WER</button>
+      <p class="hint">WER = (substitutions + deletions + insertions) / reference word count. Without a human-verified reference, there is no valid accuracy percentage.</p>
+    </section>
+  </div>
+  <section class="card notes" aria-labelledby="notesTitle">
+    <div class="eyebrow">ENGINE NOTES</div><h2 id="notesTitle">What's real and what's next?</h2>
+    <ul>
+      <li><strong>Speech recognition:</strong> Web Speech API on supporting browsers, typically cloud-backed; Android may stop listening after pauses. The lab attempts safe restarts while you keep the mic enabled.</li>
+      <li><strong>Translation:</strong> MyMemory public API (anonymous quota 5,000 characters/day; each request max 500 UTF-8 bytes). Final phrases only; errors are displayed, never replaced with made-up translations.</li>
+      <li><strong>Automatic spoken-language detection:</strong> Not implemented in this version. Later: audio-language-ID + Whisper or a comparable multilingual recognizer.</li>
+      <li><strong>Future inputs:</strong> File upload, video playback, permitted desktop tab audio, native Android media capture, OCR translation and a keyboard integration each require their own adapters.</li>
+      <li><strong>Model comparison:</strong> Benchmark Whisper / device recognition / cloud STT on the same consented dataset, comparing WER, latency, battery and privacy; don't mistake model-generated guesses for ground truth.</li>
+    </ul>
+    <p class="hint">Open over HTTPS or localhost for microphone access. Test in full Chrome or Samsung Internet, not an in-app embedded browser.</p>
+  </section>
+</div>
+<script type="module">
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const langLocales = {he:"he-IL",en:"en-US",es:"es-ES",fr:"fr-FR",de:"de-DE",ar:"ar-SA",ru:"ru-RU",it:"it-IT"};
+  const languageNames = {he:"Hebrew",en:"English",es:"Spanish",fr:"French",de:"German",ar:"Arabic",ru:"Russian",it:"Italian"};
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recog = null, wantListening = false, restartTimer = null, finalizedIndices = new Set();
+  let rows = [], sequence = 0, sessionStarted = Date.now(), lastTranslated = "", lastTarget = "en";
+  const cache = new Map();
+  $("browserSupport").textContent = Recognition ? "STT available*" : "STT unavailable";
+  $("startMic").disabled = !Recognition || !window.isSecureContext;
+  if (!window.isSecureContext) setStatus("Microphone requires HTTPS or localhost.", true);
+  else if (!Recognition) setStatus("SpeechRecognition unavailable here; typed translation and TTS still work.", true);
+  function setStatus(message, caution = false) {
+    $("status").textContent = message;
+    $("stateDot").classList.toggle("busy", caution || wantListening);
+  }
+  function setListeningUI() {
+    $("startMic").disabled = wantListening || !Recognition || !window.isSecureContext;
+    $("stopMic").disabled = !wantListening;
+    $("sourceLang").disabled = wantListening;
+  }
+  function startRecognizer() {
+    if (!wantListening || !Recognition) return;
+    finalizedIndices = new Set();
+    recog = new Recognition();
+    recog.lang = langLocales[$("sourceLang").value];
+    recog.continuous = true;
+    recog.interimResults = true;
+    recog.maxAlternatives = 1;
+    recog.onstart = () => setStatus("Listening · " + languageNames[$("sourceLang").value] + ". Speak now.");
+    recog.onresult = (event) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const item = event.results[i];
+        const value = item[0]?.transcript?.trim() || "";
+        if (!value) continue;
+        if (item.isFinal && !finalizedIndices.has(i)) {
+          finalizedIndices.add(i);
+          submitPhrase(value, $("sourceLang").value, $("targetLang").value, item[0]?.confidence);
+        } else if (!item.isFinal) interim += " " + value;
+      }
+      if (interim.trim()) $("captionOriginal").textContent = interim.trim() + " …";
+    };
+    recog.onerror = (event) => {
+      const fatal = ["not-allowed", "service-not-allowed", "audio-capture", "language-not-supported"];
+      if (fatal.includes(event.error)) {
+        wantListening = false;
+        setListeningUI();
+      }
+      if (event.error !== "no-speech") setStatus("Recognition error: " + event.error + ". Check browser and permissions.", true);
+    };
+    recog.onend = () => {
+      if (!wantListening) return;
+      setStatus("Speech session ended; attempting to reconnect…", true);
+      clearTimeout(restartTimer);
+      restartTimer = setTimeout(() => {
+        if (!wantListening) return;
+        try { startRecognizer(); }
+        catch (error) { stopListening(); setStatus("Could not resume: " + error.message, true); }
+      }, 500);
+    };
+    recog.start();
+  }
+  function stopListening() {
+    wantListening = false;
+    clearTimeout(restartTimer);
+    const old = recog; recog = null;
+    if (old) { old.onend = null; try { old.stop(); } catch (_) {} }
+    setListeningUI();
+    setStatus("Microphone stopped.");
+  }
+  $("startMic").addEventListener("click", () => {
+    if (!Recognition || wantListening) return;
+    if ($("sourceLang").value === "auto") {
+      setStatus("Select a spoken language first. Auto applies to typed text only.", true); return;
+    }
+    wantListening = true; setListeningUI();
+    try { startRecognizer(); } catch (error) { stopListening(); setStatus("Could not start microphone: " + error.message, true); }
+  });
+  $("stopMic").addEventListener("click", stopListening);
+  async function detectTypedLanguage(text) {
+    if (/[א-ת]/u.test(text)) return "he";
+    if (/[\u0600-\u06ff]/u.test(text)) return "ar";
+    if (/[\u0400-\u04ff]/u.test(text)) return "ru";
+    if (window.LanguageDetector?.create) {
+      try {
+        const detector = await window.LanguageDetector.create();
+        const predictions = await detector.detect(text);
+        if (predictions?.length && predictions[0].confidence > 0.45) {
+          const lang = predictions[0].detectedLanguage.split("-")[0];
+          if (langLocales[lang]) return lang;
+        }
+      } catch (_) { /* Built-in detector may be unavailable or require a model download. */ }
+    }
+    return null;
+  }
+  function utf8Length(text) { return new TextEncoder().encode(text).length; }
+  function splitForAPI(text) {
+    const tokens = text.match(/\S+\s*/gu) || [];
+    const parts = [];
+    let current = "";
+    for (const token of tokens) {
+      if (utf8Length(token) > 450) throw new Error("One word is over 450 bytes. Shorten the text.");
+      if (utf8Length(current + token) > 450 && current) {
+        parts.push(current.trim()); current = "";
+      }
+      current += token;
+    }
+    if (current.trim()) parts.push(current.trim());
+    return parts;
+  }
+  async function translate(text, source, target) {
+    if (source === target) return text;
+    const key = source + "|" + target + "|" + text;
+    if (cache.has(key)) return cache.get(key);
+    const chunks = splitForAPI(text);
+    const output = [];
+    for (const chunk of chunks) {
+      const params = new URLSearchParams({q:chunk,langpair:source + "|" + target});
+      const response = await fetch("https://api.mymemory.translated.net/get?" + params, {method:"GET"});
+      if (!response.ok) throw new Error("Translation API HTTP " + response.status);
+      const payload = await response.json();
+      if (Number(payload.responseStatus) !== 200 || !payload.responseData?.translatedText) {
+        throw new Error(payload.responseDetails || "Translation service returned no translation.");
+      }
+      output.push(payload.responseData.translatedText);
+    }
+    const result = output.join(" ");
+    cache.set(key, result);
+    return result;
+  }
+  function showCaption(row) {
+    $("captionOriginal").textContent = row.text;
+    $("captionTranslated").textContent = row.translated || (row.error ? "Translation failed: " + row.error : "Translating…");
+    $("detectedLang").textContent = "Source: " + row.source;
+  }
+  function renderRows() {
+    const el = $("segments"); el.replaceChildren();
+    if (!rows.length) { const p = document.createElement("p"); p.className = "hint"; p.textContent = "No finalized phrases yet."; el.append(p); }
+    rows.slice().reverse().forEach(row => {
+      const card=document.createElement("article"); card.className="segment";
+      const meta=document.createElement("div"); meta.className="meta";
+      const time=document.createElement("span"); time.textContent=new Date(row.at).toLocaleTimeString();
+      const langs=document.createElement("span"); langs.textContent=row.source.toUpperCase() + " → " + row.target.toUpperCase();
+      meta.append(time,langs);
+      const original=document.createElement("p"); original.className="original"; original.textContent=row.text;
+      const translated=document.createElement("p"); translated.className="translated" + (row.error?" error":"");
+      translated.textContent=row.error ? "Translation error: " + row.error : (row.translated || "Translating…");
+      card.append(meta,original,translated); el.append(card);
+    });
+    $("phraseCount").textContent=String(rows.length);
+  }
+  async function submitPhrase(text, source, target, confidence) {
+    text=text.trim();
+    if (!text) return;
+    const row={id:++sequence,at:Date.now(),offset:Date.now()-sessionStarted,text,source,target,confidence,translated:"",error:""};
+    rows.push(row); renderRows(); showCaption(row);
+    const began=performance.now();
+    try {
+      const translated=await translate(text,source,target);
+      row.translated=translated;
+      lastTranslated=translated; lastTarget=target;
+      $("latency").textContent=Math.round(performance.now()-began)+"ms";
+      setStatus("Translated phrase #" + row.id + " · " + source + " → " + target);
+    } catch(error) {
+      row.error=error.message || String(error);
+      setStatus("Translation failed: " + row.error, true);
+    }
+    renderRows();
+    if (rows[rows.length-1]?.id===row.id) showCaption(row);
+  }
+  $("translateManual").addEventListener("click", async () => {
+    const text=$("manualText").value.trim();
+    if (!text) {setStatus("Type some text to translate.",true);return;}
+    let source=$("sourceLang").value;
+    if (source==="auto") {
+      setStatus("Detecting typed language…");
+      source=await detectTypedLanguage(text);
+      if (!source) {setStatus("Could not detect language reliably. Select the source manually.",true);return;}
+    }
+    submitPhrase(text,source,$("targetLang").value);
+  });
+  $("clearAll").addEventListener("click", () => {
+    rows=[];sequence=0;sessionStarted=Date.now();lastTranslated="";
+    $("latency").textContent="—";$("wer").textContent="—";
+    $("captionOriginal").textContent="Waiting for input…";$("captionTranslated").textContent="Translation will appear here.";
+    renderRows();setStatus("Session cleared; no previous text stored in this app.");
+  });
+  $("speechRate").addEventListener("input", () => $("speechRateValue").textContent=Number($("speechRate").value).toFixed(1)+"×");
+  $("speakLast").disabled = !("speechSynthesis" in window);
+  $("speakLast").addEventListener("click", () => {
+    if (wantListening) {setStatus("Stop the microphone before playing translated speech.",true);return;}
+    if (!lastTranslated) {setStatus("Translate a phrase first.",true);return;}
+    if (!("speechSynthesis" in window)) {setStatus("TTS is not supported by this browser.",true);return;}
+    window.speechSynthesis.cancel();
+    const utter=new SpeechSynthesisUtterance(lastTranslated);
+    utter.lang=langLocales[lastTarget];utter.rate=Number($("speechRate").value);
+    utter.onerror=() => setStatus("Speech playback failed. Check installed voices.",true);
+    utter.onstart=() => setStatus("Speaking translation…");
+    utter.onend=() => setStatus("Speech playback finished.");
+    window.speechSynthesis.speak(utter);
+  });
+  $("stopVoice").addEventListener("click", () => {window.speechSynthesis?.cancel();setStatus("Voice stopped.");});
+  function normalizeWords(value) {
+    return value.toLocaleLowerCase().replace(/[^\p{L}\p{N}\s']/gu," ").trim().split(/\s+/u).filter(Boolean);
+  }
+  function wordErrorRate(reference, hypothesis) {
+    const a=normalizeWords(reference), b=normalizeWords(hypothesis);
+    if (!a.length) return null;
+    let prev=Array.from({length:b.length+1},(_,i)=>i);
+    for(let i=1;i<=a.length;i++){
+      const next=[i];
+      for(let j=1;j<=b.length;j++) {
+        next[j]=Math.min(next[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+      }
+      prev=next;
+    }
+    return prev[b.length]/a.length;
+  }
+  $("scoreWer").addEventListener("click", () => {
+    const reference=$("referenceText").value;
+    const hypothesis=rows.map(row=>row.text).join(" ");
+    const score=wordErrorRate(reference,hypothesis);
+    if(score===null){setStatus("Enter a nonempty reference transcript to calculate WER.",true);return;}
+    $("wer").textContent=(score*100).toFixed(1)+"%";
+    setStatus("WER measured against your reference. Lower is better.");
+  });
+  function download(name,content,type) {
+    const url=URL.createObjectURL(new Blob([content],{type}));
+    const a=document.createElement("a");a.href=url;a.download=name;document.body.append(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }
+  function transcriptString() {return rows.map(row=>row.text+"\n"+(row.translated||("[Translation unavailable] "+(row.error||"")))).join("\n\n");}
+  $("copyTranscript").addEventListener("click", async () => {
+    if (!rows.length){setStatus("No transcript to copy.",true);return;}
+    try{await navigator.clipboard.writeText(transcriptString());setStatus("Transcript copied.");}
+    catch(error){setStatus("Clipboard unavailable. Use Export TXT.",true);}
+  });
+  $("exportTxt").addEventListener("click", () => {
+    if(!rows.length){setStatus("No transcript to export.",true);return;}
+    download("mobilab-speech-transcript.txt",transcriptString(),"text/plain;charset=utf-8");
+  });
+  function vttTime(ms) {
+    const n=Math.max(0,Math.floor(ms));
+    const h=Math.floor(n/3600000),m=Math.floor(n%3600000/60000),s=Math.floor(n%60000/1000),t=n%1000;
+    return [h,m,s].map(x=>String(x).padStart(2,"0")).join(":")+"."+String(t).padStart(3,"0");
+  }
+  $("exportVtt").addEventListener("click", () => {
+    if(!rows.length){setStatus("No subtitles to export.",true);return;}
+    let output="WEBVTT\n\nNOTE Approximate session timestamps; not synced to video.\n\n";
+    rows.forEach((row,i) => {
+      const start=row.offset;
+      const end=Math.max(start+1000,Math.min(start+4500,rows[i+1]?.offset || start+4500));
+      output+=String(i+1)+"\n"+vttTime(start)+" --> "+vttTime(end)+"\n"+(row.translated||row.text).replace(/\n/g," ")+"\n\n";
+    });
+    download("mobilab-subtitles-approx.vtt",output,"text/vtt;charset=utf-8");
+  });
+  document.addEventListener("visibilitychange",()=>{if(document.hidden && wantListening) stopListening();});
+  window.addEventListener("pagehide",()=>{if(wantListening)stopListening();window.speechSynthesis?.cancel();});
+  renderRows();
+</script>
+</body>
+</html>
