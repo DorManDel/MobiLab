@@ -91,12 +91,15 @@ export class TranslationQueue {
     this.generation++;
     const current = this.current;
     if (current) {
+      this.onChange(current.row, "queue", { status: "canceled" });
       for (const task of current.tasks) {
         this.onChange(current.row, task.id, { status: "canceled", error: "Stopped by user." });
         task.controller.abort();
       }
+      current.interrupt(); // Allows a fresh session without waiting on an unabortable provider.
     }
     for (const { row, providers } of this.pending) {
+      this.onChange(row, "queue", { status: "canceled" });
       for (const provider of providers) this.onChange(row, provider.id,
         { status: "canceled", error: "Stopped by user." });
     }
@@ -112,8 +115,10 @@ export class TranslationQueue {
         const { row, providers } = this.pending.shift();
         const generation = this.generation;
         const tasks = providers.map(({ id }) => ({ id, controller: new AbortController() }));
-        this.current = { row, tasks };
-        await Promise.allSettled(providers.map(async (provider, i) => {
+        let interrupt;
+        const canceled = new Promise(resolve => { interrupt = resolve; });
+        this.current = { row, tasks, interrupt };
+        const running = Promise.allSettled(providers.map(async (provider, i) => {
           const { controller } = tasks[i];
           const begin = this.clock();
           this.onChange(row, provider.id, { status: "running" });
@@ -138,6 +143,10 @@ export class TranslationQueue {
             }
           }
         }));
+        await Promise.race([running,canceled]);
+        if (this.enabled && generation === this.generation) {
+          this.onChange(row, "queue", { status: "completed" });
+        }
         this.current = null;
       }
     } finally {
