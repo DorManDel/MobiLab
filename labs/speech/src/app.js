@@ -11,6 +11,7 @@ const translationCache = new Map();
 let rows = [];
 let rowId = 0;
 let sessionStart = Date.now();
+let recordingStart = Date.now();
 let recognize = null;
 let micActive = false;
 let micToken = 0;
@@ -44,7 +45,7 @@ function clockText(ms) {
   return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
 }
 function updateTimer() {
-  $("recordTime").textContent = micActive ? clockText(Date.now() - sessionStart) : $("recordTime").textContent;
+  $("recordTime").textContent = micActive ? clockText(Date.now() - recordingStart) : $("recordTime").textContent;
 }
 function stopMic() {
   micActive = false;
@@ -145,8 +146,7 @@ function startMic() {
     return;
   }
   window.speechSynthesis?.cancel(); // no voice-feedback loop
-  if (!rows.length) sessionStart = Date.now();
-  else sessionStart = Date.now(); // recording time resets, transcript history persists
+  recordingStart = Date.now(); // session timestamps remain monotonic across multiple recordings
   micActive = true;
   micToken++;
   restartTimes = [];
@@ -241,10 +241,15 @@ function activeProviders() {
     });
   }
   if ($("compareLibre").checked) {
-    // Invalid input must fail visibly, never silently send to an unapproved domain.
-    const endpoint = safeLibreEndpoint($("libreEndpoint").value.trim());
+    // Keep the cloud baseline running even if the optional endpoint is malformed.
+    let endpoint, configurationError;
+    try { endpoint = safeLibreEndpoint($("libreEndpoint").value.trim()); }
+    catch(error) { configurationError = error.message; }
     list.push({id:"libre",label:"Your LibreTranslate server",
-      run:(text,source,target,signal)=>translateLibre(text,source,target,signal,endpoint)});
+      run:(text,source,target,signal)=>{
+        if (configurationError) throw new Error(configurationError);
+        return translateLibre(text,source,target,signal,endpoint);
+      }});
   }
   return list;
 }
@@ -288,7 +293,7 @@ function translateRow(row) {
 }
 function translateSaved() {
   queue.start();
-  const targets=rows.filter(row => !["queued","running","success"].includes(row.queueStatus)
+  const targets=rows.filter(row => ["saved","canceled","skipped"].includes(row.queueStatus)
     && Object.values(row.results).every(x=>x.status!=="running"));
   if (!targets.length) {
     const latest=rows[rows.length-1];
@@ -335,7 +340,7 @@ $("clearAll").addEventListener("click",()=>{
   if(micActive) stopMic();
   queue.stop();
   translationCache.clear();
-  rows=[];rowId=0;sessionStart=Date.now();
+  rows=[];rowId=0;sessionStart=Date.now();recordingStart=sessionStart;
   interimActive=false;
   $("recordTime").textContent="00:00";
   $("wer").textContent="—";
@@ -507,7 +512,11 @@ function speakText(text,lang){
 }
 $("testVoice").addEventListener("click",()=>{
   const lang=$("targetLang").value;
-  const sample=lang==="he"?"שלום, זאת בדיקת הקראה.":lang==="ar"?"مرحباً، هذا اختبار للصوت.":"Hello, this is a voice test.";
+  const samples={he:"שלום, זאת בדיקת הקראה.",en:"Hello, this is a voice test.",
+    ar:"مرحباً، هذا اختبار للصوت.",es:"Hola, esto es una prueba de voz.",
+    fr:"Bonjour, ceci est un test vocal.",de:"Hallo, dies ist ein Sprachtest.",
+    ru:"Привет, это проверка голоса.",it:"Ciao, questa è una prova vocale."};
+  const sample=samples[lang] || samples.en;
   speakText(sample,lang);
 });
 $("speakLast").addEventListener("click",()=>{
