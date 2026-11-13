@@ -1,0 +1,35 @@
+name: FaceFX mobile smoke
+on:
+  push:
+    branches: [fix/facefx-mobile-mediapipe-presets]
+    paths:
+      - 'labs/facefx/**'
+      - 'facefx-server/**'
+      - '.github/workflows/facefx-smoke.yml'
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          cp labs/facefx/client.js /tmp/facefx-client.mjs
+          cp labs/facefx/swap.js /tmp/facefx-swap.mjs
+          node --check /tmp/facefx-client.mjs
+          node --check /tmp/facefx-swap.mjs
+      - name: Python syntax
+        run: python3 -m py_compile facefx-server/server.py facefx-server/processor.py
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Browser smoke (primary + fallback + preset + gallery + clear)
+        run: |
+          python3 -m http.server 8123 --bind 127.0.0.1 &
+          sleep 2
+          node labs/facefx/browser-smoke.mjs
