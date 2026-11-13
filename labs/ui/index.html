@@ -2,17 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0c0918"><title>UI Mechanics · MobiLab</title>
 <link rel="stylesheet" href="../workbench.css">
-<style>
-.fixed-menu-dial{position:relative;margin:20px auto;width:min(92vw,390px);aspect-ratio:1;touch-action:none;user-select:none;outline:none}
-.fixed-menu-dial:before{content:"";position:absolute;inset:6%;border:2px solid #ac88ee55;border-radius:50%;box-shadow:0 0 40px #5c2a9555 inset;background:radial-gradient(circle,#291b3f,#130f27 68%,transparent)}
-.fixed-menu-slot{position:absolute;top:50%;left:50%;width:30%;min-height:60px;z-index:2;
-  transform:translate(-50%,-50%) rotate(var(--angle)) translateY(-136px) rotate(calc(-1 * var(--angle)));
-  color:#f3edff;background:#322047;border:1px solid #937ac7aa;border-radius:18px;padding:8px;font-weight:750;overflow-wrap:anywhere}
-.fixed-menu-slot.is-selected{background:linear-gradient(120deg,#d5b0ff,#9572df);color:#160f24;border-color:#f9df76;box-shadow:0 0 0 3px #f9df7640}
-.fixed-menu-slot:disabled{opacity:.2}
-.fixed-menu-hub{position:absolute;inset:37%;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle at 30% 30%,#8964cd,#33204f 70%);border:1px solid #c9a4ff;letter-spacing:.8px;font-weight:900;font-size:12px;pointer-events:none}
-@media(max-width:420px){.fixed-menu-slot{transform:translate(-50%,-50%) rotate(var(--angle)) translateY(-33vw) rotate(calc(-1 * var(--angle)));font-size:11px;min-height:55px}}
-</style></head>
+<link rel="stylesheet" href="../../src/mechanics/fixed-menu-dial.css"></head>
 <body>
 <div class="shell">
 <header class="top"><a href="../../#home">← MobiLab</a><b>UI MECHANICS</b><span>WORKBENCH 01</span></header>
@@ -48,7 +38,7 @@ Experimental
 About</textarea>
   <div class="actions"><button id="apply" type="button" class="primary">Apply list</button><button id="exportConfig" type="button">Export JSON</button></div>
   <p class="note">Use the standalone JavaScript class from <code>src/mechanics/fixed-menu-dial.js</code>. It has no framework dependency or MobiLab globals. Bring your own data and selection callback.</p>
-  <a class="download" href="../../src/mechanics/fixed-menu-dial.js" download="fixed-menu-dial.js">↓ Download independent JS module</a>
+  <a class="download" href="../../src/mechanics/fixed-menu-dial.js" download="fixed-menu-dial.js">↓ Download JS module</a> <a class="download" href="../../src/mechanics/fixed-menu-dial.css" download="fixed-menu-dial.css">↓ Download CSS</a>
   <pre><code>import { FixedMenuDial } from "./fixed-menu-dial.js";
 const dial = new FixedMenuDial({
   root: document.querySelector("#dial"),
