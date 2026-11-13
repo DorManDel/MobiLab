@@ -9,6 +9,8 @@ try {
   page.on('requestfailed',r=>events.push('requestfailed: '+r.url()+' / '+r.failure()?.errorText));
   page.on('console',m=>{if(m.type()==='error')events.push('console: '+m.text());});
   await page.goto(target,{waitUntil:'domcontentloaded'});
+  if(await page.locator('#effect').inputValue()!=='mesh')throw new Error('Face mapping not the default');
+  await page.locator('#effect').selectOption('swap');
   await page.locator('[data-preset="studio-ginger"]').click();
   try{
     await page.waitForFunction(()=>document.querySelector('#sourceStatus')?.textContent?.startsWith('SOURCE VERIFIED'),null,{timeout:90000});
@@ -47,6 +49,14 @@ try {
     throw error;
   }
   console.log('Real MediaPipe LIVE local swap:',await page.locator('#pipelineStatus').textContent());
+  if((await page.locator('#pipelineStatus').textContent()).includes('SWAP SUCCESS'))throw Error('Misleading success banner');
+  await page.locator('#effect').selectOption('mesh');
+  await page.waitForFunction(()=>document.querySelector('#pipelineStatus')?.textContent==='FACE MAPPING ACTIVE',null,{timeout:15000});
+  console.log('Real 478-point face mapping:',await page.locator('#pipelineStatus').textContent());
+  await page.locator('#effect').selectOption('contours');
+  await page.waitForFunction(()=>document.querySelector('#pipelineStatus')?.textContent==='FACE MAPPING ACTIVE',null,{timeout:15000});
+  await page.locator('#effect').selectOption('points');
+  await page.waitForFunction(()=>document.querySelector('#pipelineStatus')?.textContent==='FACE MAPPING ACTIVE',null,{timeout:15000});
   await page.locator('#cameraStop').click();
 
 }finally { await browser.close(); }

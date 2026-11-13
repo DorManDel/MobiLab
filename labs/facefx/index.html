@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0e0b1b" />
   <meta name="description" content="FaceFX Lab — local phone face swap and effects, optional private RTX comparison." />
-  <title>FaceFX Lab v0.6 · MobiLab</title>
-  <link rel="stylesheet" href="./style.css?v=0.6.0" />
-  <script type="module" src="./client.js?v=0.6.0"></script>
+  <title>FaceFX Lab v0.7 · MobiLab</title>
+  <link rel="stylesheet" href="./style.css?v=0.7.0" />
+  <script type="module" src="./client.js?v=0.7.0"></script>
 </head>
 <body>
 <main class="shell">
@@ -45,11 +45,13 @@
         <div><strong id="faceCount">—</strong><small>FACES</small></div>
       </div>
       <div class="process-rates"><span>DETECT <strong id="trackingFps">—</strong> FPS</span><span>SWAP <strong id="swapFps">—</strong> FPS</span></div>
-      <div class="pipeline-health" id="pipelineStatus" role="status" aria-live="polite">CAMERA OFF · start to test tracking</div>
+      <div class="pipeline-health" id="pipelineStatus" role="status" aria-live="polite" aria-atomic="true">CAMERA OFF</div>
       <div class="viewer-controls">
-        <label>Live effect <select id="effect"><option value="swap">Photo Swap · local (2D)</option><option value="visor">Neon visor</option><option value="mesh">Face mesh</option><option value="mask">Cyber mask</option><option value="none">Original (no effect)</option></select></label>
-        <div class="source-picker" id="sourcePicker">
-          <div class="source-heading"><strong>Choose a face</strong><span class="micro-tag">ON DEVICE ONLY</span></div>
+        <div class="mapping-intro"><strong>Step 1 · Face Mapping</strong><span>See a live tracking net on your own face. No photo required.</span></div>
+        <label>Live effect <select id="effect"><option value="mesh" selected>Face Mapping · Wireframe</option><option value="contours">Face Mapping · Contours</option><option value="points">Face Mapping · 478 points</option><option value="swap">Photo Swap · local 2D</option><option value="visor">Neon visor</option><option value="mask">Cyber mask</option><option value="none">Original camera</option></select></label>
+        <div class="mapping-legend"><span><i class="mesh-line"></i> Facial mesh</span><span><i class="mesh-anchor"></i> Tracking anchors</span></div>
+        <div class="source-picker" id="sourcePicker" hidden>
+          <div class="source-heading"><strong>Step 2 · Choose a face to overlay</strong><span class="micro-tag">ON DEVICE ONLY</span></div>
           <div class="source-presets" role="group" aria-label="Preset portraits">
             <button type="button" data-preset="studio-curly" aria-pressed="false"><img src="./presets/studio-curly.webp" alt="" loading="lazy"/><span>Curly</span></button>
             <button type="button" data-preset="studio-ginger" aria-pressed="false"><img src="./presets/studio-ginger.webp" alt="" loading="lazy"/><span>Ginger</span></button>
@@ -71,7 +73,7 @@
         </label>
         <div class="range-field"><label for="stability">Stability <output id="stabilityValue">65%</output></label><input id="stability" type="range" min="0" max="90" step="5" value="65" /></div>
         <div class="range-field"><label for="trackingRate">Tracking cap <output id="trackingValue">15 FPS</output></label><input id="trackingRate" type="range" min="5" max="30" step="5" value="15" /></div>
-        <p class="note" id="localNote">Mobile Photo Swap is a 2D landmark-based face replacement (not generative or photorealistic). Profile angles are automatically faded; hand occlusion still needs segmentation. MediaPipe model files download on first use. Camera and selected portrait stay on your phone unless you explicitly connect a PC.</p>
+        <p class="note" id="localNote">Step 1 tracks your face with a full MediaPipe surface mesh. Step 2 applies a 2D photo overlay. Rendering an overlay does NOT mean a photorealistic face swap succeeded. Profile angles are automatically faded; hand occlusion still needs segmentation. MediaPipe model files download on first use. Camera and selected portrait stay on your phone unless you explicitly connect a PC.</p>
       </div>
     </section>
     <section class="viewer-card gpu-card" aria-labelledby="gpuTitle">
@@ -131,7 +133,7 @@
   </section>
   <section class="card console-card"><div class="section-head"><h2>Diagnostics</h2><button class="btn tiny" id="clearLog">Clear</button></div><pre id="log" aria-live="polite"></pre></section>
   <video id="sourceVideo" autoplay playsinline muted hidden></video>
-  <footer>MobiLab / FaceFX Lab v0.6.1 · Camera only starts after your permission. Stop all to close it.</footer>
+  <footer>MobiLab / FaceFX Lab v0.7 · Camera only starts after your permission. Stop all to close it.</footer>
 </main>
 </body>
 </html>

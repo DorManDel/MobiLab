@@ -57,3 +57,17 @@ The UI status *Face engine ready* only reports that MediaPipe loaded. It does **
 4. Hold hand over face: record remaining occlusion artifact (known limitation).
 5. Record DETECT FPS, SWAP FPS and process time for fast/balanced/detail on unchanged lighting/settings.
 6. Compare with long-press Original and ensure the effect returns when released. No real phone validation has yet been performed for v0.6.
+
+## v0.7 — user-reported mobile usability corrections (2026-11-13)
+- User observed a misleading green "swap active" success message jumping in size, disrupting source preset selection. Status text changed per-frame to include increasing counters and variable messages.
+- Fix: pipeline status now has a **fixed 48px height** with short, transition-only phases; source feedback/model tool space is bounded. The successful creation of a 2D texture render is labeled **2D OVERLAY DRAWN**, not "face swap succeeded" or photographic identity replacement. Actual inference and swap rates remain in separate numeric indicators.
+- The start-up default is **Face Mapping · Wireframe**, using real MediaPipe FaceLandmarker.FACE_LANDMARKS_TESSELATION connections; also choose Contours or 478 points. All run independently of portrait selection and RTX.
+- Only choosing **Photo Swap · local 2D** shows the preset/gallery picker (step 2), leaving the mapping experience uncluttered.
+- Inference output is not proof of high-quality face replacement: current blend remains 2D face texture transfer. A separate existing face-swap model is still a future comparative experiment.
+- Source inspiration search: the program was identified as "בזמן שעבדתם" with Dror Globerman and Dani Peled, but no exact matching face-swap segment verified yet.
+
+### Verify on real Galaxy device
+1. On a fresh load start camera; wireframe should hug moving eyes, lips, nose, jaw. Switch to Contours and 478 points; look for actual tracking through head rotation.
+2. Confirm pipeline status *stays the same pixel height* throughout, never pushes portrait controls around, and does not display a false "swap succeeded".
+3. Select Photo Swap, then a preset/gallery source. Compare the original and texture overlay. Check no accidental uploads or requirement to connect RTX.
+4. Capture real DETECT FPS / SWAP FPS, latency and visual geometry. CI fake video and Chromium tests do not certify physical Samsung performance.

@@ -13,7 +13,8 @@ const state = {
   photoSwap: new LocalPhotoSwap(), modelBusy: false, swapDrawAt: 0, sourceLoading: false,
   imageEngine: null, imagePromise: null, visionFileset: null, visionSdk: null, sdkPromise: null,
   health: new TrackingHealth(), imageFallback: false, fallbackLoading: false, retryDetectAt: 0,
-  peekOriginal: false, lastDetectionTotal: 0, lastSwapTotal: 0
+  peekOriginal: false, lastDetectionTotal: 0, lastSwapTotal: 0,
+  mappingBuffer: null, mappingKey: '', pipelinePhase: ''
 };
 let visionModule = null;
 function say(message) {
@@ -133,9 +134,48 @@ async function initPhotoLandmarker(){
   })();
   try{return await state.imagePromise;}catch(e){state.imagePromise=null;throw e;}
 }
+// The health row is a stable status, NOT a success banner and never a log stream.
+// Avoid re-announcing or changing layout on each rendered video frame.
 function pipelineStatus(message,ok=false){
   const el=$('pipelineStatus'); if(!el)return;
-  el.textContent=message;el.classList.toggle('is-ok',ok);
+  const phase=String(message);
+  if(phase===state.pipelinePhase)return;
+  state.pipelinePhase=phase;
+  el.textContent=phase;
+  el.classList.toggle('is-ok',Boolean(ok));
+}
+function mapEdges(ctx,points,edges,w,h,color,lineWidth){
+  if(!edges?.length)return;
+  ctx.strokeStyle=color;ctx.lineWidth=lineWidth;ctx.beginPath();
+  for(const edge of edges){
+    const a=points[edge.start],b=points[edge.end];
+    if(!a||!b)continue;
+    ctx.moveTo(a.x*w,a.y*h);ctx.lineTo(b.x*w,b.y*h);
+  }
+  ctx.stroke();
+}
+function drawFaceMap(ctx,points,mode,w,h,intensity){
+  const fl=state.visionSdk?.FaceLandmarker;
+  if(!fl || !points?.length)return;
+  ctx.save();ctx.globalAlpha=Math.max(.18,intensity);
+  if(mode==='mesh'){
+    mapEdges(ctx,points,fl.FACE_LANDMARKS_TESSELATION,w,h,'rgba(115,242,223,.64)',Math.max(.5,w/1000));
+    mapEdges(ctx,points,fl.FACE_LANDMARKS_FACE_OVAL,w,h,'#fff1a4',Math.max(1,w/440));
+  }else if(mode==='contours'){
+    mapEdges(ctx,points,fl.FACE_LANDMARKS_CONTOURS,w,h,'#7ce9ef',Math.max(1.4,w/370));
+    mapEdges(ctx,points,fl.FACE_LANDMARKS_LIPS,w,h,'#ffc88a',Math.max(1,w/410));
+    mapEdges(ctx,points,fl.FACE_LANDMARKS_FACE_OVAL,w,h,'#fff4ae',Math.max(1.8,w/320));
+  }else{
+    ctx.fillStyle='#9af5e0';
+    const radius=Math.max(1.2,w/600);
+    for(const p of points){ctx.beginPath();ctx.arc(p.x*w,p.y*h,radius,0,Math.PI*2);ctx.fill();}
+  }
+  // Important anchors shown in every mapping mode.
+  for(const index of [1,4,33,263,61,291,152]){
+    const p=points[index];if(!p)continue;
+    ctx.fillStyle='#ffe68c';ctx.beginPath();ctx.arc(p.x*w,p.y*h,Math.max(2.2,w/290),0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
 }
 function easePoints(raw) {
   if (!raw) return null;
@@ -219,10 +259,10 @@ function localLoop(now) {
         state.tracked=found;
         $('faceCount').textContent=found?'1':'0';
         if(found)state.lastFaceAt=now;
-        const stage=!found?'NO FACE · keep your entire face centered and well lit'
-          : effect==='swap'?(state.photoSwap.ready?'TRACKED · PHOTO READY':'TRACKED · CHOOSE PHOTO')
-          : 'AR FILTER · '+$('effect').selectedOptions[0].text;
-        pipelineStatus(stage+' · '+(state.imageFallback?'IMAGE':'VIDEO')+' · '+state.health.attempts+' checks · '+state.health.swapFrames+' swaps',!!found);
+        const stage=!found?'NO FACE DETECTED'
+          : effect==='swap'?(state.photoSwap.ready?(state.health.swapFrames?'2D OVERLAY DRAWN':'PHOTO READY · FACE TRACKED'):'FACE TRACKED · CHOOSE PHOTO')
+          : ['mesh','points','contours'].includes(effect)?'FACE MAPPING ACTIVE':'FACE TRACKED · AR FILTER';
+        pipelineStatus(stage,!!found);
       } catch(error) {say('Face detection error: '+error.message);pipelineStatus('DETECTION ERROR · '+error.message);state.localEngine=null;state.visionPromise=null;}
       state.lastDetect=now;state.lastFrameTime=video.currentTime;
     }
@@ -236,7 +276,7 @@ function localLoop(now) {
         const beginSwap=performance.now();
         state.photoSwap.render(pts,canvas.width,canvas.height,quality,Number($('expression').value)/100);
         state.health.swapFrames++;
-        pipelineStatus('FACE SWAP ACTIVE · '+state.health.swapFrames+' frames'+(state.photoSwap.visibility<.75?' · profile-angle fade':'') ,true);
+        pipelineStatus('2D OVERLAY DRAWN',true);
         state.swapDrawAt=now;
         $('localMs').textContent=(state.localMs+performance.now()-beginSwap).toFixed(1);
       }
@@ -244,6 +284,20 @@ function localLoop(now) {
         ctx.globalAlpha=alpha*Number($('intensity').value)/100*state.photoSwap.visibility;
         ctx.drawImage(state.photoSwap.buffer,0,0,canvas.width,canvas.height);
         ctx.globalAlpha=1;
+      }else if(['mesh','points','contours'].includes(effect)){
+        const opacity=Number($('intensity').value)/100*alpha;
+        const key=[state.health.attempts,effect,canvas.width,canvas.height,Math.round(opacity*100)].join(':');
+        if(!state.mappingBuffer)state.mappingBuffer=document.createElement('canvas');
+        if(state.mappingBuffer.width!==canvas.width||state.mappingBuffer.height!==canvas.height){
+          state.mappingBuffer.width=canvas.width;state.mappingBuffer.height=canvas.height;state.mappingKey='';
+        }
+        if(state.mappingKey!==key){
+          const mc=state.mappingBuffer.getContext('2d');
+          mc.clearRect(0,0,canvas.width,canvas.height);
+          drawFaceMap(mc,pts,effect,canvas.width,canvas.height,opacity);
+          state.mappingKey=key;
+        }
+        ctx.drawImage(state.mappingBuffer,0,0);
       }else if(effect!=='swap'){
         faceOverlay(ctx,pts,effect,Number($('intensity').value)/100,canvas.width,canvas.height,alpha);
       }
@@ -276,7 +330,7 @@ async function startCamera() {
     state.tracked=null;state.smooth=null;state.lastFrameTime=-1;state.lastDetect=0;state.lastFaceAt=0;state.swapDrawAt=0;
     state.peekOriginal=false; $('peekOriginal').classList.remove('pressed');
     resetMetrics();state.health.reset();state.imageFallback=false;
-    pipelineStatus('CAMERA LIVE · waiting for first face detection');
+    pipelineStatus('CAMERA ON · FINDING FACE');
     $('localPlaceholder').hidden=true;
     $('remoteVideo').classList.toggle('mirror',$('camera').value==='user');
     setState('localState','LIVE',true);
@@ -294,7 +348,7 @@ async function stopCamera() {
   cancelAnimationFrame(state.animation);state.animation=0;
   if (state.stream)state.stream.getTracks().forEach(t=>t.stop());
   state.stream=null;state.tracked=null;state.smooth=null;state.imageFallback=false;
-  pipelineStatus('CAMERA OFF · no frames being processed');
+  pipelineStatus('CAMERA OFF');
   $('sourceVideo').pause();$('sourceVideo').srcObject=null;
   $('localPlaceholder').hidden=false;
   $('localCanvas').getContext('2d')?.clearRect(0,0,$('localCanvas').width,$('localCanvas').height);
@@ -311,7 +365,8 @@ peekButton.addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter'){e.preve
 $('expression').addEventListener('input',()=>{$('expressionValue').textContent=$('expression').value+'%';});
 $('effect').addEventListener('change',()=>{
   state.swapDrawAt=0;
-  pipelineStatus('EFFECT CHANGED · '+$('effect').selectedOptions[0].text);
+  state.mappingKey='';
+  pipelineStatus(['mesh','points','contours'].includes($('effect').value)?'MAPPING · FINDING FACE':$('effect').value==='swap'?'SWAP MODE · SELECT PHOTO':'FILTER MODE');
   $('sourcePicker').hidden = $('effect').value!=='swap';
   if(state.stream && $('effect').value!=='none')initLandmarker().catch(e=>say('Model: '+e.message));
 });
@@ -346,7 +401,7 @@ async function loadPhoto(file,presetId=''){
     $('sourcePreview').src=state.photoSwap.photo.toDataURL('image/webp',.78);
     $('sourcePreview').hidden=false;
     $('sourceStatus').textContent='SOURCE VERIFIED · '+file.name+' · '+result.triangles+' triangles ('+photoStrategy+'). '+(state.stream?'Center your whole face in the camera.':'Tap Start camera.');
-    pipelineStatus('PHOTO READY · waiting for live face');
+    pipelineStatus('PHOTO READY · WAITING FOR FACE');
     say('Source ready · '+file.name+' · '+result.triangles+' triangles');
   }catch(error){
     $('sourceStatus').textContent='SOURCE NOT DETECTED · '+(error?.message||String(error))+' · Please try another portrait with eyes, nose and chin visible.';
@@ -516,4 +571,4 @@ $('snapshot').addEventListener('click',()=>{
 // Closing the page or hiding it stops camera and remote processing.
 window.addEventListener('pagehide',()=>{void stopCamera();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.stream)void stopCamera();});
-buttons();resetMetrics();displayMode('mobile');modelStatus('Not loaded yet · select a portrait or start the camera');say('FaceFX v0.6 preview · controlled expressions, correct AR masks, live rates and before/after.');
+buttons();resetMetrics();displayMode('mobile');modelStatus('Not loaded yet · select a portrait or start the camera');say('FaceFX v0.7 · stable status row and real MediaPipe face mapping modes.');
