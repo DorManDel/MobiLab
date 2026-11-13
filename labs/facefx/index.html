@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0e0b1b" />
-  <meta name="description" content="FaceFX Lab — compare real-time on-device face effects with an optional private RTX face-swap bridge." />
+  <meta name="description" content="FaceFX Lab — local phone face swap and effects, optional private RTX comparison." />
   <title>FaceFX Lab · MobiLab</title>
   <link rel="stylesheet" href="./style.css" />
   <script type="module" src="./client.js"></script>
@@ -18,11 +18,11 @@
   <div class="hero">
     <div class="eyebrow">REAL-TIME EXPERIMENT STUDIO</div>
     <h1>Face<span>FX</span> <small>Lab</small></h1>
-    <p>One camera. Two processing engines. Compare live face tracking on your phone with AI processing on your NVIDIA PC.</p>
+    <p>Your phone works on its own: live photo face swap and effects on-device. Connect an RTX PC only when you want extra processing power.</p>
   </div>
   <div class="mode-bar" role="group" aria-label="Lab layout">
-    <button class="view-btn active" data-view="compare" aria-pressed="true">◫ Compare</button>
-    <button class="view-btn" data-view="mobile" aria-pressed="false">▣ Mobile</button>
+    <button class="view-btn active" data-view="mobile" aria-pressed="true">▣ Mobile</button>
+    <button class="view-btn" data-view="compare" aria-pressed="false">◫ Compare</button>
     <button class="view-btn" data-view="gpu" aria-pressed="false">▤ RTX</button>
   </div>
   <div class="global-actions">
@@ -30,13 +30,13 @@
     <button class="btn danger" id="cameraStop" disabled>■ Stop all</button>
     <span class="tiny-status" id="cameraStatus" role="status">Camera off · no frames uploaded</span>
   </div>
-  <div class="viewer-grid" id="viewerGrid" data-view="compare">
+  <div class="viewer-grid" id="viewerGrid" data-view="mobile">
     <section class="viewer-card mobile-card" aria-labelledby="mobileTitle">
-      <div class="viewer-head"><div><span class="engine-chip mobile-chip">PHONE</span><h2 id="mobileTitle">On-device Engine</h2></div><span id="localState" class="state-tag">IDLE</span></div>
+      <div class="viewer-head"><div><span class="engine-chip mobile-chip">100% ON YOUR PHONE</span><h2 id="mobileTitle">On-device Engine</h2></div><span id="localState" class="state-tag">IDLE</span></div>
       <div class="video-frame">
         <canvas id="localCanvas" aria-label="Live phone camera with optional locally rendered face effect"></canvas>
         <div class="placeholder" id="localPlaceholder"><span class="place-icon">◎</span><strong>Local camera</strong><small>Runs on this device</small></div>
-        <div class="frame-label">LOCAL / AR</div>
+        <div class="frame-label">LOCAL / LIVE</div>
       </div>
       <div class="metrics">
         <div><strong id="localFps">—</strong><small>DISPLAY FPS</small></div>
@@ -44,10 +44,17 @@
         <div><strong id="faceCount">—</strong><small>FACES</small></div>
       </div>
       <div class="viewer-controls">
-        <label>Effect <select id="effect"><option value="visor">Neon visor</option><option value="mesh">Face mesh</option><option value="mask">Cyber mask</option><option value="none">Original (no effect)</option></select></label>
+        <label>Live effect <select id="effect"><option value="swap">Photo Swap · local (2D)</option><option value="visor">Neon visor</option><option value="mesh">Face mesh</option><option value="mask">Cyber mask</option><option value="none">Original (no effect)</option></select></label>
+        <div class="source-picker" id="sourcePicker">
+          <div class="source-heading"><strong>Face source photo</strong><span class="micro-tag">ON DEVICE ONLY</span></div>
+          <label class="file-button">＋ Choose portrait<input id="sourcePhoto" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+          <button class="btn tiny" id="clearSource" type="button" disabled>Remove</button>
+          <span class="source-status" id="sourceStatus" role="status">Choose one clear portrait to replace the live face. Nothing is uploaded.</span>
+        </div>
         <div class="range-field"><label for="intensity">Intensity <output id="intensityValue">80%</output></label><input id="intensity" type="range" min="10" max="100" step="5" value="80" /></div>
+        <div class="range-field"><label for="stability">Stability <output id="stabilityValue">65%</output></label><input id="stability" type="range" min="0" max="90" step="5" value="65" /></div>
         <div class="range-field"><label for="trackingRate">Tracking cap <output id="trackingValue">15 FPS</output></label><input id="trackingRate" type="range" min="5" max="30" step="5" value="15" /></div>
-        <p class="note" id="localNote">Actual MediaPipe face landmarks + Canvas overlays, not an AI identity swap. The camera image is not uploaded in local-only mode.</p>
+        <p class="note" id="localNote">Mobile Photo Swap is a 2D landmark-based face replacement (not generative or photorealistic). MediaPipe model files download on first use. Camera and selected portrait stay on your phone unless you explicitly connect a PC.</p>
       </div>
     </section>
     <section class="viewer-card gpu-card" aria-labelledby="gpuTitle">
@@ -65,7 +72,7 @@
       <div class="viewer-controls">
         <label>Processing <select id="remoteMode"><option value="debug">Debug overlay (no AI)</option><option value="passthrough">Original / passthrough</option><option value="swap">AI Face Swap (PC model required)</option></select></label>
         <div class="action-row"><button class="btn primary" id="remoteStart">Connect PC</button><button class="btn" id="remoteStop" disabled>Disconnect</button></div>
-        <p class="note" id="remoteNote">Requires a local Python server on your PC. Only connect to a trusted HTTPS endpoint.</p>
+        <p class="note" id="remoteNote">Optional only: phone effects and Photo Swap work without any PC. Connect to your own private HTTPS GPU endpoint when you choose.</p>
       </div>
     </section>
   </div>
@@ -79,9 +86,10 @@
     <div class="action-row"><button id="snapshot" class="btn" disabled>↓ Capture comparison PNG</button><button id="resetMetrics" class="btn">↻ Reset metrics</button></div>
     <p class="note">Comparison is visual, not frame-synchronized. Display FPS, detector time, PC processing time, and data-channel RTT are different measurements; none alone equals camera-to-screen latency.</p>
   </section>
-  <section class="card connection" id="pc-setup">
+  <details class="card connection" id="pc-setup">
+    <summary><span class="eyebrow">OPTIONAL BOOST</span><strong>Use your RTX PC for AI processing</strong><span>▾</span></summary>
     <div class="section-head"><div><span class="eyebrow">PRIVATE GPU BRIDGE</span><h2>Connect your RTX PC</h2></div><span class="micro-tag">OPTIONAL</span></div>
-    <p>Run the included PC starter on Windows, expose it only to your private Tailnet, then enter the HTTPS address and pairing token shown by the server.</p>
+    <p><strong>No PC is required for the mobile lab.</strong> Expand this area only when you want to compare against an RTX GPU. The private server uses a separate opt-in WebRTC stream.</p>
     <div class="fields">
       <label>Private PC address <input id="serverUrl" type="url" placeholder="https://your-pc.your-tailnet.ts.net" autocomplete="url" inputmode="url" /></label>
       <label>One-session token <input id="pairToken" type="password" placeholder="Copy token from PC terminal" autocomplete="off" spellcheck="false" /></label>
@@ -99,14 +107,14 @@
         <p class="note">*This link downloads the preview branch. Before merging into main, point it to a stable main-branch download or release.</p>
       </div>
     </details>
-  </section>
+  </details>
   <section class="card coming">
     <span class="eyebrow">PLANNED / NOT ENABLED</span><h2>Next engines</h2>
-    <div class="chips"><span>Mobile WebGPU AI model</span><span>Stabilized face swap</span><span>3D avatars</span><span>Temporal interpolation</span><span>Occlusion handling</span><span>True end-to-end latency test</span></div>
+    <div class="chips"><span>Generative mobile Face Swap model</span><span>Stabilized face swap</span><span>3D avatars</span><span>Temporal interpolation</span><span>Occlusion handling</span><span>True end-to-end latency test</span></div>
   </section>
   <section class="card console-card"><div class="section-head"><h2>Diagnostics</h2><button class="btn tiny" id="clearLog">Clear</button></div><pre id="log" aria-live="polite"></pre></section>
   <video id="sourceVideo" autoplay playsinline muted hidden></video>
-  <footer>MobiLab / FaceFX Lab v0.2 · Camera only starts after your permission. Stop all to close it.</footer>
+  <footer>MobiLab / FaceFX Lab v0.3 · Camera only starts after your permission. Stop all to close it.</footer>
 </main>
 </body>
 </html>
