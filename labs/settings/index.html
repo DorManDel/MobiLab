@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0c0918"><title>Settings Mechanism · MobiLab</title>
-<link rel="stylesheet" href="../workbench.css">
+<link rel="stylesheet" href="../workbench.css"><link rel="stylesheet" href="../../src/mechanics/settings-panel.css">
 <style>
 .layout-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:13px 0}
 .layout-options button.is-selected{background:#ad8aff45;color:#f9df76;border-color:#f9df76}
@@ -57,7 +57,9 @@ box-shadow:0 12px 55px #06020a99;transition:inset .25s,width .25s,height .25s,bo
 <p class="note">Select a tab in the preview to explore its contents. Double-click a tab to remove it (at least one stays). Imported configurations are validated.</p>
 <div class="actions"><button type="button" class="primary" id="exportJSON">↓ Export JSON</button><button type="button" id="reset">Reset</button></div>
 <div class="actions"><button type="button" id="importButton">↑ Import JSON</button><input id="importFile" type="file" accept=".json,application/json" hidden></div>
-<a class="download" href="../../src/mechanics/settings-store.js" download="settings-store.js">↓ Download independent state module</a>
+<a class="download" href="../../src/mechanics/settings-store.js" download="settings-store.js">↓ State module</a>
+<a class="download" href="../../src/mechanics/settings-panel.js" download="settings-panel.js">↓ UI module</a>
+<a class="download" href="../../src/mechanics/settings-panel.css" download="settings-panel.css">↓ UI stylesheet</a>
 </section>
 <section class="card"><div class="heading"><h2>Live preview</h2><span class="tag">ALL SCREEN SIZES</span></div>
 <div class="actions"><button type="button" id="togglePreview">Hide / show settings</button></div>
@@ -69,26 +71,28 @@ box-shadow:0 12px 55px #06020a99;transition:inset .25s,width .25s,height .25s,bo
   </div>
   <aside class="settings-preview layout-right" id="settingsPanel" aria-label="Settings panel preview">
     <div class="preview-head"><strong>⚙ Settings</strong><button type="button" id="closePreview">× Close</button></div>
-    <nav id="previewTabs" class="preview-tabs" aria-label="Settings sections"></nav>
-    <div class="preview-content" id="previewContent"></div>
+    <div id="portableSettingsRoot"></div>
   </aside>
 </div>
 <div class="stats" id="summary" aria-live="polite"></div>
 <p class="note">This page exports a reusable state/controller module; a framework-specific renderer or CSS integration is still needed in your destination project. The preview is not a full visual page builder.</p>
 <pre><code>import { SettingsStore } from "./settings-store.js";
 const store = new SettingsStore();
+const view = mountSettingsPanel({root: document.querySelector("#panel"),store});
 const unsubscribe = store.subscribe(config => {
-  // Re-render your settings UI
+  // Update your own layout shell from config
 });
 store.set({ layout: "bottom", blur: 24 });</code></pre>
 </section></div></div>
 <script type="module">
 import { SettingsStore } from "../../src/mechanics/settings-store.js";
+import { mountSettingsPanel } from "../../src/mechanics/settings-panel.js";
 const $=id=>document.getElementById(id);
 const KEY="mobilab.settings-workbench.v1";
 let initial={};
 try { initial=JSON.parse(localStorage.getItem(KEY)||"{}"); } catch(_) {}
 const store=new SettingsStore(initial);
+const settingsView=mountSettingsPanel({root:$("portableSettingsRoot"),store});
 let activeTab=0, panelVisible=true;
 const saveFile=(name,body,type)=>{
   const link=document.createElement("a"),url=URL.createObjectURL(new Blob([body],{type}));
@@ -109,30 +113,6 @@ function render(config){
   panel.style.setProperty("--panel-blur",config.blur+"px");
   panel.style.transitionDuration=config.animation&&!matchMedia("(prefers-reduced-motion: reduce)").matches?".25s":"0s";
   panel.hidden=!panelVisible;
-  const tabList=$("previewTabs");
-  tabList.replaceChildren();
-  activeTab=Math.min(activeTab,config.tabs.length-1);
-  config.tabs.forEach((tab,index)=>{
-    const button=document.createElement("button");
-    button.type="button";button.textContent=tab;
-    button.classList.toggle("is-selected",index===activeTab);
-    button.setAttribute("aria-selected",String(index===activeTab));
-    button.addEventListener("click",()=>{activeTab=index;render(store.get());});
-    button.addEventListener("dblclick",()=>{
-      if(config.tabs.length<=1)return;
-      store.set({tabs:config.tabs.filter((_,i)=>i!==index)});
-    });
-    tabList.append(button);
-  });
-  const content=$("previewContent");
-  content.className="preview-content "+config.density;
-  content.replaceChildren();
-  const heading=document.createElement("h3");heading.textContent=config.tabs[activeTab]||"Settings";
-  const message=document.createElement("p");message.textContent="This is the "+(config.tabs[activeTab]||"settings")+" tab preview. Add reusable controls and modules here.";
-  content.append(heading,message);
-  for(const sample of ["Enable effect", "Sensitivity", "Advanced options"]){
-    const row=document.createElement("div");row.className="sample-row";row.textContent=sample;content.append(row);
-  }
   const accents={purple:"#b891ff",yellow:"#f9df76",mint:"#7ae9c3"};
   panel.style.borderColor=accents[config.accent];
   $("summary").textContent=config.layout.toUpperCase()+" · "+config.panelSize+"% size · "+config.opacity+"% opacity · "+config.blur+"px blur · "+config.tabs.length+" tabs";
