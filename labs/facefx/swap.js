@@ -1,3 +1,4 @@
+import { stabilizeWarpPoints, estimateProfileVisibility } from './warp-geometry.js';
 // FaceFX mobile Photo Swap v0.3 — entirely on-device, no image uploads.
 // 2D landmark-matched texture deformation; not a generative identity model.
 // No third-party triangulation runtime needed: triangulate once when a source photo loads.
@@ -71,7 +72,7 @@ function transformTriangle(ctx,img,src,dst){
   const [a,b,c]=src, [d,e,f]=dst;
   const m1=b.x-a.x, m2=c.x-a.x, m3=b.y-a.y, m4=c.y-a.y;
   const det=m1*m4-m2*m3;
-  if(Math.abs(det)<1e-4)return;
+  if(Math.abs(det)<1e-4 || area(a,b,c)*area(d,e,f)<=0)return; // Do not fold triangles through themselves.
   const ux=e.x-d.x, vx=f.x-d.x, uy=e.y-d.y, vy=f.y-d.y;
   const ta=(ux*m4-vx*m3)/det, tc=(vx*m1-ux*m2)/det;
   const tb=(uy*m4-vy*m3)/det, td=(vy*m1-uy*m2)/det;
@@ -106,9 +107,9 @@ function ovalMask(ctx,points,width,height,feather){
   ctx.closePath();ctx.fillStyle='#fff';ctx.fill();ctx.restore();
 }
 export class LocalPhotoSwap {
-  constructor(){this.photo=null;this.landmarks=null;this.triangles=[];this.buffer=document.createElement('canvas');}
+  constructor(){this.photo=null;this.landmarks=null;this.triangles=[];this.buffer=document.createElement('canvas');this.visibility=1;}
   get ready(){return !!this.photo && this.triangles.length>0;}
-  clear(){this.photo=null;this.landmarks=null;this.triangles=[];this.buffer.width=1;this.buffer.height=1;}
+  clear(){this.photo=null;this.landmarks=null;this.triangles=[];this.buffer.width=1;this.buffer.height=1;this.visibility=1;}
   async loadFile(file,detectImage){
     if(!file || !['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Choose a JPG, PNG or WebP face photo.');
     if(file.size>MAX_PHOTO_BYTES)throw new Error('Photo too large. Choose an image under 8 MB.');
@@ -126,18 +127,20 @@ export class LocalPhotoSwap {
       return {triangles:triangles.length,photoWidth:img.width,photoHeight:img.height};
     }finally{decoded.close();}
   }
-  render(points,width,height,quality=1){
+  render(points,width,height,quality=1,expression=.45){
     if(!this.ready||!points||points.length<468)return null;
     // Lower resolution may be used for battery-friendly rendering; canvas output is upscaled.
     const w=Math.max(1,Math.round(width*quality)),h=Math.max(1,Math.round(height*quality));
     if(this.buffer.width!==w||this.buffer.height!==h){this.buffer.width=w;this.buffer.height=h;}
     const ctx=this.buffer.getContext('2d',{alpha:true});ctx.clearRect(0,0,w,h);
     const source=this.landmarks.map(p=>({x:p.x*this.photo.width,y:p.y*this.photo.height}));
-    const target=points.map(p=>({x:p.x*w,y:p.y*h}));
+    const liveTarget=points.map(p=>({x:p.x*w,y:p.y*h}));
+    const target=stabilizeWarpPoints(source,liveTarget,expression);
+    this.visibility=estimateProfileVisibility(points);
     for(const tri of this.triangles){
       transformTriangle(ctx,this.photo,tri.map(i=>source[i]),tri.map(i=>target[i]));
     }
-    const eyeDistance=Math.hypot(target[33].x-target[263].x,target[33].y-target[263].y);
+    const eyeDistance=Math.hypot(liveTarget[33].x-liveTarget[263].x,liveTarget[33].y-liveTarget[263].y);
     ovalMask(ctx,points,w,h,Math.max(3,eyeDistance*0.055));
     return this.buffer;
   }
