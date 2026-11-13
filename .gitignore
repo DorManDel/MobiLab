@@ -1,0 +1,7 @@
+# FaceFX: NEVER commit downloaded models, reference photos, embeddings or recordings.
+facefx-server/.venv/
+facefx-server/models/
+facefx-server/private/
+facefx-server/__pycache__/
+*.pyc
+facefx-server/*.onnx

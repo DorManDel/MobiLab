@@ -1,0 +1,5 @@
+aiohttp>=3.10,<4
+aiortc>=1.9,<2
+av>=12,<17
+numpy>=1.26,<3
+opencv-python-headless>=4.8,<5

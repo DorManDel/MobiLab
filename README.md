@@ -4,6 +4,8 @@ A mobile-first collection of experimental web mechanics and hardware exploration
 
 ## Experiments
 
+- **FaceFX Lab (v0.3 mobile-first)** — on-device local Photo Swap (2D face texture transfer), MediaPipe/Canvas filters and an optional private Python WebRTC + RTX processor with comparison telemetry. [Open lab](./labs/facefx/) · [PC server setup](./facefx-server/) · see [FaceFX notes](./labs/facefx/README.md).
+
 - **Haptic Studio** — 21 timing patterns, accessible swipe/arrow/tap dial, six button-group presets, custom two-pulse designer, browser storage and JSON export.
 - **Camera Lab** — permission-based front/back preview, local snapshot and relative orientation.
 - **VibroMotion** — short timed vibration trials with motion/orientation telemetry, protected flat/upright setup modes, no-vibration control, custom pulse trains (on/off/duty), optional local rear-camera contact sheets, physical observations and CSV export.
