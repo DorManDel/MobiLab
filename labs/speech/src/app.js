@@ -102,6 +102,17 @@ floating.addEventListener("speech:language-change",(event)=>{
   refreshRecordingUI();
 });
 floating.addEventListener("speech:display-change",(event)=>liveView.setMode(event.detail.mode));
+floating.addEventListener("speech:lines-change",(event)=>{
+  $("captionLines").value=String(event.detail.lines);
+  liveView.setVisibleLines(event.detail.lines);
+  floating.setLineCount(event.detail.lines);
+});
+floating.addEventListener("speech:provider-change",(event)=>{
+  $("captionProvider").value=event.detail.provider;
+  if(event.detail.provider==="cloud"&&!circuit.canCall("cloud"))
+    showProviderProblem(circuit.reason("cloud"),true);
+  status("Caption engine selected for new paragraphs. Saved results are not overwritten.");
+});
 for(const btn of document.querySelectorAll("[data-caption-mode]"))
   btn.addEventListener("click",()=>floating.setState({mode:btn.dataset.captionMode}));
 $("sourceLang").addEventListener("change",()=>refreshRecordingUI());
@@ -111,6 +122,9 @@ $("captionLines").addEventListener("change",()=>{
   floating.setLineCount($("captionLines").value);
 });
 $("silenceDuration").addEventListener("change",()=>paragraphs.setSilence($("silenceDuration").value));
+$("captionProvider").addEventListener("change",()=>{
+  floating.setState({provider:$("captionProvider").value});
+});
 $("chunkMode").addEventListener("change",()=>paragraphs.flush("settings-change"));
 let draftTimer=null, draftAbort=null, draftVersion=0, lastDraftRequest=-Infinity;
 function cancelDraft() {
@@ -190,7 +204,8 @@ function refreshRecordingUI() {
   $("recordState").textContent = micActive ? "● REC" : "OFFLINE";
   $("recordState").classList.toggle("live", micActive);
   floating.setState({listening:micActive,source:$("sourceLang").value,
-    target:$("targetLang").value,mode:liveView.mode});
+    target:$("targetLang").value,mode:liveView.mode,
+    lines:Number($("captionLines").value),provider:$("captionProvider").value});
 }
 function clockText(ms) {
   const s = Math.max(0, Math.floor(ms/1000));
