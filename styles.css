@@ -262,3 +262,42 @@ footer a{text-decoration:none;color:#aa92d5}
 .tabs a.blink-tab-link{text-decoration:none;flex:0 0 auto}
 .lab-cards a.blink-lab-card{text-decoration:none;cursor:pointer}
 .lab-cards a.blink-lab-card:focus-visible{outline:2px solid var(--yellow);outline-offset:3px}
+
+
+/* MobiLab modular workbenches / pattern timeline */
+.lab-index-controls{display:grid;gap:14px;margin:8px 0 22px}
+#labSearch{width:100%;background:#181327;border:1px solid var(--border);color:var(--ink);border-radius:13px;padding:13px 17px;min-height:48px}
+.lab-categories{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.lab-categories button{min-height:40px;white-space:nowrap;padding:8px 14px}
+.lab-categories button.is-selected{border-color:var(--yellow);color:var(--yellow);background:#f9df761a}
+.lab-card[hidden]{display:none!important}
+.nav-more{position:relative;flex:0 0 auto}
+.nav-more>summary{list-style:none;cursor:pointer}
+.nav-more>summary::-webkit-details-marker{display:none}
+.nav-more-menu{position:absolute;right:0;top:100%;width:235px;background:#1d172f;border:1px solid #a18ac055;
+  box-shadow:0 20px 45px #0009;border-radius:0 0 13px 13px;padding:8px;display:grid;z-index:30}
+.nav-more-menu a,.nav-more-menu button{display:block;text-align:left;border:0;text-decoration:none;color:var(--ink);
+  background:transparent;border-radius:9px;padding:13px;font:inherit;font-size:13px;min-height:42px;width:100%}
+.nav-more-menu a:hover,.nav-more-menu button:hover{background:#b69cff22}
+#patternName,#savedPatterns,#segmentLimitSeconds{width:100%;min-height:44px;background:#100d1c;border:1px solid var(--border);
+  border-radius:10px;color:var(--ink);padding:10px 12px;margin:7px 0 13px}
+#segmentLimitSeconds{max-width:140px}
+.pattern-creator-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:15px 0}
+.pattern-creator-actions .btn{min-height:43px;padding:10px 12px;font-size:12px}
+.pattern-segments{display:grid;gap:9px;margin:10px 0 16px;max-height:430px;overflow-y:auto;padding-right:3px}
+.pattern-step{display:grid;gap:8px;background:#130f22;border:1px solid #ad8aff3d;border-radius:12px;padding:11px;min-width:0}
+.pattern-step-label{display:flex;align-items:center;gap:10px;color:#d5c6fa;font-weight:750;font-size:12px}
+.pattern-step-label select{flex:1;min-width:0;max-width:200px;background:#211936;border:1px solid #ad8aff55;color:var(--ink);border-radius:8px;padding:8px;min-height:38px}
+.pattern-duration{display:grid;grid-template-columns:minmax(0,1fr) 90px 24px;align-items:center;gap:8px}
+.pattern-duration input[type=range]{width:100%;accent-color:var(--purple);min-width:0}
+.pattern-duration input[type=number]{width:100%;background:#0b0914;color:var(--ink);border:1px solid var(--border);border-radius:8px;padding:8px}
+.pattern-duration span{font-size:11px;color:var(--muted)}
+.pattern-step-controls{display:flex;justify-content:flex-end;gap:7px}
+.pattern-step-move{min-height:32px!important;width:35px!important;padding:3px!important}
+#patternTotal{font-variant-numeric:tabular-nums;color:var(--yellow);font-weight:800}
+#motionTraceChart{background:#18142a;border:1px solid #a78ddd3c;border-radius:12px;display:block;width:100%;height:auto}
+@media(max-width:650px){
+  .nav-more-menu{position:fixed;left:16px;right:16px;top:115px;width:auto}
+  .pattern-duration{grid-template-columns:minmax(0,1fr) 78px 23px}
+  .pattern-creator-actions .micro-tag{width:100%}
+}
