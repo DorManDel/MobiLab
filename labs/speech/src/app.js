@@ -3,6 +3,7 @@ import { TranslationQueue, wordErrorRate, characterSimilarity, safeLibreEndpoint
 import { ParagraphBuilder } from "./paragraph-builder.js";
 import {SessionLedger,ProviderCircuit} from "./session-ledger.js";
 import {LocalTranscriptArchive} from "./local-archive.js";
+import {summarizeProviders} from "./provider-stats.js";
 import { acceptCaption } from "./caption-selection.js";
 import "./speech-floating-controls.js";
 import { LiveCaptionView } from "./live-view.js";
@@ -37,6 +38,8 @@ function focusView(row) {
   if(!row)return;
   liveView.focus(row);
   syncFloating(row);
+  $("referenceTranslation").value=row.translationReference||"";
+  updateReferenceScores();
 }
 $("focusPrev").addEventListener("click",()=>focusView(ledger.step(-1)));
 $("focusNext").addEventListener("click",()=>focusView(ledger.step(1)));
@@ -490,7 +493,7 @@ function updateRow(row,id,patch) {
     liveView.showQueue(row);
     syncFloating(row);
   }
-  if(patch.status!=="running")saveLocalSoon();
+  if(patch.status!=="running"){renderScoreboard();saveLocalSoon();}
 }
 const queue = new TranslationQueue({onChange:updateRow,maxPending:8});
 function addPhrase(text,source,target,candidates=null,automatic=true,sttMs=null,finalPerf=performance.now()) {
@@ -509,7 +512,7 @@ function addPhrase(text,source,target,candidates=null,automatic=true,sttMs=null,
     fallbackUsed:false };
   ledger.append(row);
   interimActive=false;
-  renderRows();showCaption(row);showComparison(row);showCandidates(row);
+  renderRows();renderScoreboard();showCaption(row);showComparison(row);showCandidates(row);
   liveView.final(row);
   syncFloating(row);
   saveLocalSoon();
@@ -616,7 +619,7 @@ $("clearAll").addEventListener("click",()=>{
   $("captionOriginal").textContent="Waiting for input…";
   $("captionTranslated").textContent="Translation will appear here.";
   $("speechCandidates").replaceChildren();
-  renderRows();showComparison(null);
+  renderRows();showComparison(null);renderScoreboard();
   cancelDraft();liveView.reset();
   syncFloating();
   if($("saveLocal").checked)archive.clear().catch(e=>status("Local archive deletion failed: "+e.message,true));
@@ -816,9 +819,25 @@ $("stopVoice").addEventListener("click",()=>{
 $("speechRate").addEventListener("input",()=>{$("speechRateValue").textContent=Number($("speechRate").value).toFixed(1)+"×";});
 $("speechVolume").addEventListener("input",()=>{$("speechVolumeValue").textContent=Math.round(Number($("speechVolume").value)*100)+"%";});
 
+function renderScoreboard(){
+  const target=$("providerScoreRows");target.replaceChildren();
+  const summary=summarizeProviders(rows);
+  const names={cloud:"MyMemory",local:"Chrome local",libre:"LibreTranslate"};
+  for(const item of summary){
+    const div=document.createElement("div");div.className="score-row";
+    const name=document.createElement("strong");name.textContent=names[item.id]||item.id;
+    const detail=document.createElement("span");
+    const p50=item.p50===null?"—":Math.round(item.p50)+" ms";
+    const score=item.referenceCount>0?Math.round(item.similarity*100)+"% similarity ("+
+      item.referenceCount+" references)":"No human reference";
+    detail.textContent="✓ "+item.success+" · errors "+item.errors+" · skipped "+item.canceled+
+      " · p50 "+p50+" · "+score;
+    div.append(name,detail);target.append(div);
+  }
+}
 function updateReferenceScores(){
   const reference=$("referenceTranslation").value.trim();
-  const row=rows[rows.length-1];
+  const row=ledger.focused||ledger.latest;
   const el=$("benchResults");el.replaceChildren();
   if(!reference||!row){el.textContent="Enter an expected translation to compare engines with the same reference.";return;}
   for(const [id,label] of [["cloud","MyMemory"],["local","Chrome Translator"],["libre","LibreTranslate"]]){
@@ -832,7 +851,11 @@ function updateReferenceScores(){
   }
   if(!el.childNodes.length)el.textContent="No completed translations to score yet.";
 }
-$("referenceTranslation").addEventListener("input",updateReferenceScores);
+$("referenceTranslation").addEventListener("input",()=>{
+  const row=ledger.focused||ledger.latest;
+  if(row)row.translationReference=$("referenceTranslation").value.trim();
+  updateReferenceScores();renderScoreboard();saveLocalSoon();
+});
 $("scoreWer").addEventListener("click",()=>{
   const reference=$("referenceText").value.trim();
   const spoken=rows.filter(row=>Array.isArray(row.candidates)).map(row=>row.text).join(" ");
@@ -882,7 +905,7 @@ $("exportJson").addEventListener("click",()=>download("mobilab-speech-log.json",
     }
     const first=rows[0];
     if(first)sessionStart=(first.at||Date.now())-(first.offset||0);
-    renderRows();
+    renderRows();renderScoreboard();
     liveView.drawHistory();
     focusView(ledger.resumeLive());
     showComparison(rows.at(-1));
@@ -931,4 +954,5 @@ window.addEventListener("pagehide",()=>{
 });
 refreshRecordingUI();
 renderRows();
+renderScoreboard();
 showComparison(null);
