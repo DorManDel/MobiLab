@@ -1045,7 +1045,7 @@ $("openLocalGuide").addEventListener("click",()=>window.open(
 $("testLocalNode").addEventListener("click",()=>{void inspectLocalNode();});
 $("useLocalNode").addEventListener("click",async()=>{
   const host=window.location.hostname;
-  if(!["127.0.0.1","localhost"].includes(host)){
+  if(host==="dormandel.github.io"){
     localState("You are browsing GitHub Pages. A phone cannot access your PC through localhost. Enter your own authenticated HTTPS node address below, then Test my engine.","error");
     document.querySelector(".provider-config").open=true;
     $("libreEndpoint").scrollIntoView({behavior:"smooth",block:"center"});
