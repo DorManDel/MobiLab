@@ -1,18 +1,80 @@
 import { createChromeTranslatorAdapter, lexicalAgreement } from "./engine-compare.js";
 import { TranslationQueue, wordErrorRate, characterSimilarity, safeLibreEndpoint } from "./bench-core.js";
 import { ParagraphBuilder } from "./paragraph-builder.js";
+import {SessionLedger,ProviderCircuit} from "./session-ledger.js";
+import {LocalTranscriptArchive} from "./local-archive.js";
 import { acceptCaption } from "./caption-selection.js";
 import "./speech-floating-controls.js";
 import { LiveCaptionView } from "./live-view.js";
 
 const $ = (id) => document.getElementById(id);
+const ledger=new SessionLedger();
+const circuit=new ProviderCircuit();
+const archive=new LocalTranscriptArchive();
 const liveView = new LiveCaptionView(document);
+liveView.bindLedger(ledger);
 const floating = $("floatingControls");
+let archiveTimer=null;
+let displayLimit=40;
+function focusedState() {
+  return ledger.focused||ledger.latest;
+}
+function syncFloating(row=focusedState(),meta={}) {
+  if(!ledger.followLive && row?.id!==ledger.cursor) return;
+  if(row) {
+    const chosen=row.displayProvider||row.captionProvider||"cloud";
+    const problem=row.results?.[chosen]?.error||circuit.reason("cloud");
+    floating.setCaption({
+      text:row.displayText||row.text,
+      source:row.source,target:row.target,translated:Boolean(row.displayText),
+      status:row.displayText?(row.fallbackUsed?"FALLBACK · ":"")+chosen:
+        problem?"Translation unavailable":"Waiting for translation"
+    });
+  } else floating.setCaption({text:meta.text||"Start speaking…",
+    translated:Boolean(meta.translated),status:meta.status||"Ready"});
+}
+function focusView(row) {
+  if(!row)return;
+  liveView.focus(row);
+  syncFloating(row);
+}
+$("focusPrev").addEventListener("click",()=>focusView(ledger.step(-1)));
+$("focusNext").addEventListener("click",()=>focusView(ledger.step(1)));
+$("focusLive").addEventListener("click",()=>focusView(ledger.resumeLive()));
+function showProviderProblem(message,blocked=false) {
+  const box=$("providerBanner");
+  box.hidden=false;
+  $("providerBannerText").textContent=message;
+  $("retryCloud").hidden=!blocked;
+}
+function hideProviderProblem() { $("providerBanner").hidden=true; }
+$("providerSetup").addEventListener("click",()=>{
+  const advanced=document.querySelector(".provider-config");
+  if(advanced){advanced.open=true;advanced.scrollIntoView({behavior:"smooth",block:"center"});}
+});
+$("retryCloud").addEventListener("click",()=>{
+  circuit.reset("cloud");hideProviderProblem();
+  status("MyMemory retry enabled. If its daily quota is still exhausted, it will be blocked again.");
+});
+function saveLocalSoon() {
+  if(!$("saveLocal").checked)return;
+  clearTimeout(archiveTimer);
+  archiveTimer=setTimeout(async()=>{
+    try {
+      await archive.save(rows.map(row=>({...row,results:{...row.results}})));
+      $("archiveStatus").textContent="Saved locally on this device · "+rows.length+" transcript paragraphs. No audio saved.";
+    }catch(e){$("archiveStatus").textContent="Local save failed: "+e.message;}
+  },650);
+}
 let translateOnFinish=false;
 const paragraphs = new ParagraphBuilder({
   silenceMs:1600,
   onPreview(text){
-    if(micActive && text)liveView.pendingParagraph(text);
+    if(micActive&&text){
+      liveView.pendingParagraph(text);
+      if(ledger.followLive)floating.setCaption({text,translated:false,
+        source:$("sourceLang").value,target:$("targetLang").value,status:"Building source paragraph"});
+    }
   },
   onParagraph(data){
     interimActive=false;
@@ -24,6 +86,7 @@ const paragraphs = new ParagraphBuilder({
   }
 });
 liveView.setVisibleLines(2);
+floating.setLineCount(2);
 floating.addEventListener("speech:toggle",()=>$("recordToggle").click());
 floating.addEventListener("speech:language-change",(event)=>{
   if(micActive){
@@ -40,7 +103,10 @@ for(const btn of document.querySelectorAll("[data-caption-mode]"))
   btn.addEventListener("click",()=>floating.setState({mode:btn.dataset.captionMode}));
 $("sourceLang").addEventListener("change",()=>refreshRecordingUI());
 $("targetLang").addEventListener("change",()=>refreshRecordingUI());
-$("captionLines").addEventListener("change",()=>liveView.setVisibleLines($("captionLines").value));
+$("captionLines").addEventListener("change",()=>{
+  liveView.setVisibleLines($("captionLines").value);
+  floating.setLineCount($("captionLines").value);
+});
 $("silenceDuration").addEventListener("change",()=>paragraphs.setSilence($("silenceDuration").value));
 $("chunkMode").addEventListener("change",()=>paragraphs.flush("settings-change"));
 let draftTimer=null, draftAbort=null, draftVersion=0, lastDraftRequest=-Infinity;
@@ -85,7 +151,7 @@ const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const synthesis = window.speechSynthesis;
 const localTranslator = createChromeTranslatorAdapter(window);
 const translationCache = new Map();
-let rows = [];
+let rows = ledger.entries;
 let rowId = 0;
 let sessionStart = Date.now();
 let recordingStart = Date.now();
@@ -99,7 +165,7 @@ let interimActive = false;
 let currentUtterance = null;
 let voiceChoices = [];
 let lastSubtitleShownId=0;
-const MAX_PHRASES = 250;
+const MAX_PHRASES = 3000;
 
 function status(message, warning = false) {
   $("status").textContent = message;
