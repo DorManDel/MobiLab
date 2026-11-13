@@ -15,6 +15,8 @@ const paragraphs = new ParagraphBuilder({
     if(micActive && text)liveView.pendingParagraph(text);
   },
   onParagraph(data){
+    interimActive=false;
+    cancelDraft();
     if(translateOnFinish)queue.start();
     addPhrase(data.text,data.source,data.target,data.candidates||[],
       $("autoTranslate").checked && (micActive || translateOnFinish),
