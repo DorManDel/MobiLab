@@ -11,7 +11,9 @@ assert.equal(commits.length,0);
 assert.equal(builder.pending,"שלום לכולם זאת שיחה מתמשכת");
 assert.equal(jobs.size,1,"Must debounce after each final result");
 assert.equal([...jobs.values()][0].ms,1200);
-[...jobs.values()][0].fn();
+const [scheduledId, scheduledJob]=[...jobs.entries()][0];
+jobs.delete(scheduledId); // a real scheduler removes a timer once it fires
+scheduledJob.fn();
 assert.equal(commits.length,1);
 assert.equal(commits[0].text,"שלום לכולם זאת שיחה מתמשכת");
 assert.equal(commits[0].reason,"silence");
