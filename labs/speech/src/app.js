@@ -1,6 +1,7 @@
 import { createChromeTranslatorAdapter, lexicalAgreement } from "./engine-compare.js";
 import { TranslationQueue, wordErrorRate, characterSimilarity, safeLibreEndpoint } from "./bench-core.js";
 import { ParagraphBuilder } from "./paragraph-builder.js";
+import { acceptCaption } from "./caption-selection.js";
 import "./speech-floating-controls.js";
 import { LiveCaptionView } from "./live-view.js";
 
@@ -352,42 +353,38 @@ function activeProviders() {
   return list;
 }
 function updateRow(row,id,patch) {
-  if (!row) return;
-  if (id === "queue") {
+  if(!row)return;
+  if(id==="queue") {
     row.queueStatus=patch.status;
   } else {
-    row.results[id] = {...(row.results[id] || {}),...patch};
+    row.results[id]={...(row.results[id]||{}),...patch};
     const now=performance.now();
-    if(patch.status==="running" && row.queueWaitMs===null) {
+    if(patch.status==="running"&&row.queueWaitMs===null)
       row.queueWaitMs=Math.max(0,now-row.finalPerf);
-    }
-    if(patch.status==="success" && patch.text && row.finalToSubtitleMs===null) {
-      row.finalToSubtitleMs=Math.max(0,now-row.finalPerf);
+    if(patch.status==="success"&&patch.text
+      && acceptCaption(row,id,patch.text,now)) {
       if(row.fromSpeech)liveView.latencies.push(row.finalToSubtitleMs);
       if(liveView.latencies.length>60)liveView.latencies.shift();
     }
   }
-  // Rendering a long transcript for every provider progress callback causes UI lag.
-  if(patch.status!=="running" || id==="queue")renderRows();
+  if(patch.status!=="running"||id==="queue")renderRows();
   const latest=rows[rows.length-1]?.id===row.id;
   if(latest){
-    if (!interimActive)showCaption(row);
+    if(!interimActive)showCaption(row);
     showComparison(row);
   }
-  // A recognized final phrase may be split into multiple queued caption lines.
-  // Render any newly completed line in timestamp order, not just the last row.
-  if(patch.status==="success" && patch.text && row.id>=lastSubtitleShownId) {
-    const best=row.results.cloud?.text || row.results.local?.text || row.results.libre?.text;
-    const provider=row.results.cloud?.text?"MyMemory":
-      row.results.local?.text?"Chrome":"LibreTranslate";
+  // Only one engine per paragraph is allowed to control the live subtitle.
+  // Late results remain visible in Compare engines, but cannot rewrite it.
+  if(row.displayText&&!row.displayShown&&row.id>=lastSubtitleShownId) {
+    row.displayShown=true;
     lastSubtitleShownId=row.id;
-    liveView.translated(row,best,provider,interimActive);
+    const provider={cloud:"MyMemory",local:"Chrome",libre:"LibreTranslate"}[row.displayProvider]||row.displayProvider;
+    liveView.translated(row,row.displayText,provider,interimActive);
     liveView.showQueue(row);
-  } else if(id==="queue" && patch.status==="skipped" && !interimActive
-      && row.id>=lastSubtitleShownId) {
-    liveView.skipped(row);
-    liveView.showQueue(row);
-  } else if(latest && row.id>=lastSubtitleShownId) {
+  } else if(id==="queue"&&patch.status==="skipped"&&!interimActive
+    &&row.id>=lastSubtitleShownId){
+    liveView.skipped(row);liveView.showQueue(row);
+  } else if(latest&&row.id>=lastSubtitleShownId){
     liveView.showQueue(row);
   }
 }
@@ -402,7 +399,9 @@ function addPhrase(text,source,target,candidates=null,automatic=true,sttMs=null,
   if (candidates && previous && previous.text.toLocaleLowerCase() === text.toLocaleLowerCase()
     && Date.now()-previous.at < 1500) return;
   const row = { id:++rowId,at:Date.now(),offset:Date.now()-sessionStart,text,source,target,
-    candidates,results:{},queueStatus:"saved",sttMs,finalPerf,fromSpeech:Array.isArray(candidates),queueWaitMs:null,finalToSubtitleMs:null };
+    candidates,results:{},queueStatus:"saved",sttMs,finalPerf,
+    fromSpeech:Array.isArray(candidates),queueWaitMs:null,finalToSubtitleMs:null,
+    captionProvider:$("captionProvider").value,displayText:"",displayProvider:null,displayShown:false };
   rows.push(row);
   interimActive=false;
   renderRows();showCaption(row);showComparison(row);showCandidates(row);
@@ -432,7 +431,10 @@ function translateSaved() {
     const latest=rows[rows.length-1];
     if(latest) {
       // Explicit re-run of the latest phrase against newly enabled engines.
-      latest.results={}; latest.queueStatus="saved";
+      latest.results={};latest.queueStatus="saved";
+      latest.captionProvider=$("captionProvider").value;
+      latest.displayText="";latest.displayProvider=null;latest.displayShown=false;
+      latest.finalToSubtitleMs=null;
       translateRow(latest);
       status("Re-running the latest phrase through the selected engines.");
     } else status("No saved phrases to translate yet.",true);
@@ -473,6 +475,7 @@ $("clearAll").addEventListener("click",()=>{
   if(micActive) stopMic();
   queue.stop();
   translationCache.clear();
+  paragraphs.clear();
   rows=[];rowId=0;lastSubtitleShownId=0;sessionStart=Date.now();recordingStart=sessionStart;
   interimActive=false;
   $("recordTime").textContent="00:00";
@@ -499,12 +502,12 @@ if(!Recognition || !isSecureContext) status("Use HTTPS in a supporting browser f
 function showCaption(row) {
   if (!row) return;
   $("captionOriginal").textContent=row.text;
-  const result = row.results.cloud?.text || row.results.local?.text || row.results.libre?.text;
+  const result = row.displayText;
   const finished = ["stopped","saved","skipped","canceled","completed"].includes(row.queueStatus)
     || Object.values(row.results).some(x=>x.status==="canceled");
   $("captionTranslated").textContent=result || (finished
-    ? "No completed translation · inspect provider status or translate again."
-    : "Translating final phrase…");
+    ? "Chosen caption engine has no completed translation; inspect comparison or re-run."
+    : "Translating paragraph…");
   $("detectedLang").textContent=row.source.toUpperCase()+" → "+row.target.toUpperCase();
 }
 function showCandidates(row) {
