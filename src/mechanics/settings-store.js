@@ -12,6 +12,8 @@ const accents = ["purple", "yellow", "mint"];
 const bounded = (v, low, high) => Math.max(low, Math.min(high, Number.isFinite(Number(v)) ? Math.round(Number(v)) : low));
 export function normalizeSettings(input = {}) {
   const base = { ...DEFAULT_SETTINGS, ...(input && typeof input === "object" ? input : {}) };
+  const tabs = (Array.isArray(base.tabs) ? base.tabs : DEFAULT_SETTINGS.tabs).slice(0, 12)
+    .map(value => String(value).trim().slice(0, 30)).filter(Boolean);
   return {
     layout: layouts.includes(base.layout) ? base.layout : DEFAULT_SETTINGS.layout,
     panelSize: bounded(base.panelSize, 25, 100),
@@ -20,8 +22,7 @@ export function normalizeSettings(input = {}) {
     density: densities.includes(base.density) ? base.density : DEFAULT_SETTINGS.density,
     accent: accents.includes(base.accent) ? base.accent : DEFAULT_SETTINGS.accent,
     animation: Boolean(base.animation),
-    tabs: (Array.isArray(base.tabs) ? base.tabs : DEFAULT_SETTINGS.tabs).slice(0, 12)
-      .map(value => String(value).trim().slice(0, 30)).filter(Boolean)
+    tabs: tabs.length ? tabs : [...DEFAULT_SETTINGS.tabs]
   };
 }
 export class SettingsStore {
