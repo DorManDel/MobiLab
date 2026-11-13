@@ -158,3 +158,18 @@
  .live-deck .live-output{bottom:15px}
  .focus-controls button{min-width:37px}
 }
+
+.provider-scoreboard{padding:12px;border:1px solid #9870d45e;border-radius:14px;
+ background:rgba(15,12,30,.72);margin:14px 0}
+.provider-scoreboard>strong{font-size:14px;color:#ffe199}
+.provider-scoreboard .hint{font-size:11px;line-height:1.5}
+.score-row{display:grid;grid-template-columns:minmax(100px,1fr) minmax(0,2fr);
+ gap:10px;border-top:1px solid #8265b039;padding:9px 0;align-items:center}
+.score-row strong{font-size:12px}
+.score-row span{font-size:11px;line-height:1.4;color:#d5cde6;overflow-wrap:anywhere}
+.live-deck[data-mode=append] .append-entry{display:grid;gap:5px;text-align:initial}
+.live-deck[data-mode=append] .append-source{font-size:12px;line-height:1.4;color:#c8bcd5}
+.live-deck[data-mode=append] .append-translation{font-size:clamp(15px,2.8vw,19px);line-height:1.4;color:#ffe392}
+@media(max-width:480px){
+  .score-row{grid-template-columns:1fr;gap:3px}
+}
