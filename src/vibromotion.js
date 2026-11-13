@@ -417,8 +417,14 @@ export function setupVibroMotion({ haptics, notify, isActive = () => true }) {
       records = records.slice(0, MAX_ROWS);
       persist();
       renderRecords();
+      const control = trial.preset === "off" ? null :
+        records.find((r) => r.preset === "off" && r.mode === mode && r.surface === trial.surface &&
+          r.peakAccel !== null && r !== trial);
+      const compare = control && trial.peakAccel !== null ?
+        " Control peak " + fmt(control.peakAccel) + " m/s²; difference " +
+        fmt(trial.peakAccel - control.peakAccel) + " m/s² (not displacement proof)." : "";
       status("Trial recorded. Angle " + fmt(trial.yawDelta, 1) + "°, dynamic acceleration peak " +
-        fmt(trial.peakAccel) + " m/s². Annotate what you saw below.");
+        fmt(trial.peakAccel) + " m/s²." + compare + " Annotate what you saw below.");
       notify("Trial saved locally. Add a physical observation for meaningful results.");
     } finally {
       if (token === runToken) {
