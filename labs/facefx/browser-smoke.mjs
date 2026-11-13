@@ -31,6 +31,18 @@ try{
   assert.equal(await page.locator('#sourcePreview').isVisible(),true,'photo preview');
   assert.equal(await page.locator('[data-preset="studio-curly"]').getAttribute('aria-pressed'),'true');
   assert.equal(await page.locator('#remoteState').textContent(),'OFFLINE','RTX remains unused');
+  assert.equal(await page.locator('#peekOriginal').count(),1,'momentary original button');
+  assert.equal(await page.locator('#trackingFps').count(),1,'tracking FPS visible');
+  assert.equal(await page.locator('#swapFps').count(),1,'swap FPS visible');
+  assert.equal(await page.locator('#expressionValue').textContent(),'45%');
+  await page.locator('#expression').fill('20');
+  assert.equal(await page.locator('#expressionValue').textContent(),'20%');
+  await page.locator('#swapQuality').selectOption('fast');
+  assert.equal(await page.locator('#swapQuality').inputValue(),'fast');
+  await page.locator('#peekOriginal').dispatchEvent('pointerdown');
+  assert.equal(await page.locator('#peekOriginal').getAttribute('aria-pressed'),'true');
+  await page.locator('#peekOriginal').dispatchEvent('pointerup');
+  assert.equal(await page.locator('#peekOriginal').getAttribute('aria-pressed'),'false');
   assert.equal(await page.locator('#pipelineStatus').count(),1,'real-time pipeline health stage');
   await page.locator('#sourcePhoto').setInputFiles(path.resolve('labs/facefx/presets/studio-bangs.webp'));
   await page.waitForFunction(()=>document.querySelector('#sourceStatus')?.textContent?.startsWith('SOURCE VERIFIED'));
