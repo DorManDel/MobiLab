@@ -1,10 +1,45 @@
 import { createChromeTranslatorAdapter, lexicalAgreement } from "./engine-compare.js";
 import { TranslationQueue, wordErrorRate, characterSimilarity, safeLibreEndpoint } from "./bench-core.js";
-import { splitCaptionLines } from "./live-captions.js";
+import { ParagraphBuilder } from "./paragraph-builder.js";
+import "./speech-floating-controls.js";
 import { LiveCaptionView } from "./live-view.js";
 
 const $ = (id) => document.getElementById(id);
 const liveView = new LiveCaptionView(document);
+const floating = $("floatingControls");
+let translateOnFinish=false;
+const paragraphs = new ParagraphBuilder({
+  silenceMs:1600,
+  onPreview(text){
+    if(micActive && text)liveView.pendingParagraph(text);
+  },
+  onParagraph(data){
+    if(translateOnFinish)queue.start();
+    addPhrase(data.text,data.source,data.target,data.candidates||[],
+      $("autoTranslate").checked && (micActive || translateOnFinish),
+      data.sttMs??null,data.finalPerf??performance.now());
+  }
+});
+liveView.setVisibleLines(2);
+floating.addEventListener("speech:toggle",()=>$("recordToggle").click());
+floating.addEventListener("speech:language-change",(event)=>{
+  if(micActive){
+    status("Finish recording before changing languages.",true);
+    refreshRecordingUI();
+    return;
+  }
+  $("sourceLang").value=event.detail.source;
+  $("targetLang").value=event.detail.target;
+  refreshRecordingUI();
+});
+floating.addEventListener("speech:display-change",(event)=>liveView.setMode(event.detail.mode));
+for(const btn of document.querySelectorAll("[data-caption-mode]"))
+  btn.addEventListener("click",()=>floating.setState({mode:btn.dataset.captionMode}));
+$("sourceLang").addEventListener("change",()=>refreshRecordingUI());
+$("targetLang").addEventListener("change",()=>refreshRecordingUI());
+$("captionLines").addEventListener("change",()=>liveView.setVisibleLines($("captionLines").value));
+$("silenceDuration").addEventListener("change",()=>paragraphs.setSilence($("silenceDuration").value));
+$("chunkMode").addEventListener("change",()=>paragraphs.flush("settings-change"));
 let draftTimer=null, draftAbort=null, draftVersion=0, lastDraftRequest=-Infinity;
 function cancelDraft() {
   draftVersion++;
@@ -79,6 +114,8 @@ function refreshRecordingUI() {
   $("sourceLang").disabled = micActive;
   $("recordState").textContent = micActive ? "● REC" : "OFFLINE";
   $("recordState").classList.toggle("live", micActive);
+  floating.setState({listening:micActive,source:$("sourceLang").value,
+    target:$("targetLang").value,mode:liveView.mode});
 }
 function clockText(ms) {
   const s = Math.max(0, Math.floor(ms/1000));
@@ -87,7 +124,7 @@ function clockText(ms) {
 function updateTimer() {
   $("recordTime").textContent = micActive ? clockText(Date.now() - recordingStart) : $("recordTime").textContent;
 }
-function stopMic() {
+function stopMic(translateLast=false) {
   micActive = false;
   micToken++;
   clearTimeout(restartTimeout);
@@ -101,10 +138,17 @@ function stopMic() {
     try { old.abort(); } catch {}
   }
   cancelDraft();
-  queue.stop(); // cancels pending and running provider requests
+  queue.stop(); // cancellation for all prior translation work
   interimActive = false;
+  // Explicit Finish may translate only its final unfinished paragraph.
+  // Background/error Stop never initiates new network requests.
+  translateOnFinish=Boolean(translateLast);
+  paragraphs.flush("stop");
+  translateOnFinish=false;
   refreshRecordingUI();
-  status("Recording finished. Transcript is kept in this page; unfinished translations canceled.");
+  status(translateLast
+    ? "Mic off. Earlier pending translations canceled; only the last unfinished paragraph may finish translating."
+    : "Mic off. Transcript saved locally; translations canceled.");
   if (rows.length) {
     const latest = rows[rows.length - 1];
     showCaption(latest);
@@ -142,13 +186,11 @@ function activateRecognizer(token) {
         cancelDraft();
         const finalPerf=performance.now();
         const speechDuration=speechStartPerf===null?null:Math.max(0,finalPerf-speechStartPerf);
-        const chunks=splitCaptionLines(phrase,$("chunkMode").value);
-        chunks.forEach((chunk,index)=>{
-          addPhrase(chunk,$("sourceLang").value,$("targetLang").value,
-            index===chunks.length-1?candidates:[],
-            $("autoTranslate").checked,
-            index===0?speechDuration:null,finalPerf);
+        paragraphs.addFinal(phrase,{
+          source:$("sourceLang").value,target:$("targetLang").value,
+          candidates,sttMs:speechDuration,finalPerf
         });
+        if($("chunkMode").value==="immediate")paragraphs.flush("immediate");
         speechStartPerf=null;
       } else if (!result.isFinal) interim += " " + phrase;
     }
@@ -156,7 +198,8 @@ function activateRecognizer(token) {
       interimActive = true;
       $("captionOriginal").textContent = interim.trim() + " …";
       $("captionTranslated").textContent = "Listening for the end of this phrase…";
-      liveView.interim(interim.trim());
+      const preview=[paragraphs.pending,interim.trim()].filter(Boolean).join(" ");
+      liveView.interim(preview);
       scheduleDraft(interim.trim());
     } else interimActive = false;
   };
@@ -204,6 +247,7 @@ function startMic() {
   micActive = true;
   micToken++;
   restartTimes = [];
+  paragraphs.clear();
   queue.start();
   refreshRecordingUI();
   $("recordTime").textContent = "00:00";
@@ -211,7 +255,7 @@ function startMic() {
   try { activateRecognizer(micToken); }
   catch (error) { stopMic();status("Microphone failed: "+error.message,true); }
 }
-$("recordToggle").addEventListener("click", () => micActive ? stopMic() : startMic());
+$("recordToggle").addEventListener("click", () => micActive ? stopMic(true) : startMic());
 
 function timeoutSignal(parentSignal, timeoutMs = 12000) {
   const controller = new AbortController();
