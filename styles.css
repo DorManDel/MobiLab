@@ -274,7 +274,7 @@ footer a{text-decoration:none;color:#aa92d5}
 .nav-more{position:relative;flex:0 0 auto}
 .nav-more>summary{list-style:none;cursor:pointer}
 .nav-more>summary::-webkit-details-marker{display:none}
-.nav-more-menu{position:absolute;right:0;top:100%;width:235px;background:#1d172f;border:1px solid #a18ac055;
+.nav-more-menu{position:fixed;right:clamp(16px,8vw,130px);top:105px;width:235px;background:#1d172f;border:1px solid #a18ac055;
   box-shadow:0 20px 45px #0009;border-radius:0 0 13px 13px;padding:8px;display:grid;z-index:30}
 .nav-more-menu a,.nav-more-menu button{display:block;text-align:left;border:0;text-decoration:none;color:var(--ink);
   background:transparent;border-radius:9px;padding:13px;font:inherit;font-size:13px;min-height:42px;width:100%}
