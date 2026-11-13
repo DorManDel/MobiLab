@@ -56,7 +56,7 @@ $('clearLog').addEventListener('click', () => { $('log').textContent = ''; });
 $('resetMetrics').addEventListener('click', resetMetrics);
 
 // Use the official ESM bundle, not jsDelivr's +esm transpilation endpoint.
-const MEDIAPIPE_VERSION = '0.10.22';
+const MEDIAPIPE_VERSION = '0.10.35';
 const VISION_URLS = [
   {name:'jsDelivr', module:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION+'/vision_bundle.mjs',
    wasm:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION+'/wasm'},
@@ -440,4 +440,4 @@ $('snapshot').addEventListener('click',()=>{
 // Closing the page or hiding it stops camera and remote processing.
 window.addEventListener('pagehide',()=>{void stopCamera();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.stream)void stopCamera();});
-buttons();resetMetrics();displayMode('mobile');modelStatus('Not loaded yet · select a portrait or start the camera');say('FaceFX v0.4 ready · mobile Photo Swap with presets and CDN fallback.');
+buttons();resetMetrics();displayMode('mobile');modelStatus('Not loaded yet · select a portrait or start the camera');say('FaceFX v0.4.1 ready · mobile Photo Swap with presets and CDN fallback.');

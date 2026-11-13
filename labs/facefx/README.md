@@ -1,4 +1,4 @@
-# FaceFX Lab v0.4 — mobile-first + CDN recovery and portraits
+# FaceFX Lab v0.4.1 — mobile-first + CDN recovery and portraits
 
 ## Mobile: no PC required
 Open **https://dormandel.github.io/MobiLab/labs/facefx/** on your phone using Chrome or Samsung Internet. Select **Mobile** (default), pick one of the three synthetic sample portraits or choose a clear single-face portrait with consent, tap **Start camera**, grant permission, and try **Photo Swap · local (2D)**.
@@ -19,6 +19,9 @@ See [PC server README](../../facefx-server/README.md) for the separate Windows i
 - Device testing and independent model licensing required before production claims.
 
 ### v0.4 reliability fix
-The original CDN `+esm` import produced `Failed to fetch dynamically imported module` on a real Samsung phone. This version uses MediaPipe's documented `vision_bundle.mjs` for the pinned `0.10.22` release, with unpkg as a fallback. The interface includes `Retry face engine` and short actionable messages; details appear in Diagnostics. Three generated, fictional studio faces are shipped in `presets/` as **local WebP files**, not remotely hosted pictures. User gallery sources are processed only in RAM on the device.
+The original CDN `+esm` import produced `Failed to fetch dynamically imported module` on a real Samsung phone. This version uses MediaPipe's documented `vision_bundle.mjs` for the verified available `0.10.35` package, with unpkg as a fallback. The interface includes `Retry face engine` and short actionable messages; details appear in Diagnostics. Three generated, fictional studio faces are shipped in `presets/` as **local WebP files**, not remotely hosted pictures. User gallery sources are processed only in RAM on the device.
 
 **Limitations:** Live phone camera and external CDN remain unverified until a physical-device retest; no claim of photorealistic generative face swap. The sample portraits are synthetic. PC remains optional.
+
+### v0.4.1 version correction
+An actual Chromium network test revealed that `0.10.22/vision_bundle.mjs` returned HTTP 404. Moved to version `0.10.35`, which publishes `vision_bundle.mjs`; the module and the `/wasm` loader are always pinned to the same release. An on-device Samsung retest is still required.
