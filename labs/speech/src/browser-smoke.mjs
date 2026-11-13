@@ -63,6 +63,19 @@ try {
         : {responseStatus:200,responseData:{translatedText:"Translation A"}})});}
     catch{/* aborted fetch may close route before fulfill */}
   });
+  await page.route("https://translate.example.org/languages",async route=>{
+    await route.fulfill({status:200,contentType:"application/json",
+      headers:{"Access-Control-Allow-Origin":"*"},
+      body:JSON.stringify([{code:"he",targets:["en"]},{code:"en",targets:["he"]}])});
+  });
+  await page.route("https://translate.example.org/api/transcribe?**",async route=>{
+    await route.fulfill({status:200,contentType:"application/json",
+      headers:{"Access-Control-Allow-Origin":"*"},
+      body:JSON.stringify({language:"he",language_probability:0.95,
+        processing_ms:120,model:"mock",segments:[
+          {start:0.5,end:2.2,text:"שלום מהסרט"},
+          {start:2.3,end:4.1,text:"עוד משפט מהסרט"}]})});
+  });
   await page.route("https://translate.example.org/translate",async route=>{
     try{await route.fulfill({status:200,contentType:"application/json",
       headers:{"Access-Control-Allow-Origin":"*"},
@@ -176,6 +189,36 @@ try {
   assert.equal(cloudRequests,countAfter429,"Circuit breaker must prevent repeated HTTP 429 calls");
   assert.ok((await page.locator("#segments article").first().textContent()).includes("עוד משפט"));
 
+  // A self-hosted/independent engine can be PRIMARY, with no MyMemory calls
+  // at all even after the public quota breaker is manually reset.
+  await page.locator("#retryCloud").click();
+  await page.locator("#captionProvider").selectOption("libre");
+  assert.equal(await page.locator("#compareCloud").isChecked(),false);
+  const cloudBeforeLocal=cloudRequests;
+  const beforeLocal=Number(await page.locator("#phraseCount").textContent());
+  await page.locator("#manualText").fill("תרגום דרך שרת עצמאי");
+  await page.locator("#translateManual").click();
+  await page.waitForFunction(n=>Number(document.querySelector("#phraseCount")?.textContent)>n,beforeLocal);
+  await page.waitForFunction(()=>document.querySelector("#libreEngineResult")?.textContent==="Translation B");
+  assert.equal(cloudRequests,cloudBeforeLocal,"Local primary must not call MyMemory");
+  assert.equal(await page.locator("#floatingControls #captionText").textContent(),"Translation B");
+  await page.locator("#testLocalNode").click();
+  await page.waitForFunction(()=>document.querySelector("#localNodeStatus")?.textContent.startsWith("Connected"));
+  assert.match(await page.locator("#localNodeStatus").textContent(),/Hebrew/);
+
+  // Uploaded media uses a different local STT adapter and imports timestamps
+  // to the SAME source log, without sending to MyMemory or translating by default.
+  await page.locator("#localFileDetails summary").click();
+  await page.locator("#mediaFile").setInputFiles({
+    name:"demo.wav",mimeType:"audio/wav",buffer:Buffer.from("fake local audio")
+  });
+  const beforeMedia=Number(await page.locator("#phraseCount").textContent());
+  await page.locator("#transcribeMedia").click();
+  await page.waitForFunction(()=>document.querySelector("#mediaImportStatus")?.textContent.includes("Imported 2 timed"));
+  assert.equal(Number(await page.locator("#phraseCount").textContent()),beforeMedia+2);
+  assert.ok((await page.locator("#segments article").first().textContent()).includes("עוד משפט מהסרט"));
+  assert.equal(cloudRequests,cloudBeforeLocal);
+
   // The focused source uses its last lines, not the start of a huge paragraph.
   const veryLong="start "+Array.from({length:110},(_,i)=>"word"+i).join(" ")+" last line finish";
   await page.locator("#manualText").fill(veryLong);
@@ -208,7 +251,7 @@ try {
   assert.ok(dims.dock.left>=0&&dims.dock.right<=dims.width+1&&dims.dock.bottom<=844,
     "Mobile record dock must remain within screen: "+JSON.stringify(dims));
   assert.deepEqual(errors,[],"No uncaught browser JS exceptions allowed");
-  console.log("Browser smoke passed: captions, canonical log/focus, floating text, rate-limit breaker/fallback, tail viewport, opt-in archive, TTS and mobile viewport.");
+  console.log("Browser smoke passed: independent local primary (zero cloud calls), language handshake, media timestamps, canonical log/focus, quota breaker/fallback, archive, TTS and mobile viewport.");
 } finally {
   if(browser) await browser.close();
   server.kill("SIGTERM");

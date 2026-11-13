@@ -69,3 +69,10 @@ await new Promise(resolve=>setTimeout(resolve,0));
 assert.ok(realtimeEvents.some(e=>e[0]===12&&e[2]==="success"));
 assert.ok(realtimeEvents.some(e=>e[0]===13&&e[2]==="success"));
 console.log("Live queue catch-up: older queued translation skipped and newer rows preserved.");
+
+assert.equal(safeLibreEndpoint("http://127.0.0.1:8765"),"http://127.0.0.1:8765/translate");
+assert.equal(safeLibreEndpoint("http://localhost:8765"),"http://localhost:8765/translate");
+assert.throws(()=>safeLibreEndpoint("http://localhost.evil.com:8765"),/HTTPS/);
+assert.throws(()=>safeLibreEndpoint("http://192.168.1.10:5000"),/HTTPS/);
+assert.throws(()=>safeLibreEndpoint("https://user:pass@example.com/"),/HTTPS/);
+console.log("Loopback-only HTTP allowed without weakening remote HTTPS requirement.");

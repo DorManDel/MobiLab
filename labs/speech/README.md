@@ -1,6 +1,18 @@
-# Speech & Translate Lab — Canonical Transcript & Focused Captions beta 0.5
+# Speech & Translate Lab — Local Translation & Media Input beta 0.6
 
 Entry point: ./index.html, linked as a tab and overview card in MobiLab.
+
+## Beta 0.6 — independent local translation and optional media-file transcription
+
+**Problem:** anonymous MyMemory HTTP429 exhausted the public quota. Connecting a different provider should not keep sending the same words to MyMemory. Hosted free APIs are never guaranteed unlimited.
+
+**New desktop setup:** use [services/speech-node/README.md](../../services/speech-node/README.md). It includes a Docker Compose LibreTranslate engine with Hebrew-English Argos models on PC loopback only (no daily external API character quota) and a Python FastAPI Speech Node that serves the same web lab.
+
+- Click **Use local PC node** from http://127.0.0.1:8765/labs/speech/ to choose LibreTranslate as the primary translation engine; **Test my engine** checks installed language pairs. When local is selected, cloud requests are suppressed unless the user explicitly checks the independent MyMemory comparison option.
+- In GitHub Pages on Android, localhost means the phone itself. Use the PC node via an **authenticated HTTPS** tunnel/private hostname and the in-memory access token if remote; do not expose unauthenticated Docker/Node services.
+- The local node can optionally load **faster-whisper** for uploaded WAV/MP3/M4A/MP4/etc media files. Choose a file, send it to the user's configured node and import the returned segments **with start/end timestamps** into the canonical transcript. Media is temporary on the node, deleted after completion. Files are not uploaded to MyMemory; full-file translation is not triggered automatically.
+- Approximate session WebVTT is preserved for microphone segments; file-sourced segments export with their model's file-relative timestamps. JSON export includes mediaName/mediaStartMs/mediaEndMs. Real-time system/tab capture is a separate future source adapter.
+- New Python API mock tests, existing browser mobile smoke tests and explicit provider-isolation check. Real container models, media decoder quality, GPU speed and Android connection remain unverified until physical setup.
 
 ## Beta 0.5 — fixed from real Android screen recording
 

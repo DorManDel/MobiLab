@@ -182,3 +182,26 @@
 #segments .segment .original{
   max-height:calc(5 * 1.55em);overflow-y:auto;scrollbar-width:thin;
 }
+
+/* Local model section: secondary to the above-fold microphone controls. */
+.local-node-panel{
+  margin:12px 0 18px;padding:16px;border:1px solid #b395e15c;
+  border-radius:18px;background:linear-gradient(145deg,rgba(49,35,79,.85),rgba(15,13,31,.97))
+}
+.local-node-panel h2{font-size:clamp(17px,2.8vw,23px);margin:4px 0 8px}
+.local-node-panel p.hint{font-size:12px;line-height:1.65;max-width:900px}
+.local-node-panel .row{gap:8px;flex-wrap:wrap}
+.local-node-panel button{min-height:44px;white-space:normal}
+#useLocalNode{background:#9f85e4;color:#180d2a;font-weight:800}
+#localNodeStatus{border-radius:10px;padding:8px 10px;background:#130d26a8}
+#localNodeStatus[data-state=ok]{color:#9ef1bb}
+#localNodeStatus[data-state=error]{color:#ffb19d}
+#localFileDetails{margin-top:12px;border-top:1px solid #876aae4e;padding-top:12px}
+#localFileDetails summary{font-weight:750;cursor:pointer;min-height:33px}
+#localFileDetails label{display:block;margin-top:10px}
+#localFileDetails input{width:100%;max-width:700px;margin-top:5px}
+#mediaImportStatus{font-variant-numeric:tabular-nums}
+@media(max-width:740px){
+ .local-node-panel{padding:12px;margin:12px 0}
+ .local-node-panel button{flex:1 1 130px;font-size:12px;padding:9px 12px}
+}

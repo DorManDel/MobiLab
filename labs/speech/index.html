@@ -108,7 +108,7 @@
   <header><a class="brand" href="../../#home">Mobi<span>Lab</span> / SPEECH</a><a class="back" href="../../#home">← All experiments</a></header>
 
   <section class="live-workspace" aria-label="Instant captions and listening">
-    <div class="live-topline"><strong>◉ LIVE SUBTITLE STUDIO</strong><span>v0.5 · BETA</span></div>
+    <div class="live-topline"><strong>◉ LIVE SUBTITLE STUDIO</strong><span>v0.6 · BETA</span></div>
     <div class="live-controls">
       <div class="live-languages">
         <div class="field">
@@ -224,8 +224,40 @@
     <a class="live-access" href="#controls">Advanced controls, voice and model comparison ↓</a>
   </section>
 
+  <section class="local-node-panel" id="localNodePanel" aria-labelledby="localNodeTitle">
+    <div class="row between"><div><div class="eyebrow">LOCAL ENGINE · OPTIONAL</div><h2 id="localNodeTitle">Your PC · no daily translation quota</h2></div>
+      <span class="tag">Self-hosted</span>
+    </div>
+    <p class="hint">Run the local Speech Node and LibreTranslate on your PC. On a phone, use your own authenticated HTTPS address — localhost refers to the phone, not the computer.</p>
+    <div class="row">
+      <button id="useLocalNode" type="button">Use local PC node</button>
+      <button id="testLocalNode" type="button">Test my engine</button>
+      <button id="openLocalSetup" type="button">Server setup</button>
+    </div>
+    <p id="localNodeStatus" role="status" aria-live="polite" class="hint">Not connected. MyMemory's daily quota applies until an independent engine is configured.</p>
+    <details id="localFileDetails">
+      <summary>Audio / video file transcription · local Whisper (optional)</summary>
+      <p class="hint">Select media you own or are permitted to process. The file goes only to the local Speech Node address you configure, not to MyMemory. Requires faster-whisper installed and enabled on your PC.</p>
+      <label for="nodeToken">Optional private node access token (this tab only)</label>
+      <input id="nodeToken" type="password" autocomplete="off" placeholder="Only for your secured HTTPS node" />
+      <label for="mediaLang">Spoken language in the file</label>
+      <select id="mediaLang">
+        <option value="auto" selected>Auto detect (local Whisper)</option>
+        <option value="he">Hebrew</option><option value="en">English</option>
+        <option value="ar">Arabic</option><option value="es">Spanish</option>
+        <option value="fr">French</option><option value="de">German</option>
+        <option value="ru">Russian</option><option value="it">Italian</option>
+      </select>
+      <label for="mediaFile">Choose an audio/video file (100 MB default limit)</label>
+      <input id="mediaFile" type="file" accept=".wav,.mp3,.m4a,.aac,.flac,.ogg,.opus,.webm,.mp4,.mkv,.mov,audio/*,video/*" />
+      <div class="row"><button id="transcribeMedia" type="button">Transcribe file locally</button>
+        <button id="openLocalGuide" type="button">Read setup guide</button></div>
+      <p id="mediaImportStatus" class="hint" role="status">No media selected. Imported timed segments join the source log; translation requires a separate action.</p>
+    </details>
+  </section>
+
   <div class="intro">
-    <div class="eyebrow">EXPERIMENT 07 · LANGUAGE & AUDIO · LIVE BETA 0.5</div>
+    <div class="eyebrow">EXPERIMENT 07 · LANGUAGE & AUDIO · LIVE BETA 0.6</div>
     <h1>Speech & <em>Translate</em> Lab</h1>
     <p>A mobile-first listening workbench: record and save transcripts, translate through real engines, compare outputs and hear the result. Designed for reusable components.</p>
     <div class="row"><span class="tag">🎙 Live microphone</span><span class="tag">🗺 Translation</span><span class="tag">🔊 TTS</span><span class="tag">📊 WER test</span></div>
@@ -293,9 +325,10 @@
       </div>
       <details class="provider-config">
         <summary>+ Advanced: connect your own LibreTranslate engine (also works on Android)</summary>
-        <p class="hint">This separate engine can keep translation working when MyMemory is rate-limited. Enter only a trusted HTTPS LibreTranslate-compatible server you control or subscribe to; it must permit CORS. API key, if required, stays in browser memory and is never included in exports.</p>
-        <label class="check" for="compareLibre"><input id="compareLibre" type="checkbox"> Enable third engine for new phrases</label>
-        <label for="libreEndpoint">Your server URL (HTTPS)</label>
+        <p class="hint">When LibreTranslate is selected, MyMemory is not called unless you explicitly compare it. Self-hosting removes provider-imposed daily text quotas. Remote URLs must use trusted HTTPS, while localhost HTTP is for your desktop only.</p>
+        <label class="check" for="compareLibre"><input id="compareLibre" type="checkbox"> Enable my independent LibreTranslate engine</label>
+        <label class="check" for="compareCloud"><input id="compareCloud" type="checkbox"> Also query MyMemory in benchmark (uses public quota)</label>
+        <label for="libreEndpoint">Trusted LibreTranslate / local companion URL</label>
         <input id="libreEndpoint" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://your-translate.example" />
         <label for="libreKey">Optional server API key (this tab only)</label>
         <input id="libreKey" type="password" autocomplete="off" placeholder="Only if your trusted server requires it" />

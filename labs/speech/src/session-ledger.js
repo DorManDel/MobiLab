@@ -37,6 +37,8 @@ export class SessionLedger {
       state:row.queueStatus,captionEngine:row.displayProvider||null,
       selectedDisplayEngine:row.captionProvider||null,usedFallback:Boolean(row.fallbackUsed),
       humanReferenceTranslation:row.translationReference||null,
+      mediaName:row.mediaName||null,mediaStartMs:row.mediaStartMs??null,
+      mediaEndMs:row.mediaEndMs??null,
       caption:row.displayText||null,latencyMs:row.finalToSubtitleMs??null,
       translations:Object.fromEntries(Object.entries(row.results||{}).map(([key,value])=>[
         key,{status:value.status,text:value.text||null,error:value.error||null,ms:value.ms??null}

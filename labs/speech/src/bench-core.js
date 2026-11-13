@@ -185,8 +185,10 @@ export class TranslationQueue {
 
 export function safeLibreEndpoint(value) {
   const u = new URL(value);
-  if (u.protocol !== "https:" || u.username || u.password || u.search || u.hash) {
-    throw new Error("Enter an HTTPS LibreTranslate server URL without login/query parameters.");
+  const loopback = ["127.0.0.1","localhost","[::1]"].includes(u.hostname);
+  if ((u.protocol !== "https:" && !(loopback && u.protocol === "http:")) ||
+      u.username || u.password || u.search || u.hash) {
+    throw new Error("Use a trusted HTTPS server, or an HTTP loopback URL only on your desktop.");
   }
   if (u.pathname === "/" || !u.pathname.endsWith("/translate")) {
     u.pathname = u.pathname.replace(/\/+$/, "") + "/translate";

@@ -406,13 +406,13 @@ async function translateMyMemory(text, source, target, signal) {
     return result;
   } finally {timeout.release();}
 }
-async function translateLibre(text, source, target, signal, endpoint, key="") {
+async function translateLibre(text, source, target, signal, endpoint, key="",token="") {
   if (source === target) return text;
   const timeout = timeoutSignal(signal,15000);
   try {
     const response = await fetch(endpoint,{
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{"Content-Type":"application/json",...(token?{Authorization:"Bearer "+token}:{})},
       body:JSON.stringify({...{q:text,source,target,format:"text"},...(key?{api_key:key}:{})}),
       signal:timeout.signal
     });
@@ -426,7 +426,12 @@ async function translateLibre(text, source, target, signal, endpoint, key="") {
 }
 function activeProviders() {
   const list=[];
-  if(circuit.canCall("cloud"))list.push({
+  // Selecting a local translator must NOT silently consume the daily
+  // MyMemory quota. Opt in to cloud benchmarking explicitly.
+  const selected=$("captionProvider").value;
+  const cloudRequested=selected==="cloud" || $("compareCloud").checked ||
+    (selected==="fastest" && !$("compareLibre").checked && !$("compareLocal").checked);
+  if(cloudRequested && circuit.canCall("cloud"))list.push({
     id:"cloud",label:"MyMemory (cloud)",
     run:(text,source,target,signal) => translateMyMemory(text,source,target,signal)
   });
@@ -442,15 +447,16 @@ function activeProviders() {
     });
   }
   if ($("compareLibre").checked) {
-    // Keep the cloud baseline running even if the optional endpoint is malformed.
+    // Only the user-approved LibreTranslate endpoint may receive these texts.
     let endpoint, configurationError;
     try { endpoint = safeLibreEndpoint($("libreEndpoint").value.trim()); }
     catch(error) { configurationError = error.message; }
-    const key=$("libreKey").value.trim(); // in-memory only; never added to source log or exports
+    const key=$("libreKey").value.trim(); // in-memory only, never in exports
+    const nodeToken=$("nodeToken").value.trim(); // optional bearer token, also RAM only
     list.push({id:"libre",label:"Your LibreTranslate server",
       run:(text,source,target,signal)=>{
         if (configurationError) throw new Error(configurationError);
-        return translateLibre(text,source,target,signal,endpoint,key);
+        return translateLibre(text,source,target,signal,endpoint,key,nodeToken);
       }});
   }
   return list;
@@ -949,12 +955,14 @@ function vttTime(ms){
     .map(n=>String(n).padStart(2,"0")).join(":")+"."+String(value%1000).padStart(3,"0");
 }
 $("exportVtt").addEventListener("click",()=>{
-  let out="WEBVTT\n\nNOTE Approximate session times, not synchronized to a video.\n\n";
+  let out="WEBVTT\n\nNOTE Spoken session times approximate; imported local media segments use Whisper timestamps.\n\n";
   rows.forEach((row,i)=>{
-    const begin=Math.max(0,row.offset);
+    const media=Number.isFinite(row.mediaStartMs)&&Number.isFinite(row.mediaEndMs);
+    const begin=media?Math.max(0,row.mediaStartMs):Math.max(0,row.offset);
     const next=rows[i+1]?.offset;
-    const end=next>begin?Math.min(next,begin+5000):begin+2500;
-    const cap=row.results.cloud?.text||row.results.local?.text||row.results.libre?.text||row.text;
+    const end=media?Math.max(begin+100,row.mediaEndMs):
+      (next>begin?Math.min(next,begin+5000):begin+2500);
+    const cap=row.displayText||row.text;
     out+=(i+1)+"\n"+vttTime(begin)+" --> "+vttTime(end)+"\n"+cap.replace(/\n/g," ")+"\n\n";
   });
   download("mobilab-session-approx.vtt",out,"text/vtt;charset=utf-8");
@@ -969,6 +977,148 @@ window.addEventListener("pagehide",()=>{
   synthesis?.cancel();
   localTranslator.dispose();
 });
+
+// Local node uses an already user-approved endpoint. No keys are persisted.
+function localEndpoint() {
+  const raw=$("libreEndpoint").value.trim();
+  const translateURL=new URL(safeLibreEndpoint(raw));
+  const languagesURL=new URL(translateURL);
+  languagesURL.pathname=translateURL.pathname.replace(/\/translate$/,"/languages");
+  const mediaURL=new URL(translateURL);
+  mediaURL.pathname=translateURL.pathname.replace(/\/translate$/,"/api/transcribe");
+  return {translateURL,languagesURL,mediaURL};
+}
+function nodeHeaders() {
+  const token=$("nodeToken").value.trim();
+  return token?{Authorization:"Bearer "+token}:{};
+}
+function localState(text,state="ok"){
+  $("localNodeStatus").textContent=text;
+  $("localNodeStatus").dataset.state=state;
+}
+function setLocalAsPrimary(){
+  $("compareLibre").checked=true;
+  $("captionProvider").value="libre";
+  // MyMemory comparison is explicit only; never silently expend its quota.
+  $("compareCloud").checked=false;
+  floating.setState({provider:"libre"});
+}
+async function inspectLocalNode(){
+  let url;
+  try{({languagesURL:url}=localEndpoint());}
+  catch(error){
+    localState("Invalid node URL: "+error.message,"error");return false;
+  }
+  const button=$("testLocalNode");button.disabled=true;
+  localState("Checking locally configured translation models…","checking");
+  try{
+    const response=await fetch(url,{
+      headers:nodeHeaders(),signal:AbortSignal.timeout(18000)
+    });
+    if(!response.ok)throw Error("HTTP "+response.status+
+      (response.status===401?" — access token required":""));
+    const langs=await response.json();
+    if(!Array.isArray(langs))throw Error("Missing LibreTranslate /languages response");
+    const he=langs.find(row=>row.code==="he"),en=langs.find(row=>row.code==="en");
+    const heToEn=he?.targets?.includes("en"),enToHe=en?.targets?.includes("he");
+    if(!heToEn||!enToHe){
+      localState("Engine reachable, but Hebrew ↔ English model pair not confirmed. Check installed language packs.","error");
+      return false;
+    }
+    localState("Connected ✓ Hebrew ↔ English ready. Choose LibreTranslate as the main caption engine; no MyMemory daily quota.");
+    return true;
+  }catch(error){
+    localState("Connection failed: "+(error.message||String(error))+
+      ". Desktop: start Docker and the local node. Phone: use your secured HTTPS hostname, not localhost. Check CORS/credentials.","error");
+    return false;
+  }finally{button.disabled=false;}
+}
+$("openLocalSetup").addEventListener("click",()=>{
+  const advanced=document.querySelector(".provider-config");
+  advanced.open=true;
+  advanced.scrollIntoView({behavior:"smooth",block:"center"});
+  $("libreEndpoint").focus({preventScroll:true});
+});
+$("openLocalGuide").addEventListener("click",()=>window.open(
+  "https://github.com/DorManDel/MobiLab/tree/main/services/speech-node",
+  "_blank","noopener,noreferrer"));
+$("testLocalNode").addEventListener("click",()=>{void inspectLocalNode();});
+$("useLocalNode").addEventListener("click",async()=>{
+  const host=window.location.hostname;
+  if(host==="dormandel.github.io"){
+    localState("You are browsing GitHub Pages. A phone cannot access your PC through localhost. Enter your own authenticated HTTPS node address below, then Test my engine.","error");
+    document.querySelector(".provider-config").open=true;
+    $("libreEndpoint").scrollIntoView({behavior:"smooth",block:"center"});
+    return;
+  }
+  $("libreEndpoint").value=window.location.origin;
+  setLocalAsPrimary();
+  const ok=await inspectLocalNode();
+  if(ok)hideProviderProblem();
+});
+
+function importedSegmentRow(segment,source,target,filename){
+  const start=Number(segment.start),end=Number(segment.end);
+  const text=String(segment.text||"").trim();
+  if(!text||!Number.isFinite(start)||!Number.isFinite(end)||end<start)return null;
+  if(rows.length>=MAX_PHRASES)return null;
+  const row={
+    id:++rowId,at:Date.now(),offset:Date.now()-sessionStart,
+    text,source,target,candidates:null,
+    fromSpeech:false,sttMs:null,finalPerf:performance.now(),
+    mediaStartMs:Math.round(start*1000),mediaEndMs:Math.round(end*1000),
+    mediaName:filename,mediaImported:true,
+    results:{},queueStatus:"saved",queueWaitMs:null,finalToSubtitleMs:null,
+    captionProvider:$("captionProvider").value,displayText:"",displayProvider:null,
+    displayShown:false,fallbackUsed:false
+  };
+  ledger.append(row);
+  return row;
+}
+$("transcribeMedia").addEventListener("click",async()=>{
+  const file=$("mediaFile").files?.[0];
+  if(!file){$("mediaImportStatus").textContent="Choose an audio/video file first.";return;}
+  if(file.size>100*1024*1024){
+    $("mediaImportStatus").textContent="File exceeds 100 MB frontend safety limit. Split it into smaller parts first.";return;
+  }
+  if(micActive){
+    $("mediaImportStatus").textContent="Finish microphone recording before importing a media file.";return;
+  }
+  let url;
+  try{({mediaURL:url}=localEndpoint());}
+  catch(error){$("mediaImportStatus").textContent="Configure a local Speech Node URL: "+error.message;return;}
+  const form=new FormData();form.append("file",file,file.name);
+  const language=$("mediaLang").value;
+  url.searchParams.set("language",language);
+  const button=$("transcribeMedia");button.disabled=true;
+  $("mediaImportStatus").textContent="Uploading to your configured Speech Node and transcribing locally…";
+  try{
+    const response=await fetch(url,{method:"POST",headers:nodeHeaders(),body:form});
+    if(!response.ok){
+      const details=await response.json().catch(()=>({}));
+      throw Error("HTTP "+response.status+" · "+(details.detail||"Local STT service unavailable"));
+    }
+    const result=await response.json();
+    if(!Array.isArray(result.segments))throw Error("STT did not return timed segments");
+    const source=langNames[result.language]?result.language:
+      (language==="auto"?"en":language);
+    const target=$("targetLang").value;
+    let imported=0;
+    for(const segment of result.segments){
+      if(!importedSegmentRow(segment,source,target,file.name))continue;
+      imported++;
+    }
+    renderRows();renderScoreboard();liveView.drawHistory();saveLocalSoon();
+    if(ledger.latest)focusView(ledger.resumeLive());
+    const secs=(Number(result.processing_ms)/1000).toFixed(1);
+    $("mediaImportStatus").textContent="Imported "+imported+" timed source segments ("+
+      source.toUpperCase()+") in "+secs+"s processing. Complete transcript saved in the log. To translate, enable your local engine and choose Translate saved (8 paragraphs per batch).";
+  }catch(error){
+    $("mediaImportStatus").textContent="Local file transcription failed: "+(error.message||String(error))+
+      ". The file is not sent to MyMemory. Check the local service, optional Whisper install and HTTPS access.";
+  }finally{button.disabled=false;}
+});
+
 refreshRecordingUI();
 renderRows();
 renderScoreboard();

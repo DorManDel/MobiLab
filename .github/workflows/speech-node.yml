@@ -1,0 +1,32 @@
+name: Speech Node local backend (mock tests)
+on:
+  push:
+    branches:
+      - main
+      - feat/speech-local-translation-and-media-node-v06
+    paths:
+      - 'services/speech-node/**'
+      - '.github/workflows/speech-node.yml'
+  pull_request:
+    paths:
+      - 'services/speech-node/**'
+      - '.github/workflows/speech-node.yml'
+permissions:
+  contents: read
+jobs:
+  python-local-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install local backend and test tooling only
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r services/speech-node/requirements.txt pytest
+      - name: Compile local service
+        run: python -m py_compile services/speech-node/server.py
+      - name: Run translation/file API mock tests
+        run: python -m pytest -q services/speech-node/test_server.py
