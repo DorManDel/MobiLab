@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0a19">
+  <meta name="description" content="MobiLab Settings Lab: dock presets, floating custom panels and native MyPortfolio settings source preview.">
+  <title>Settings Lab · MobiLab</title>
+  <link rel="stylesheet" href="./settings.css">
+  <script type="module" src="./settings.js"></script>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="../../#home" aria-label="Back to MobiLab">〈 <span>Mobi<b>Lab</b></span></a>
+    <span class="header-tag">MECHANICS LAB / SETTINGS</span>
+    <a class="source-link" href="https://github.com/DorManDel/MobiLab" target="_blank" rel="noopener">Source ↗</a>
+  </header>
+
+  <section class="intro">
+    <div class="eyebrow">EXPERIMENT 09 / REUSABLE UI</div>
+    <h1>Settings <span>Layout Lab</span></h1>
+    <p>Test the same settings in five dock modes. Drag, resize, lock and save your own Custom layout. No changes are pushed to MyPortfolio.</p>
+  </section>
+
+  <div class="toolbar">
+    <button id="layoutToggle" class="btn primary" type="button" aria-expanded="true" aria-controls="layoutControls">⚙ Layout &amp; Position <span aria-hidden="true">⌄</span></button>
+    <button id="openOriginal" class="btn" type="button">▣ Original MyPortfolio</button>
+    <button id="togglePreview" class="btn" type="button">◇ Demo Scene</button>
+    <span class="tag" id="labStatus">LOCAL PREVIEW</span>
+  </div>
+  <section id="layoutControls" class="layout-settings" aria-label="Layout and position settings">
+    <div class="layout-head"><strong>Dock position</strong><span>Same controls · five placements</span></div>
+    <div class="presets" id="presets" role="group" aria-label="Choose dock layout">
+      <button type="button" data-layout="corner" aria-pressed="true"><span aria-hidden="true">◩</span> Corner</button>
+      <button type="button" data-layout="top"><span aria-hidden="true">▔</span> Top</button>
+      <button type="button" data-layout="side"><span aria-hidden="true">◧</span> Side</button>
+      <button type="button" data-layout="bottom"><span aria-hidden="true">▁</span> Bottom</button>
+      <button type="button" data-layout="custom"><span aria-hidden="true">▢</span> Custom</button>
+    </div>
+    <div class="layout-fields">
+      <label id="cornerLabel">Corner <select id="corner"><option value="br">Bottom right</option><option value="bl">Bottom left</option><option value="tr">Top right</option><option value="tl">Top left</option></select></label>
+      <label>Opacity <span id="opacityOutput">92%</span><input id="opacity" type="range" min="25" max="100" value="92"></label>
+      <label class="check"><input type="checkbox" id="locked"> Lock position &amp; size</label>
+      <label class="check"><input type="checkbox" id="pinned" checked> Pin panel open</label>
+      <label>Edge handle <select id="edgeSide"><option value="right">Right edge</option><option value="left">Left edge</option></select></label>
+    </div>
+    <div id="customFields" class="custom-fields" hidden>
+      <label>Preset name <input id="customName" maxlength="40" value="My Workspace" placeholder="My Workspace"></label>
+      <button id="saveCustom" class="btn primary" type="button">Save Custom</button>
+      <label>Saved presets <select id="savedCustom"><option value="">Choose saved layout…</option></select></label>
+      <button id="loadCustom" class="btn" type="button">Load</button>
+      <button id="resetGeometry" class="btn" type="button">Center</button>
+    </div>
+    <p class="help">Inspired by Samsung Edge Panel handle positioning and Quick Panel edit mode. Drag the Custom panel by its title bar, resize from the lower corner; locking disables both gestures. Touch-safe controls and layout changes stay local to this browser.</p>
+  </section>
+
+  <div class="work-title"><div><strong>Interactive workbench</strong><small id="stageMode">DEMO · SOURCE-INFORMED SETTINGS</small></div><div class="work-actions"><button type="button" class="btn small" id="resetValues">Reset values</button><button type="button" class="btn small" id="exportConfig">Export JSON</button></div></div>
+  <div class="workspace" id="workspace" data-layout="corner" data-corner="br">
+    <div class="scene" id="demoScene">
+      <div class="scene-stars" aria-hidden="true"></div>
+      <div class="site-head"><span><b>DM.</b> DOR / PORTFOLIO</span><span>PROJECTS · ARCHIVE · CONTACT</span></div>
+      <div class="hero">
+        <div class="ripples" id="rippleTarget" aria-hidden="true"></div>
+        <div class="hero-card" id="heroTarget"><div class="avatar" id="prismTarget">DM</div><h2>Creative Developer</h2><p>Experiments, software and playful interactions</p><span class="hero-pill">Scroll to explore ↓</span></div>
+      </div>
+      <section id="carouselTarget" class="work-cards"><div class="work-kicker">THINGS I'VE BUILT</div><div class="covers" id="covers"><div>WSLX</div><div class="chosen">DLS</div><div>PCM</div></div></section>
+      <p class="scene-note">A small visual simulation for layout testing. It is NOT the complete portfolio engine.</p>
+    </div>
+    <iframe id="originalFrame" class="original-frame" title="Original MyPortfolio source preview" sandbox="allow-scripts allow-forms" referrerpolicy="no-referrer"></iframe>
+    <button id="edgeHandle" class="edge-handle" type="button" aria-label="Show or hide Settings Dock" title="Open Settings">⚙</button>
+    <section class="dock" id="dock" aria-label="Settings Dock preview">
+      <header class="dock-header" id="dockHandle">
+        <div class="dock-heading"><strong>⚙ Settings</strong><small id="dockPosition">Corner · bottom right</small></div>
+        <div class="dock-actions"><button class="icon" id="dockLayout" type="button" title="Layout & Position" aria-label="Open Layout & Position">⊞</button><button class="icon" id="modeToggle" type="button" title="Visitor or Developer settings">DEV</button><button class="icon" id="collapse" type="button" aria-label="Collapse settings">−</button></div>
+      </header>
+      <div class="dock-body" id="dockBody">
+        <div class="modebar"><button id="visitor" type="button">Visitor</button><button id="developer" type="button" class="active">Developer</button><input id="search" type="search" placeholder="Search…" aria-label="Search settings"></div>
+        <div class="tabs" id="tabs" role="tablist" aria-label="Settings categories"></div>
+        <div class="dock-info"><span id="groupTitle">Ripple Effects</span><span id="groupCount">1 / 4</span></div>
+        <div class="controls" id="controls"></div>
+        <div class="dock-footer"><button id="previousPage" type="button">← Prev</button><span id="pageStatus">1 / 1</span><button id="nextPage" type="button">Next →</button><button type="button" id="toggleModule" title="Add/remove a demonstration module">+ Module</button></div>
+      </div>
+      <div id="resizeHandle" class="resize-handle" role="separator" aria-label="Resize Custom settings panel" title="Drag to resize"></div>
+    </section>
+  </div>
+  <div class="readout"><span class="status-dot"></span><span id="readout">Corner preset active</span><button type="button" id="resetLayout" class="btn small">Restore layout defaults</button></div>
+
+  <section class="source-section" id="originalSection" hidden>
+    <div class="card-head"><div><div class="eyebrow">REAL COMPONENT BRIDGE / EXPERIMENTAL</div><h2>Load the original settings</h2></div><span class="tag caution">BEST EFFORT</span></div>
+    <p>The demo uses a registry built from verified modules. This separate tool can load an <em>actual pinned MyPortfolio HTML snapshot</em> in a sandboxed frame, preserving its own DOM and settings controls. Some effects or assets may be unavailable outside their original origin.</p>
+    <div class="source-actions"><button type="button" id="showPinnedInventory" class="btn">View extracted 16 groups</button><button type="button" id="fetchOriginal" class="btn primary">Load pinned GitHub HTML</button><label class="btn file-upload">Select local index.html <input id="fileOriginal" type="file" accept=".html,text/html"></label><button type="button" class="btn" id="unloadOriginal">Return to demo</button></div>
+    <p class="help" id="sourceStatus" role="status">Static source audit: 16 groups / 72 HTML controls, pinned at e13f57e. Dynamic controls may add more at runtime. Load the original site to check actual event handlers.</p>
+    <div class="inventory" id="inventory" hidden></div>
+    <div class="source-actions"><button type="button" id="exportInventory" class="btn" disabled>Export actual control inventory</button><a href="https://github.com/DorManDel/Dor-s-Profile-Site/tree/backup/pre-settings-engine-2026-11-13" target="_blank" rel="noopener">Protected-by-convention site backup ↗</a></div>
+  </section>
+  <section class="about card"><h2>One engine, multiple sites</h2><p><code>SettingsRegistry</code> stores component metadata; <code>SettingsStore</code> manages local values/layouts; <code>DockController</code> handles positioning. The optional OriginalPanel bridge experiments with the actual site without copying its many handlers.</p><p class="help">No MyPortfolio files are changed by this lab. The standalone preview is intended for review before a reusable adapter and real integration. Local browser storage isn't a shared editor database or production publish path.</p></section>
+</div>
+</body>
+</html>
