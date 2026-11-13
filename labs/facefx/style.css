@@ -14,3 +14,18 @@
 @media(max-width:650px){.connection[open]{padding:13px}.source-picker{padding:10px}.viewer-grid[data-view=mobile]{grid-template-columns:minmax(0,1fr)}.viewer-grid[data-view=mobile] .viewer-head h2{font-size:16px}.viewer-grid[data-view=mobile] .viewer-controls select{font-size:14px}.viewer-grid[data-view=mobile] .video-frame{aspect-ratio:4/3}}
 
 .source-picker[hidden]{display:none}
+
+/* FaceFX v0.4 — local photo presets and model recovery controls */
+.source-presets{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.source-presets button{border:1px solid var(--line);border-radius:12px;background:#231b35;color:var(--text);padding:7px;min-width:0;display:grid;gap:6px;justify-items:center;cursor:pointer;font:inherit;font-size:12px;font-weight:700}
+.source-presets button img{width:100%;height:98px;object-fit:cover;object-position:center 35%;border-radius:8px}
+.source-presets button.is-selected{border-color:#e3b9ff;background:#503572;box-shadow:0 0 0 1px #bca3ff}
+.source-presets button:focus-visible,.model-tools button:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+.source-action-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.selected-source{grid-column:1/-1;display:flex;gap:9px;align-items:center;min-width:0}
+.selected-source img{width:58px;height:58px;object-fit:cover;border-radius:9px;border:1px solid var(--line);flex-shrink:0}
+.selected-source img[hidden]{display:none}
+.model-tools{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #42335c;padding-top:9px}
+.model-tools span{font-size:11px;color:#a6e9be;line-height:1.4}
+.model-tools button{white-space:nowrap;min-height:36px}
+@media(max-width:380px){.source-presets button img{height:80px}.model-tools{align-items:stretch;flex-direction:column}.source-presets{gap:5px}}
