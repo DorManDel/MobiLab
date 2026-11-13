@@ -35,6 +35,8 @@ export class SessionLedger {
       id:row.id,timestamp:new Date(row.at).toISOString(),offsetMs:row.offset??null,
       source:row.source,target:row.target,original:row.text,
       state:row.queueStatus,captionEngine:row.displayProvider||null,
+      selectedDisplayEngine:row.captionProvider||null,usedFallback:Boolean(row.fallbackUsed),
+      humanReferenceTranslation:row.translationReference||null,
       caption:row.displayText||null,latencyMs:row.finalToSubtitleMs??null,
       translations:Object.fromEntries(Object.entries(row.results||{}).map(([key,value])=>[
         key,{status:value.status,text:value.text||null,error:value.error||null,ms:value.ms??null}
