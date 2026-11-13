@@ -173,3 +173,12 @@
 @media(max-width:480px){
   .score-row{grid-template-columns:1fr;gap:3px}
 }
+
+/* The older detailed stage is a secondary VIEW, not a second full transcript. */
+#captionOriginal,#captionTranslated{
+  max-height:calc(4 * 1.5em);overflow-y:auto;scrollbar-width:thin;
+  overflow-wrap:anywhere;white-space:pre-wrap;overscroll-behavior:contain;
+}
+#segments .segment .original{
+  max-height:calc(5 * 1.55em);overflow-y:auto;scrollbar-width:thin;
+}
