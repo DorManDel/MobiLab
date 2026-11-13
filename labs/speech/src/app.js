@@ -641,12 +641,14 @@ if(!Recognition || !isSecureContext) status("Use HTTPS in a supporting browser f
 function showCaption(row) {
   if (!row) return;
   $("captionOriginal").textContent=row.text;
+  requestAnimationFrame(()=>{$("captionOriginal").scrollTop=$("captionOriginal").scrollHeight;});
   const result = row.displayText;
   const finished = ["stopped","saved","skipped","canceled","completed"].includes(row.queueStatus)
     || Object.values(row.results).some(x=>x.status==="canceled");
   $("captionTranslated").textContent=result || (finished
     ? "Chosen caption engine has no completed translation; inspect comparison or re-run."
     : "Translating paragraph…");
+  requestAnimationFrame(()=>{$("captionTranslated").scrollTop=$("captionTranslated").scrollHeight;});
   $("detectedLang").textContent=row.source.toUpperCase()+" → "+row.target.toUpperCase();
 }
 function showCandidates(row) {
