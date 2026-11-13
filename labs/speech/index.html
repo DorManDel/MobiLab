@@ -108,7 +108,7 @@
   <header><a class="brand" href="../../#home">Mobi<span>Lab</span> / SPEECH</a><a class="back" href="../../#home">← All experiments</a></header>
 
   <section class="live-workspace" aria-label="Instant captions and listening">
-    <div class="live-topline"><strong>◉ LIVE SUBTITLE STUDIO</strong><span>v0.3 · BETA</span></div>
+    <div class="live-topline"><strong>◉ LIVE SUBTITLE STUDIO</strong><span>v0.5 · BETA</span></div>
     <div class="live-controls">
       <div class="live-languages">
         <div class="field">
@@ -145,12 +145,27 @@
       </div>
       <button id="quickSpeak" type="button" class="quick-tts" aria-label="Speak the latest translated subtitle" title="Speak latest translation">🔊</button>
     </div>
+    <div class="focus-controls" aria-label="Transcript focus">
+      <span id="focusIndicator">Following live · 0 paragraphs</span>
+      <button type="button" id="focusPrev" aria-label="Previous paragraph">‹</button>
+      <button type="button" id="focusNext" aria-label="Next paragraph">›</button>
+      <button type="button" id="focusLive" aria-label="Follow latest speech">● Live</button>
+    </div>
+    <div id="providerBanner" class="provider-banner" role="status" hidden>
+      <span id="providerBannerText"></span>
+      <button id="providerSetup" type="button">Choose provider</button>
+      <button id="retryCloud" type="button" title="Manually retry MyMemory after fixing the limit">Retry</button>
+    </div>
     <div id="liveDeck" class="live-deck" data-mode="bottom">
       <div class="live-label" id="liveLabel">SUBTITLES · REAL-TIME PREVIEW</div>
-      <div id="livePartial" class="live-partial" dir="auto">Tap Start recording, or translate a typed phrase below.</div>
+      <div class="live-partial" id="liveSourceWindow" dir="auto">
+        <div id="livePartial" class="focus-tail">Tap Start recording, or translate a typed phrase below.</div>
+      </div>
       <div class="live-output">
         <div id="livePhase" class="live-phase">Ready</div>
-        <div id="liveTranslation" class="live-translation" dir="auto">Translation appears here</div>
+        <div id="liveTranslationWindow" class="live-translation-window" dir="auto">
+          <div id="liveTranslation" class="live-translation">Translation appears here</div>
+        </div>
       </div>
       <div id="liveRoll" class="live-roll" aria-hidden="true"></div>
       <div id="liveAppend" class="live-append" aria-label="Completed translated paragraphs" role="log" aria-live="off"></div>
@@ -158,7 +173,7 @@
     </div>
     <p class="live-sr-only" id="liveAccessible" role="status" aria-live="polite" aria-atomic="true"></p>
     <speech-floating-controls id="floatingControls" aria-label="Floating microphone and language controls"></speech-floating-controls>
-    <p class="live-source-status" id="liveNotice">Interim text appears instantly; translation accuracy and delay depend on the speech and translation engines.</p>
+    <p class="live-source-status" id="liveNotice">The transcript log is saved independently from the focused 1–3-line subtitle viewer.</p>
     <div class="live-metrics" aria-label="Latency measurements">
       <div><span>Speech start → final*</span><strong id="liveSttMs">—</strong><small>Approx. + speech duration</small></div>
       <div><span>Queue wait</span><strong id="liveQueueMs">—</strong><small>Final → API start</small></div>
@@ -182,14 +197,14 @@
             <option value="2500">2.5 seconds · longer turns</option>
           </select>
         </div>
-        <div class="field"><label for="captionLines">Subtitle lines on screen</label>
+        <div class="field"><label for="captionLines">Focused subtitle window · last lines</label>
           <select id="captionLines">
             <option value="1">1 line</option><option value="2" selected>2 lines</option><option value="3">3 lines</option>
           </select>
         </div>
         <div class="field"><label for="captionProvider">Engine used for captions</label>
           <select id="captionProvider">
-            <option value="cloud" selected>MyMemory · stable</option>
+            <option value="cloud" selected>MyMemory (auto fallback if unavailable)</option>
             <option value="fastest">First result · lock caption</option>
             <option value="local">Chrome local · requires enabling</option>
             <option value="libre">My LibreTranslate · requires setup</option>
@@ -210,7 +225,7 @@
   </section>
 
   <div class="intro">
-    <div class="eyebrow">EXPERIMENT 07 · LANGUAGE & AUDIO · LIVE BETA 0.4</div>
+    <div class="eyebrow">EXPERIMENT 07 · LANGUAGE & AUDIO · LIVE BETA 0.5</div>
     <h1>Speech & <em>Translate</em> Lab</h1>
     <p>A mobile-first listening workbench: record and save transcripts, translate through real engines, compare outputs and hear the result. Designed for reusable components.</p>
     <div class="row"><span class="tag">🎙 Live microphone</span><span class="tag">🗺 Translation</span><span class="tag">🔊 TTS</span><span class="tag">📊 WER test</span></div>
@@ -278,10 +293,12 @@
       </div>
       <details class="provider-config">
         <summary>+ Advanced: connect your own LibreTranslate engine (also works on Android)</summary>
-        <p class="hint">This optional server is separate from MyMemory. Only use an HTTPS LibreTranslate-compatible endpoint that you control and trust; API requests may be blocked by CORS. Never paste secret API keys into public sites.</p>
+        <p class="hint">This separate engine can keep translation working when MyMemory is rate-limited. Enter only a trusted HTTPS LibreTranslate-compatible server you control or subscribe to; it must permit CORS. API key, if required, stays in browser memory and is never included in exports.</p>
         <label class="check" for="compareLibre"><input id="compareLibre" type="checkbox"> Enable third engine for new phrases</label>
         <label for="libreEndpoint">Your server URL (HTTPS)</label>
         <input id="libreEndpoint" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://your-translate.example" />
+        <label for="libreKey">Optional server API key (this tab only)</label>
+        <input id="libreKey" type="password" autocomplete="off" placeholder="Only if your trusted server requires it" />
       </details>
       <div class="engine-box extra-engine">
         <span class="engine-tag">ENGINE C · OPTIONAL REMOTE</span>
@@ -294,9 +311,13 @@
       <p class="hint">If available, these are alternatives from the <strong>same</strong> browser recognizer — not independent models.</p>
       <ol id="speechCandidates" class="candidate-list"><li>Speak a final phrase to view candidates.</li></ol>
       <div class="divider"></div>
-      <div class="row between"><h2 style="margin:0">Session transcript</h2><span class="tag">RAM only</span></div>
+      <div class="row between"><h2 style="margin:0">Session transcript · full log</h2><span class="tag">Source of truth</span></div>
+      <p class="hint">Final text is appended once with a stable ID. Translation engines add separate results; the subtitle viewer only focuses on one log entry.</p>
+      <label class="check" for="saveLocal"><input id="saveLocal" type="checkbox"> Save transcript on this device (opt-in)</label>
+      <p id="archiveStatus" class="hint">In-memory until exported or local saving is enabled. No raw audio files are created.</p>
       <div id="segments" class="segments" aria-live="polite"><p class="hint">Finalized phrases will appear here. Interim results appear above but are not translated or stored.</p></div>
-      <div class="row" style="margin-top:14px"><button id="copyTranscript">Copy text</button><button id="exportTxt">↓ Export TXT</button><button id="exportVtt">↓ Export VTT*</button></div>
+      <div class="row" style="margin-top:14px"><button id="copyTranscript">Copy text</button><button id="exportTxt">↓ TXT</button><button id="exportJson">↓ JSON log</button><button id="exportVtt">↓ VTT*</button></div>
+      <div class="row" style="margin-top:10px"><button id="showMoreRows">Show older paragraphs</button><button id="clearLocal">Delete saved local copy</button></div>
       <p class="hint">* VTT cues use approximate session times; they are NOT synchronized to an external video.</p>
       <div class="divider"></div>
       <div class="eyebrow">ACCURACY BENCHMARK</div><h3>Compare against a reference</h3>
