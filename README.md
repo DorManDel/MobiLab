@@ -4,6 +4,8 @@ A mobile-first collection of experimental web mechanics and hardware exploration
 
 ## Experiments
 
+- **Settings Layout Lab V4 (feature branch / review)** — reusable dock layout API: Corner, Top, Side, Bottom and Custom Floating; drag/resize, lock/pin, left/right Edge handle, named local Custom presets, accessible module tabs, CSS-only FX simulations, optional sandboxed original MyPortfolio HTML source bridge with actual control inventory. [Open lab source](./labs/settings/) · [implementation notes](./labs/settings/README.md). **Not deployed on MobiLab Pages yet.**
+
 - **FaceFX Lab (v0.3 mobile-first)** — on-device local Photo Swap (2D face texture transfer), MediaPipe/Canvas filters and an optional private Python WebRTC + RTX processor with comparison telemetry. [Open lab](./labs/facefx/) · [PC server setup](./facefx-server/) · see [FaceFX notes](./labs/facefx/README.md).
 
 - **Haptic Studio** — 21 timing patterns, accessible swipe/arrow/tap dial, six button-group presets, custom two-pulse designer, browser storage and JSON export.
