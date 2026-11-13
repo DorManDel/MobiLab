@@ -21,7 +21,9 @@ export class FixedMenuDial {
       button.type = "button";
       button.className = "fixed-menu-slot";
       button.dataset.slot = String(i);
-      button.style.setProperty("--angle", (i * 360 / this.visible - 90) + "deg");
+      const angle = -Math.PI / 2 + i * 2 * Math.PI / this.visible;
+      button.style.left = (50 + Math.cos(angle) * 34) + "%";
+      button.style.top = (50 + Math.sin(angle) * 34) + "%";
       button.style.setProperty("--index", String(i));
       button.addEventListener("click", () => {
         const itemIndex = Number(button.dataset.itemIndex);
@@ -42,7 +44,6 @@ export class FixedMenuDial {
         y: rect.top + rect.height / 2,
         angle: Math.atan2(event.clientY - (rect.top + rect.height / 2),
           event.clientX - (rect.left + rect.width / 2)) * 180 / Math.PI };
-      root.setPointerCapture?.(event.pointerId);
     };
     this.onPointerMove = (event) => {
       if (!this.pointer || this.pointer.id !== event.pointerId) return;
