@@ -46,10 +46,16 @@
       <div class="viewer-controls">
         <label>Live effect <select id="effect"><option value="swap">Photo Swap · local (2D)</option><option value="visor">Neon visor</option><option value="mesh">Face mesh</option><option value="mask">Cyber mask</option><option value="none">Original (no effect)</option></select></label>
         <div class="source-picker" id="sourcePicker">
-          <div class="source-heading"><strong>Face source photo</strong><span class="micro-tag">ON DEVICE ONLY</span></div>
-          <label class="file-button">＋ Choose portrait<input id="sourcePhoto" type="file" accept="image/jpeg,image/png,image/webp" /></label>
-          <button class="btn tiny" id="clearSource" type="button" disabled>Remove</button>
-          <span class="source-status" id="sourceStatus" role="status">Choose one clear portrait to replace the live face. Nothing is uploaded.</span>
+          <div class="source-heading"><strong>Choose a face</strong><span class="micro-tag">ON DEVICE ONLY</span></div>
+          <div class="source-presets" role="group" aria-label="Preset portraits">
+            <button type="button" data-preset="studio-curly" aria-pressed="false"><img src="./presets/studio-curly.webp" alt="" loading="lazy"/><span>Curly</span></button>
+            <button type="button" data-preset="studio-ginger" aria-pressed="false"><img src="./presets/studio-ginger.webp" alt="" loading="lazy"/><span>Ginger</span></button>
+            <button type="button" data-preset="studio-bangs" aria-pressed="false"><img src="./presets/studio-bangs.webp" alt="" loading="lazy"/><span>Bangs</span></button>
+          </div>
+          <div class="source-action-row"><label class="file-button">＋ Photo from gallery<input id="sourcePhoto" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+          <button class="btn tiny" id="clearSource" type="button" disabled>Remove</button></div>
+          <div class="selected-source"><img id="sourcePreview" alt="Selected face source" hidden /><span class="source-status" id="sourceStatus" role="status">Choose a demo face or upload a clear portrait. Then tap Start camera. Nothing is uploaded.</span></div>
+          <div class="model-tools"><span id="modelStatus" role="status">Face engine not loaded</span><button class="btn tiny" type="button" id="retryModel">↻ Retry face engine</button></div>
         </div>
         <div class="range-field"><label for="intensity">Intensity <output id="intensityValue">80%</output></label><input id="intensity" type="range" min="10" max="100" step="5" value="80" /></div>
         <div class="range-field"><label for="stability">Stability <output id="stabilityValue">65%</output></label><input id="stability" type="range" min="0" max="90" step="5" value="65" /></div>
@@ -94,7 +100,7 @@
       <label>Private PC address <input id="serverUrl" type="url" placeholder="https://your-pc.your-tailnet.ts.net" autocomplete="url" inputmode="url" /></label>
       <label>One-session token <input id="pairToken" type="password" placeholder="Copy token from PC terminal" autocomplete="off" spellcheck="false" /></label>
     </div>
-    <div class="action-row"><button id="checkServer" class="btn">↗ Test connection</button><a class="btn" href="https://github.com/DorManDel/MobiLab/archive/refs/heads/feature/facefx-dual-engine-v02.zip" target="_blank" rel="noopener">↓ Download preview + PC server*</a></div>
+    <div class="action-row"><button id="checkServer" class="btn">↗ Test connection</button><a class="btn" href="https://github.com/DorManDel/MobiLab/archive/refs/heads/main.zip" target="_blank" rel="noopener">↓ Download MobiLab + PC server</a></div>
     <p id="healthStatus" class="note" role="status">Not connected. The token stays in this tab's memory and is not saved.</p>
     <details class="setup-details"><summary>Windows setup commands &amp; connection help</summary>
       <div class="guide">
@@ -104,7 +110,7 @@
 .\facefx-server\.venv\Scripts\python.exe facefx-server\server.py</pre>
         <p>Copy the session token printed in PowerShell. On another terminal, after signing in to Tailscale on your PC and phone:</p><pre>tailscale serve 8080</pre>
         <p>Copy the HTTPS address shown by Tailscale above. Start with Debug, then configure a licensed ONNX swap model to enable AI Face Swap. No model weights or personal photographs belong in this public repository.</p>
-        <p class="note">*This link downloads the preview branch. Before merging into main, point it to a stable main-branch download or release.</p>
+        <p class="note">This link downloads the current main branch, including the optional PC server.</p>
       </div>
     </details>
   </details>
@@ -114,7 +120,7 @@
   </section>
   <section class="card console-card"><div class="section-head"><h2>Diagnostics</h2><button class="btn tiny" id="clearLog">Clear</button></div><pre id="log" aria-live="polite"></pre></section>
   <video id="sourceVideo" autoplay playsinline muted hidden></video>
-  <footer>MobiLab / FaceFX Lab v0.3 · Camera only starts after your permission. Stop all to close it.</footer>
+  <footer>MobiLab / FaceFX Lab v0.4 · Camera only starts after your permission. Stop all to close it.</footer>
 </main>
 </body>
 </html>

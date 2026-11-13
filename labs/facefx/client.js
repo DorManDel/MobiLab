@@ -9,7 +9,7 @@ const state = {
   tracked: null, smooth: null, lastDetect: 0, lastFrameTime: -1,
   lastFaceAt: 0, renderCount: 0, renderStart: 0, localMs: null,
   remoteMode: null, sentPings: new Map(), pingIndex: 0,
-  photoSwap: new LocalPhotoSwap(), modelBusy: false, swapDrawAt: 0
+  photoSwap: new LocalPhotoSwap(), modelBusy: false, swapDrawAt: 0, sourceLoading: false
 };
 let visionModule = null;
 function say(message) {
@@ -29,7 +29,9 @@ function buttons() {
   $('remoteStop').disabled = !state.pc;
   for (const id of ['camera', 'resolution', 'fps']) $(id).disabled = !!state.stream;
   $('remoteMode').disabled = !!state.pc;
-  $('clearSource').disabled = !state.photoSwap.ready;
+  $('clearSource').disabled = !state.photoSwap.ready || state.sourceLoading;
+  for (const el of document.querySelectorAll('[data-preset]')) el.disabled=state.sourceLoading;
+  $('sourcePhoto').disabled = state.sourceLoading;
 }
 function resetMetrics() {
   for (const id of ['localFps', 'localMs', 'faceCount', 'remoteFps', 'remoteMs', 'remoteRtt']) $(id).textContent = '—';
@@ -53,36 +55,62 @@ $('trackingRate').addEventListener('input', () => { $('trackingValue').textConte
 $('clearLog').addEventListener('click', () => { $('log').textContent = ''; });
 $('resetMetrics').addEventListener('click', resetMetrics);
 
+// Use the official ESM bundle, not jsDelivr's +esm transpilation endpoint.
+const MEDIAPIPE_VERSION = '0.10.22';
+const VISION_URLS = [
+  {name:'jsDelivr', module:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION+'/vision_bundle.mjs',
+   wasm:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION+'/wasm'},
+  {name:'unpkg', module:'https://unpkg.com/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION+'/vision_bundle.mjs',
+   wasm:'https://unpkg.com/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION+'/wasm'}
+];
+function modelStatus(message){ $('modelStatus').textContent = message; }
 async function initLandmarker() {
   if (state.localEngine) return state.localEngine;
   if (state.visionPromise) return state.visionPromise;
   state.visionPromise = (async () => {
-    $('localNote').textContent = 'Loading local MediaPipe model (first time needs internet)…';
-    const sdk = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm');
-    visionModule = sdk;
-    const fs = await sdk.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm');
-    const options = {
-      baseOptions: {
-        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
-        delegate: 'GPU'
-      },
-      runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true,
-      minTrackingConfidence: 0.55
-    };
-    try {
-      state.localEngine = await sdk.FaceLandmarker.createFromOptions(fs, options);
-      say('MediaPipe local GPU delegate ready.');
-    } catch (gpuError) {
-      say('Local GPU delegate failed; retrying CPU: ' + gpuError.message);
-      options.baseOptions.delegate = 'CPU';
-      state.localEngine = await sdk.FaceLandmarker.createFromOptions(fs, options);
+    let lastError;
+    for (const source of VISION_URLS) {
+      try {
+        modelStatus('Loading face engine from '+source.name+'…');
+        $('localNote').textContent = 'Downloading MediaPipe for local processing. This can take a moment on first launch.';
+        const sdk = await import(/* @vite-ignore */ source.module);
+        if (!sdk?.FaceLandmarker || !sdk?.FilesetResolver) throw new Error('Required exports not found');
+        visionModule = sdk;
+        const fs = await sdk.FilesetResolver.forVisionTasks(source.wasm);
+        const options = {
+          baseOptions: {
+            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+            delegate: 'GPU'
+          },
+          runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: false,
+          minTrackingConfidence: 0.55
+        };
+        try {
+          state.localEngine = await sdk.FaceLandmarker.createFromOptions(fs, options);
+          say('MediaPipe engine ready · GPU · '+source.name);
+          modelStatus('Face engine ready · GPU · '+source.name);
+        } catch (gpuError) {
+          say('GPU failed, trying CPU: '+gpuError.message);
+          options.baseOptions.delegate='CPU';
+          state.localEngine = await sdk.FaceLandmarker.createFromOptions(fs, options);
+          modelStatus('Face engine ready · CPU · '+source.name);
+          say('MediaPipe engine ready · CPU · '+source.name);
+        }
+        $('localNote').textContent='On-device face tracking ready. Photo Swap is a 2D texture deformation (not generative AI).';
+        return state.localEngine;
+      } catch (error) {
+        lastError = error;
+        state.localEngine = null;
+        say('MediaPipe '+source.name+' failed: '+(error?.message||String(error)));
+      }
     }
-    $('localNote').textContent = 'On-device face tracking ready. Photo Swap uses 2D landmark-based texture deformation, not generative AI.';
-    return state.localEngine;
+    modelStatus('Could not load the face engine. Try Retry after checking your connection.');
+    throw new Error('Face engine download failed. Try Wi-Fi/mobile data, Chrome, or Retry. See Diagnostics for technical details.');
   })();
   try { return await state.visionPromise; }
   catch (error) { state.visionPromise = null; throw error; }
 }
+
 function easePoints(raw) {
   if (!raw) return null;
   if (!state.smooth || state.smooth.length !== raw.length) state.smooth = raw.map(p => ({x:p.x,y:p.y,z:p.z}));
@@ -195,7 +223,7 @@ async function startCamera() {
     state.animation=requestAnimationFrame(localLoop);
     buttons();say('Camera opened locally.');
     if ($('effect').value!=='none') {
-      initLandmarker().catch(error=>{say('Face model failed: '+error.message);$('localNote').textContent='Face tracking unavailable: '+error.message+'. Camera preview still works.';});
+      initLandmarker().catch(error=>{say('Face model failed: '+error.message);$('localNote').textContent=error.message+' Camera preview is still available.';});
     }
   } catch(error){setCameraStatus('Camera error: '+error.message);say('Camera error: '+error.message);buttons();}
 }
@@ -217,10 +245,22 @@ $('effect').addEventListener('change',()=>{
   $('sourcePicker').hidden = $('effect').value!=='swap';
   if(state.stream && $('effect').value!=='none')initLandmarker().catch(e=>say('Model: '+e.message));
 });
-async function loadPhoto(file){
-  if(!file)return;
-  const input=$('sourcePhoto');input.disabled=true;
-  $('sourceStatus').textContent='Analyzing portrait locally (nothing uploaded)…';
+const PRESETS = {
+  'studio-curly': {name:'Curly',path:'./presets/studio-curly.webp'},
+  'studio-ginger': {name:'Ginger',path:'./presets/studio-ginger.webp'},
+  'studio-bangs': {name:'Bangs',path:'./presets/studio-bangs.webp'}
+};
+function selectedPreset(id){
+  document.querySelectorAll('[data-preset]').forEach(button=>{
+    const active=button.dataset.preset===id;
+    button.classList.toggle('is-selected',active);
+    button.setAttribute('aria-pressed',String(active));
+  });
+}
+async function loadPhoto(file,presetId=''){
+  if(!file || state.sourceLoading)return;
+  state.sourceLoading=true;buttons();
+  $('sourceStatus').textContent='Preparing face source locally · no uploads…';
   try {
     const engine=await initLandmarker();
     const result=await state.photoSwap.loadFile(file,async image=>{
@@ -233,19 +273,45 @@ async function loadPhoto(file){
         finally { state.modelBusy=false;state.lastFrameTime=-1; }
       }
     });
-    state.swapDrawAt=0;
-    $('sourceStatus').textContent=`Ready: ${file.name} · ${result.triangles} triangles · local only`;
-    say('Mobile source photo loaded without upload: '+result.triangles+' triangles');
+    state.swapDrawAt=0;selectedPreset(presetId);
+    $('sourcePreview').src=state.photoSwap.photo.toDataURL('image/webp',.78);
+    $('sourcePreview').hidden=false;
+    $('sourceStatus').textContent='Ready: '+file.name+' · '+result.triangles+' face triangles. '+(state.stream?'Move in front of the camera.':'Now tap Start camera at the top.');
+    say('Source ready · '+file.name+' · '+result.triangles+' triangles');
   }catch(error){
-    $('sourceStatus').textContent='Could not use this photo: '+error.message;
-    say('Source face: '+error.message);
-  }finally{input.disabled=false;buttons();}
+    $('sourceStatus').textContent='Unable to load photo: '+(error?.message||String(error));
+    say('Source face error: '+(error?.message||String(error)));
+  }finally{state.sourceLoading=false;$('sourcePhoto').value='';buttons();}
 }
 $('sourcePhoto').addEventListener('change',event=>{void loadPhoto(event.target.files?.[0]);});
+for(const button of document.querySelectorAll('[data-preset]')){
+  button.addEventListener('click',async()=>{
+    if(state.sourceLoading)return;
+    const preset=PRESETS[button.dataset.preset];
+    if(!preset)return;
+    try{
+      $('sourceStatus').textContent='Opening '+preset.name+' preset…';
+      const response=await fetch(preset.path,{cache:'force-cache'});
+      if(!response.ok)throw new Error('Preset file unavailable ('+response.status+').');
+      const blob=await response.blob();
+      await loadPhoto(new File([blob],preset.name+'.webp',{type:'image/webp'}),button.dataset.preset);
+    }catch(error){
+      $('sourceStatus').textContent='Preset could not load: '+error.message;
+      say('Preset error: '+error.message);
+    }
+  });
+}
+$('retryModel').addEventListener('click',async()=>{
+  if(state.visionPromise)return;
+  try{await initLandmarker();$('sourceStatus').textContent='Face engine ready. Choose a preset or your own photo.';}
+  catch(error){$('sourceStatus').textContent=error.message;}
+});
 $('clearSource').addEventListener('click',()=>{
-  state.photoSwap.clear();state.swapDrawAt=0;
-  $('sourcePhoto').value='';$('sourceStatus').textContent='Choose a clear portrait. The previous face photo has been removed from memory.';
-  buttons();say('Local source photo removed from memory.');
+  if(state.sourceLoading)return;
+  state.photoSwap.clear();state.swapDrawAt=0;selectedPreset('');
+  $('sourcePhoto').value='';$('sourcePreview').removeAttribute('src');$('sourcePreview').hidden=true;
+  $('sourceStatus').textContent='Source cleared. Select a preset or upload your own portrait.';
+  buttons();say('Local source removed from memory.');
 });
 
 // PC bridge: GitHub Pages serves only the UI. Windows/Tailscale serves /health, /offer and /close.
@@ -374,4 +440,4 @@ $('snapshot').addEventListener('click',()=>{
 // Closing the page or hiding it stops camera and remote processing.
 window.addEventListener('pagehide',()=>{void stopCamera();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.stream)void stopCamera();});
-buttons();resetMetrics();displayMode('mobile');say('FaceFX v0.3 ready · local Photo Swap works without PC.');
+buttons();resetMetrics();displayMode('mobile');modelStatus('Not loaded yet · select a portrait or start the camera');say('FaceFX v0.4 ready · mobile Photo Swap with presets and CDN fallback.');
