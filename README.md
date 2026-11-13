@@ -4,6 +4,7 @@ A mobile-first collection of experimental web mechanics and hardware exploration
 
 ## Experiments
 
+- **Ocean Mechanics (prototype)** — side-view / depth-map 3D neighbor exploration, selected Z, fixed-step animation and FPS/TPS telemetry. An independent TypeScript ASCuarium Ocean Engine repository is planned; this MobiLab demo is deliberately not the source-of-truth engine. Open at [`labs/ocean/`](./labs/ocean/).
 - **Haptic Studio** — 21 timing patterns, accessible swipe/arrow/tap dial, six button-group presets, custom two-pulse designer, browser storage and JSON export.
 - **Camera Lab** — permission-based front/back preview, local snapshot and relative orientation.
 - **VibroMotion** — short timed vibration trials with motion/orientation telemetry, protected flat/upright setup modes, no-vibration control, custom pulse trains (on/off/duty), optional local rear-camera contact sheets, physical observations and CSV export.
