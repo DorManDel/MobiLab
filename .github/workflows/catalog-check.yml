@@ -8,6 +8,8 @@ on:
       - "src/app.js"
       - "src/lab-catalog.mjs"
       - "tests/lab-catalog.test.mjs"
+      - "tests/mobile-shell.test.mjs"
+      - "labs/settings/**"
       - ".github/workflows/catalog-check.yml"
   workflow_dispatch:
 
@@ -23,7 +25,7 @@ jobs:
         with:
           node-version: "22"
       - name: Pure engine and HTML contract tests
-        run: node --test tests/lab-catalog.test.mjs
+        run: node --test tests/lab-catalog.test.mjs tests/mobile-shell.test.mjs tests/settings-lab.test.mjs
       - name: Browser module syntax
         run: |
           node --check src/lab-catalog.mjs
