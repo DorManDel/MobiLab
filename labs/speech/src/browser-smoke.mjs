@@ -53,10 +53,14 @@ try {
     Object.defineProperty(window,"SpeechSynthesisUtterance",{configurable:true,
       value:class {constructor(text){this.text=text;}}});
   });
+  let cloudRequests=0,cloud429=false;
   await page.route("https://api.mymemory.translated.net/get?**",async route=>{
-    try{await route.fulfill({status:200,contentType:"application/json",
+    cloudRequests++;
+    try{await route.fulfill({status:cloud429?429:200,contentType:"application/json",
       headers:{"Access-Control-Allow-Origin":"*"},
-      body:JSON.stringify({responseStatus:200,responseData:{translatedText:"Translation A"}})});}
+      body:JSON.stringify(cloud429
+        ? {responseStatus:429,responseDetails:"Daily limit reached"}
+        : {responseStatus:200,responseData:{translatedText:"Translation A"}})});}
     catch{/* aborted fetch may close route before fulfill */}
   });
   await page.route("https://translate.example.org/translate",async route=>{
@@ -73,6 +77,8 @@ try {
   await page.locator("#translateManual").click();
   await page.waitForFunction(()=>document.querySelector("#cloudEngineResult")?.textContent==="Translation A");
   assert.equal(await page.locator("#captionTranslated").textContent(),"Translation A");
+  assert.equal(await page.locator("#floatingControls #captionText").textContent(),"Translation A");
+  assert.equal(await page.locator("#providerScoreRows .score-row").count(),3);
   assert.equal(await page.locator("#liveTranslation").textContent(),"Translation A");
   await page.locator('[data-caption-mode="roll"]').click();
   assert.equal(await page.locator("#liveDeck").getAttribute("data-mode"),"roll");
@@ -134,6 +140,53 @@ try {
     "Late comparison provider must not overwrite selected MyMemory caption.");
   await page.locator("#referenceTranslation").fill("Translation A");
   assert.match(await page.locator("#benchResults").textContent(),/MyMemory.*100%/);
+  assert.match(await page.locator("#providerScoreRows").textContent(),/MyMemory/);
+
+  // One log cursor, many interchangeable views: manual focus must not overwrite source.
+  assert.ok((await page.locator("#segments article").count())>=2);
+  await page.locator("#focusPrev").click();
+  assert.match(await page.locator("#focusIndicator").textContent(),/Reviewing saved log/);
+  await page.locator("#focusLive").click();
+  assert.match(await page.locator("#focusIndicator").textContent(),/Following live/);
+
+  // Reproduce user's real-screen-recording failure: HTTP 429 quota should
+  // stop further MyMemory requests, preserve original and use opted-in Libre.
+  cloud429=true;
+  await page.locator("#manualText").fill("משפט נוסף לבדוק את המכסה");
+  await page.locator("#translateManual").click();
+  await page.waitForFunction(()=>document.querySelector("#providerBanner")?.hidden===false);
+  assert.match(await page.locator("#providerBannerText").textContent(),/429|limit/i);
+  const countAfter429=cloudRequests;
+  await page.waitForFunction(()=>document.querySelector("#liveTranslation")?.textContent==="Translation B");
+  assert.equal(await page.locator("#floatingControls #captionText").textContent(),"Translation B");
+  await page.locator("#manualText").fill("עוד משפט שנשמר ומועבר למנוע השני");
+  await page.locator("#translateManual").click();
+  await page.waitForFunction(()=>document.querySelector("#liveTranslation")?.textContent==="Translation B");
+  await new Promise(resolve=>setTimeout(resolve,100));
+  assert.equal(cloudRequests,countAfter429,"Circuit breaker must prevent repeated HTTP 429 calls");
+  assert.ok((await page.locator("#segments article").first().textContent()).includes("עוד משפט"));
+
+  // The focused source uses its last lines, not the start of a huge paragraph.
+  const veryLong="start "+Array.from({length:110},(_,i)=>"word"+i).join(" ")+" last line finish";
+  await page.locator("#manualText").fill(veryLong);
+  await page.locator("#translateManual").click();
+  await page.waitForFunction(()=>document.querySelector("#livePartial")?.textContent.includes("last line finish"));
+  await page.waitForFunction(()=>{
+    const el=document.getElementById("liveSourceWindow");
+    return el.scrollHeight>el.clientHeight && el.scrollTop>0;
+  });
+  assert.ok((await page.locator("#liveSourceWindow").textContent()).includes("last line finish"));
+
+  // User-selected privacy: local session data is saved only after opt-in.
+  await page.locator("#saveLocal").check();
+  await page.waitForFunction(()=>document.querySelector("#archiveStatus")?.textContent.includes("Saved locally"));
+  const savedCount=Number(await page.locator("#phraseCount").textContent());
+  await page.reload();
+  await page.waitForFunction(count=>Number(document.querySelector("#phraseCount")?.textContent)>=count,savedCount);
+  assert.equal(await page.locator("#saveLocal").isChecked(),true);
+  assert.equal(Number(await page.locator("#phraseCount").textContent()),savedCount);
+  await page.locator("#clearLocal").click();
+  assert.equal(await page.locator("#saveLocal").isChecked(),false);
 
   const dims=await page.evaluate(()=>({
     doc:document.documentElement.scrollWidth,
@@ -144,7 +197,7 @@ try {
   assert.ok(dims.dock.left>=0&&dims.dock.right<=dims.width+1&&dims.dock.bottom<=844,
     "Mobile record dock must remain within screen: "+JSON.stringify(dims));
   assert.deepEqual(errors,[],"No uncaught browser JS exceptions allowed");
-  console.log("Browser smoke passed: TTS, speech toggle/abort, manual text, cloud/local-server comparison, reference score and mobile viewport.");
+  console.log("Browser smoke passed: captions, canonical log/focus, floating text, rate-limit breaker/fallback, tail viewport, opt-in archive, TTS and mobile viewport.");
 } finally {
   if(browser) await browser.close();
   server.kill("SIGTERM");
