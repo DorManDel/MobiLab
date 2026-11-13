@@ -1,7 +1,7 @@
 name: FaceFX mobile smoke
 on:
   push:
-    branches: [fix/facefx-mobile-mediapipe-presets]
+    branches: [main, fix/facefx-mobile-mediapipe-presets]
     paths:
       - 'labs/facefx/**'
       - 'facefx-server/**'
@@ -33,3 +33,6 @@ jobs:
           python3 -m http.server 8123 --bind 127.0.0.1 &
           sleep 2
           node labs/facefx/browser-smoke.mjs
+
+      - name: Real MediaPipe CDN and source portrait inference
+        run: node labs/facefx/browser-live.mjs
