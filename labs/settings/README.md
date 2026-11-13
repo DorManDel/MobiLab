@@ -11,7 +11,8 @@ Preserve MyPortfolio's existing settings/handlers while researching a reusable d
 - Mock/preview sections for Ripple, Prism, Carousel and Diagnostics. These effects are **CSS placeholders**, not production shader/audio/physics.
 - `Original MyPortfolio` source bridge: optional pinned public GitHub download or local **trusted** `index.html`; runs in a sandboxed iframe without `allow-same-origin`. The inserted bridge changes CSS of the *real* `#settings-panel` in place, sends an inventory via `postMessage`, and can re-dock it. It does not clone the controls. **Some inline/linked scripts can fail in this restricted origin**, so correct visual control extraction does **not** certify that all settings handlers work.
 
-## Architecture/API
+## Pinned actual settings inventory
+`myportfolio-settings-inventory.json` was extracted from the **real** MyPortfolio `develop` `index.html` at `e13f57e`: 16 static settings groups, 72 input/select/button/textarea controls within the panel (69 located inside group details). The original Ratchet V3 script can create more controls at runtime, so this manifest is not the dynamic final DOM. Click **View extracted 16 groups** on a hosted version to see this audit. Actual event listeners remain in the original site source; this manifest is only a reference, not rewritten handlers.\n\n## Architecture/API
 `engine.js` exports `SettingsRegistry`, `SettingsStore`, module schemas and layout names. `settings.js` implements the UI/gesture/controller lifecycle and attaches a demo-only `window.MobiSettingsLab` API. Add a new module in the lab console:
 
 ```js
