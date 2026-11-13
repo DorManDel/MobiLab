@@ -22,6 +22,9 @@ jobs:
           cp labs/facefx/swap.js /tmp/facefx-swap.mjs
           node --check /tmp/facefx-client.mjs
           node --check /tmp/facefx-swap.mjs
+          cp labs/facefx/detection.js /tmp/facefx-detection.mjs
+          node --check /tmp/facefx-detection.mjs
+          node labs/facefx/detection.test.mjs
       - name: Python syntax
         run: python3 -m py_compile facefx-server/server.py facefx-server/processor.py
       - name: Install Playwright Chromium
