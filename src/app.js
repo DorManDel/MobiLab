@@ -1,6 +1,7 @@
 import { HapticEngine, GROUPS, PRESETS } from "./haptics.js";
 import { CameraLab } from "./camera.js";
 import { setupVibroMotion } from "./vibromotion.js";
+import { setupPatternEditor } from "./pattern-editor.js";
 
 // MobiLab: browser-only application shell.
 // All hardware actions happen only after deliberate interaction.
@@ -31,9 +32,33 @@ function navigate(target, updateLocation = true) {
   }
   if (currentTab === "haptics" && nextTab !== "haptics") haptics.stop();
   if (currentTab === "motion" && nextTab !== "motion") motionBench?.stop();
+  if (nextTab === "motion") motionBench?.refreshPresets();
   currentTab = nextTab;
 
-  document.querySelectorAll("[data-tab]").forEach((button) => {
+  function setupLabIndex() {
+  const cards = [...document.querySelectorAll("#labCards .lab-card")];
+  const search = $("labSearch");
+  const filters = [...document.querySelectorAll("[data-lab-filter]")];
+  let category = "all";
+  function render() {
+    const query = search.value.trim().toLocaleLowerCase();
+    let visible = 0;
+    for (const card of cards) {
+      const matching = (category === "all" || card.dataset.labCategory === category) &&
+        card.textContent.toLocaleLowerCase().includes(query);
+      card.hidden = !matching;
+      if (matching) visible++;
+    }
+    $("labCount").textContent = visible + " / " + cards.length + " LABS";
+    $("labEmpty").hidden = visible > 0;
+    filters.forEach((button) => button.classList.toggle("is-selected", button.dataset.labFilter === category));
+  }
+  search.addEventListener("input", render);
+  filters.forEach((button) => button.addEventListener("click", () => { category = button.dataset.labFilter; render(); }));
+  render();
+}
+
+document.querySelectorAll("[data-tab]").forEach((button) => {
     const active = button.dataset.tab === nextTab;
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-selected", String(active));
@@ -157,15 +182,14 @@ function drawWaveform(container, pattern) {
     container.append(bar);
   });
 }
-function chosenCustomPattern() {
-  return [Number($("pulseA").value), Number($("gap").value), Number($("pulseB").value)];
-}
-function refreshCustomEditor() {
-  for (const id of ["pulseA", "gap", "pulseB"]) $(id + "Value").textContent = $(id).value + " ms";
-  drawWaveform($("customWaveform"), chosenCustomPattern());
-}
-const presetIds = Object.keys(PRESETS);
+let presetIds = Object.keys(haptics.allPresets());
 let activePresetIndex = Math.max(0, presetIds.indexOf("tick"));
+let patternEditor = null;
+function refreshPresetCatalog() {
+  const current = presetIds[activePresetIndex] || "tick";
+  presetIds = Object.keys(haptics.allPresets());
+  activePresetIndex = Math.max(0, presetIds.indexOf(current));
+}
 function selectedPresetId() { return presetIds[activePresetIndex]; }
 function dialChange(amount, feedback = true) {
   activePresetIndex = (activePresetIndex + amount + presetIds.length) % presetIds.length;
@@ -175,13 +199,13 @@ function dialChange(amount, feedback = true) {
 function refreshPresetPreview() {
   const selected = selectedPresetId();
   drawWaveform($("presetWaveform"), haptics.pattern(selected));
-  $("presetNote").textContent = PRESETS[selected]?.note || "";
-  $("dialPresetLabel").textContent = PRESETS[selected]?.name || "Unknown";
+  $("presetNote").textContent = haptics.allPresets()[selected]?.note || "Saved personal vibration pattern";
+  $("dialPresetLabel").textContent = haptics.allPresets()[selected]?.name || "Unknown";
   $("presetPosition").textContent = String(activePresetIndex + 1).padStart(2, "0") + " / " + presetIds.length;
   const ms = haptics.pattern(selected).reduce((sum, n) => sum + n, 0);
   $("presetDuration").textContent = ms + " ms total";
   $("dialTicks").style.setProperty("--dial-angle", activePresetIndex * 17 + "deg");
-  $("presetPlay").setAttribute("aria-label", "Test " + PRESETS[selected].name + " pattern");
+  $("presetPlay").setAttribute("aria-label", "Test " + haptics.allPresets()[selected].name + " pattern");
 }
 function setupPresetDial() {
   $("presetPrev").addEventListener("click", () => dialChange(-1));
@@ -207,7 +231,7 @@ function setupPresetDial() {
   refreshPresetPreview();
 }
 function playResult(result) {
-  if (result.ok) notify(result.reason === "Silent pattern" ? "Silent preset selected." : "Vibration request sent. Actual feel depends on hardware.");
+  if (result.ok) notify(result.reason === "Silent pattern" ? "Silent preset selected." : result.truncated ? "Requested with a 15s playback guard; browser may shorten further." : "Vibration request sent. Actual feel depends on hardware.");
   else notify(result.reason + ". Check browser and phone vibration settings.");
 }
 function renderGroups() {
@@ -247,12 +271,12 @@ function renderGroups() {
       const current = Math.max(0, presetIds.indexOf(haptics.config.groups[group.id]));
       const id = presetIds[(current + step + presetIds.length) % presetIds.length];
       haptics.setGroup(group.id, id);
-      selected.textContent = PRESETS[id].name;
+      selected.textContent = haptics.allPresets()[id].name;
       haptics.playPreset("tick");
     }
     previous.addEventListener("click", () => setSelection(-1));
     next.addEventListener("click", () => setSelection(1));
-    selected.textContent = PRESETS[haptics.config.groups[group.id]]?.name || "Off";
+    selected.textContent = haptics.allPresets()[haptics.config.groups[group.id]]?.name || "Off";
     picker.append(previous, selected, next);
     const sample = document.createElement("button");
     sample.type = "button";
@@ -278,17 +302,9 @@ function setupHaptics() {
   setupPresetDial();
   $("testPreset").addEventListener("click", () => playResult(haptics.playPreset(selectedPresetId())));
   $("stopHaptics").addEventListener("click", () => { haptics.stop(); notify("Stop vibration requested."); });
-  const custom = haptics.config.custom;
-  for (const [index, id] of ["pulseA", "gap", "pulseB"].entries()) {
-    $(id).value = custom[index] || 0;
-    $(id).addEventListener("input", refreshCustomEditor);
-  }
-  refreshCustomEditor();
-  $("testCustom").addEventListener("click", () => playResult(haptics.play(chosenCustomPattern())));
-  $("saveCustom").addEventListener("click", () => {
-    haptics.setCustom(chosenCustomPattern());
-    refreshPresetPreview();
-    notify("Custom pattern saved. Choose Custom in a button group.");
+  patternEditor = setupPatternEditor({
+    haptics, notify, playResult, download, drawWaveform,
+    onCatalogChange: () => { refreshPresetCatalog(); refreshPresetPreview(); renderGroups(); }
   });
   $("exportHaptics").addEventListener("click", () => {
     download("mobilab-haptic-profiles.json", haptics.export());
@@ -298,8 +314,8 @@ function setupHaptics() {
     if (!confirm("Restore default haptic profiles and custom pattern?")) return;
     haptics.reset();
     $("enableHaptics").checked = true;
-    for (const [index, id] of ["pulseA", "gap", "pulseB"].entries()) $(id).value = haptics.config.custom[index];
-    refreshCustomEditor();
+    patternEditor.reset();
+    refreshPresetCatalog();
     refreshPresetPreview();
     renderGroups();
     notify("Default haptic profiles restored.");
@@ -369,5 +385,6 @@ document.addEventListener("visibilitychange", () => {
 setupHaptics();
 setupCamera();
 setupIdeas();
+setupLabIndex();
 motionBench = setupVibroMotion({ haptics, notify, isActive: () => currentTab === "motion" });
 navigate(location.hash.slice(1) || "home", !location.hash);

@@ -1,0 +1,23 @@
+name: Modular mechanics checks
+on:
+  pull_request:
+    paths:
+      - "src/haptics.js"
+      - "src/pattern-editor.js"
+      - "src/mechanics/**"
+      - "src/vibromotion.js"
+      - "tests/modular-mechanics.test.cjs"
+      - ".github/workflows/modular-mechanics.yml"
+  workflow_dispatch:
+jobs:
+  mechanics:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run dependency-free mechanics tests
+        run: node tests/modular-mechanics.test.cjs

@@ -1,0 +1,11 @@
+/* Standalone styles for mountSettingsPanel view */
+.ml-settings-root{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;color:#f7f3ff}
+.ml-settings-tabs{display:flex;gap:6px;overflow-x:auto;padding:8px;border-bottom:1px solid #a993c33c;scrollbar-width:none;flex:0 0 auto}
+.ml-settings-tab{flex:0 0 auto;font:inherit;font-size:11px;min-height:37px;border:1px solid #a993c355;padding:7px 10px;background:#302447;color:#f7f3ff;border-radius:9px;cursor:pointer}
+.ml-settings-tab.is-selected{color:#f9df76;border-color:#f9df76}
+.ml-settings-content{padding:16px;overflow:auto;flex:1;min-height:0}
+.ml-settings-content h3{margin:0 0 10px;font-size:17px}
+.ml-settings-content p{font-size:12px;line-height:1.65;color:#c9bbdf}
+.ml-settings-field{padding:10px;margin:8px 0;border:1px solid #c4a9ff44;border-radius:10px;background:#e0ccff0b;font-size:12px}
+.ml-settings-content.compact{padding:8px}
+.ml-settings-content.compact .ml-settings-field{padding:5px}

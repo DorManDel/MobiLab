@@ -6,7 +6,7 @@ import { CameraLab } from "./camera.js";
 const $ = (id) => document.getElementById(id);
 const RECORDS_KEY = "mobilab.motion.trials.v1";
 const MAX_ROWS = 40;
-const MAX_RUN_MS = 6500;
+const MAX_RUN_MS = 15000;
 // A smaller physical-lab catalog avoids endless dropdown lists.
 const MOTION_PRESETS = ["off", "tick", "light", "medium", "strong", "triple", "heartbeat",
   "bounce", "roll", "rhythm", "sweep", "rumble", "orbit", "custom", "train"];
@@ -51,6 +51,7 @@ async function motionPermission() {
 export function setupVibroMotion({ haptics, notify, isActive = () => true }) {
   const camera = new CameraLab($("motionVideo"));
   let records = loadRecords();
+  let lastTrace = null;
   let runToken = 0;
   let running = false;
   let sensorsOn = false;
@@ -151,6 +152,18 @@ export function setupVibroMotion({ haptics, notify, isActive = () => true }) {
     sensorSampleCount++;
     $("motionAccel").textContent = fmt(magnitude);
     if (activeTrial) {
+      // Timestamp real sensor samples against the requested vibration timeline.
+      // This is NOT a measurement of motor power or proof of displacement.
+      const elapsed = Math.max(0, Math.round(performance.now() - activeTrial.startedAt));
+      if (activeTrial.trace.length < 1200 && elapsed <= activeTrial.totalPatternMS + 800) {
+        const isOn = activeTrial.program.some((part) => part.on && elapsed >= part.start && elapsed < part.end);
+        activeTrial.trace.push({
+          ms: elapsed, accel: Number(magnitude.toFixed(4)),
+          yaw: lastYaw === null || activeTrial.startYaw === null ? null :
+            Number(angularDelta(lastYaw, activeTrial.startYaw).toFixed(3)),
+          requestedOn: isOn ? 1 : 0
+        });
+      }
       activeTrial.samples++;
       activeTrial.peakAccel = Math.max(activeTrial.peakAccel ?? 0, magnitude);
       $("motionPeak").textContent = fmt(activeTrial.peakAccel);
@@ -200,10 +213,14 @@ export function setupVibroMotion({ haptics, notify, isActive = () => true }) {
     return id === "train" ? trainPattern() : haptics.pattern(id);
   }
   function refreshMotionRhythm() {
+    // Named profiles created in Haptic Studio join the motion picker without a reload.
+    for (const id of Object.keys(haptics.config.saved)) {
+      if (!MOTION_PRESETS.includes(id)) MOTION_PRESETS.splice(MOTION_PRESETS.length - 1, 0, id);
+    }
     const id = MOTION_PRESETS[motionPresetIndex];
     $("motionPreset").value = id;
     const p = selectedPattern();
-    $("motionPresetLabel").textContent = id === "train" ? "Pulse Train" : PRESETS[id]?.name || id;
+    $("motionPresetLabel").textContent = id === "train" ? "Pulse Train" : haptics.allPresets()[id]?.name || id;
     $("motionPresetMeta").textContent =
       p.filter((_, index) => index % 2 === 0).length + " on-pulses · " + p.reduce((s,n)=>s+n,0) + " ms";
     $("motionTrainControls").hidden = id !== "train";
@@ -318,10 +335,10 @@ export function setupVibroMotion({ haptics, notify, isActive = () => true }) {
     if (presetId !== "off" && !haptics.config.enabled) { notify("Enable the Haptic Studio engine first."); return; }
     if (pattern.length && pattern.every((v) => v === 0)) { notify("Selected pattern contains no vibration."); return; }
     const rounds = Math.max(1, Math.min(3, Number($("motionRounds").value) || 1));
-    const duration = pattern.reduce((sum, t) => sum + t, 0);
+    const duration = pattern.length ? pattern.reduce((sum, t) => sum + t, 0) : 2000; // Timed no-vibration control.
     const total = rounds * duration + (rounds - 1) * 250;
     if (total > MAX_RUN_MS) {
-      notify("Sequence exceeds 6.5 seconds. Use fewer cycles or a shorter preset.");
+      notify("Sequence exceeds 15 seconds. Shorten pulses or cycles.");
       return;
     }
     let seconds = Number($("motionDelay").value) || 0;
@@ -339,6 +356,16 @@ export function setupVibroMotion({ haptics, notify, isActive = () => true }) {
       }
       if (token !== runToken || document.hidden) return;
       const startYaw = sensorsOn ? lastYaw : null;
+      const program = [];
+      let cursor = 0;
+      for (let round = 0; round < rounds; round++) {
+        if (!pattern.length) { program.push({ start: cursor, end: cursor + duration, on: false }); cursor += duration; }
+        else for (let i = 0; i < pattern.length; i++) {
+          program.push({ start: cursor, end: cursor + pattern[i], on: i % 2 === 0 });
+          cursor += pattern[i];
+        }
+        if (round < rounds - 1) cursor += 250;
+      }
       const trial = {
         date: new Date().toISOString(), mode, surface: $("motionSurface").value,
         preset: presetId, rounds, totalPatternMS: total, sensorsEnabled: sensorsOn,
@@ -347,6 +374,7 @@ export function setupVibroMotion({ haptics, notify, isActive = () => true }) {
         pulseCount: presetId === "train" ? Number($("motionPulseCount").value) : null,
         startYaw, endYaw: null, yawDelta: null, yawAbsMax: 0,
         peakAccel: null, samples: 0,
+        startedAt: performance.now(), program, trace: [],
         observation: "not assessed", distanceMM: null, notes: ""
       };
       activeTrial = trial;
@@ -379,12 +407,24 @@ export function setupVibroMotion({ haptics, notify, isActive = () => true }) {
         const final = captureFrame(); if (final) frames.push(final);
         if (frames.length) downloadFrames(frames.slice(0, 3));
       }
+      lastTrace = { meta: { date: trial.date, preset: trial.preset, mode: trial.mode,
+        surface: trial.surface, totalPatternMS: trial.totalPatternMS },
+        points: trial.trace.slice(), program: trial.program.slice() };
+      drawTrialTrace(lastTrace);
+      // Keep summary records small and backwards compatible; raw samples export separately.
+      delete trial.startedAt; delete trial.program; delete trial.trace;
       records.unshift(trial);
       records = records.slice(0, MAX_ROWS);
       persist();
       renderRecords();
+      const control = trial.preset === "off" ? null :
+        records.find((r) => r.preset === "off" && r.mode === mode && r.surface === trial.surface &&
+          r.peakAccel !== null && r !== trial);
+      const compare = control && trial.peakAccel !== null ?
+        " Control peak " + fmt(control.peakAccel) + " m/s²; difference " +
+        fmt(trial.peakAccel - control.peakAccel) + " m/s² (not displacement proof)." : "";
       status("Trial recorded. Angle " + fmt(trial.yawDelta, 1) + "°, dynamic acceleration peak " +
-        fmt(trial.peakAccel) + " m/s². Annotate what you saw below.");
+        fmt(trial.peakAccel) + " m/s²." + compare + " Annotate what you saw below.");
       notify("Trial saved locally. Add a physical observation for meaningful results.");
     } finally {
       if (token === runToken) {
@@ -396,6 +436,47 @@ export function setupVibroMotion({ haptics, notify, isActive = () => true }) {
     }
   }
 
+  function drawTrialTrace(data) {
+    const canvas = $("motionTraceChart");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#18142a"; ctx.fillRect(0, 0, w, h);
+    if (!data || data.points.length < 2) {
+      $("motionTraceMeta").textContent = "No measured samples yet. Enable sensors and run a trial.";
+      return;
+    }
+    const tMax = Math.max(1, data.meta.totalPatternMS + 450);
+    for (const part of data.program) {
+      if (!part.on) continue;
+      ctx.fillStyle = "rgba(173,138,255,.19)";
+      ctx.fillRect(part.start / tMax * w, 0, (part.end - part.start) / tMax * w, h);
+    }
+    const maxAccel = Math.max(1, ...data.points.map((p) => p.accel));
+    const maxYaw = Math.max(1, ...data.points.map((p) => Math.abs(p.yaw || 0)));
+    for (const [key, peak, color, base] of [
+      ["accel", maxAccel, "#f9df76", h * .54],
+      ["yaw", maxYaw, "#7ae9c3", h * .82]
+    ]) {
+      ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2;
+      data.points.forEach((p, i) => {
+        const v = p[key] || 0;
+        const y = base - (key === "yaw" ? v / peak * h * .13 : v / peak * h * .43);
+        const x = p.ms / tMax * w;
+        if (!i) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+    $("motionTraceMeta").textContent = data.points.length + " samples · yellow: dynamic acceleration (m/s²) · mint: relative yaw (°) · purple: requested ON timing only.";
+  }
+  function exportTrialTrace() {
+    if (!lastTrace?.points.length) { notify("Run a sensor-enabled trial first."); return; }
+    const keys = ["ms", "accel", "yaw", "requestedOn"];
+    const rows = [keys.join(","), ...lastTrace.points.map(p => keys.map(k => escapeCSV(p[k])).join(","))];
+    saveFile("mobilab-motion-trace-" + Date.now() + ".csv", rows.join("\r\n"), "text/csv;charset=utf-8");
+    notify("Timestamped sensor trace exported. This does not measure actual actuator output.");
+  }
   function annotateLastTrial() {
     if (!records.length) { notify("Run a trial first."); return; }
     const raw = $("motionDistance").value.trim();
@@ -453,6 +534,7 @@ export function setupVibroMotion({ haptics, notify, isActive = () => true }) {
     });
     $("motionAnnotate").addEventListener("click", annotateLastTrial);
     $("motionExport").addEventListener("click", exportCSV);
+    $("motionTraceExport").addEventListener("click", exportTrialTrace);
     $("motionClear").addEventListener("click", () => {
       if (!confirm("Delete locally stored motion trial records? Export a CSV first if needed.")) return;
       records = [];
@@ -462,7 +544,8 @@ export function setupVibroMotion({ haptics, notify, isActive = () => true }) {
     setModeHint();
     renderRecords();
     drawGraph();
-    return { stop, stopTrial };
+    drawTrialTrace(null);
+    return { stop, stopTrial, refreshPresets: refreshMotionRhythm };
   }
   return setup();
 }
