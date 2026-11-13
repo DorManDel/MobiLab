@@ -1,0 +1,21 @@
+name: Settings Lab smoke
+on:
+  pull_request:
+    paths:
+      - 'labs/settings/**'
+      - 'tests/settings-lab.test.mjs'
+      - 'index.html'
+      - '.github/workflows/settings-lab.yml'
+  push:
+    paths:
+      - 'labs/settings/**'
+      - 'tests/settings-lab.test.mjs'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/settings-lab.test.mjs
