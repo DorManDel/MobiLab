@@ -97,6 +97,7 @@ try {
   await page.locator("#floatingControls #langs").click();
   assert.equal(await page.locator("#floatingControls #panel").getAttribute("hidden"),null);
   await page.locator("#floatingControls #close").click();
+  await page.locator("#liveSettings summary").click();
   await page.locator("#silenceDuration").selectOption("900");
   await page.locator("#floatingControls #record").click();
   assert.equal(await page.locator("#recordToggle").getAttribute("aria-pressed"),"true");
