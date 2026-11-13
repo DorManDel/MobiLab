@@ -124,6 +124,7 @@ async function initPhotoLandmarker(){
   state.imagePromise=(async()=>{
     const {engine,delegate}=await makeLandmarker('IMAGE');
     state.imageEngine=engine;
+    modelStatus('Source detector ready · '+delegate+' IMAGE'+(state.localEngine?' / live VIDEO ready':''));
     say('Source portrait detector ready · '+delegate+' IMAGE');
     return engine;
   })();
