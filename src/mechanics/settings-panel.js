@@ -25,6 +25,9 @@ export function mountSettingsPanel({ root, store, renderSection } = {}) {
       button.classList.toggle("is-selected", i === activeIndex);
       button.setAttribute("aria-selected", String(i === activeIndex));
       button.addEventListener("click", () => { activeIndex = i; render(store.get()); });
+      button.addEventListener("dblclick", () => {
+        if (config.tabs.length > 1) store.set({ tabs: config.tabs.filter((_, index) => index !== i) });
+      });
       nav.append(button);
     });
     body.replaceChildren();
