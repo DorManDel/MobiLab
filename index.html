@@ -19,6 +19,12 @@
         <span class="brand-name">Mobi<span>Lab</span><small>THE EXPERIMENTAL PLAYGROUND</small></span>
       </a>
       <div class="topbar-actions">
+        <div class="global-search">
+          <label class="sr-only" for="labSearch">Search labs and modules</label>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+          <input id="labSearch" type="search" placeholder="Search all modules…" autocomplete="off" aria-controls="labCards" aria-keyshortcuts="/" />
+          <kbd>/</kbd>
+        </div>
         <span class="status-dot"><span class="dot"></span>LOCAL LAB</span>
         <a class="repo-link" href="https://github.com/DorManDel/MobiLab" target="_blank" rel="noopener noreferrer" aria-label="Open MobiLab source on GitHub">↗ GitHub</a>
       </div>
@@ -34,6 +40,7 @@
       <a class="tab blink-tab-link" href="./labs/speech/" aria-label="Open Speech and Translate Lab experiment">♫ <span>Speech &amp; Translate</span></a>
       <a class="tab blink-tab-link" href="./labs/facefx/" aria-label="Open FaceFX Lab dual-engine comparison">◫ <span>FaceFX Lab</span></a>
       <a class="tab blink-tab-link" href="./labs/touch-studio/" aria-label="Open Touch and Gesture Studio">◌ <span>Touch &amp; Gesture</span></a>
+      <button class="tab" type="button" data-tab="infinity" aria-selected="false">◇ <span>Infinity Board</span><small class="tab-soon">SOON</small></button>
       <button class="tab" type="button" data-tab="ideas" aria-selected="false">✧ <span>Idea Board</span></button>
     </nav>
 
@@ -49,42 +56,70 @@
           </div>
           <div class="hero-decoration" aria-hidden="true"><div class="orbit orbit-a"></div><div class="orbit orbit-b"></div><div class="hero-core">M</div></div>
         </div>
-        <div class="section-heading"><div><div class="eyebrow">EXPERIMENT INDEX</div><h2>Choose your lab</h2></div><span class="count">07 LABS + IDEA BOARD</span></div>
-        <div class="lab-cards">
-          <button type="button" class="lab-card" data-open="haptics" data-haptic-group="navigation">
+        <div class="section-heading"><div><div class="eyebrow">EXPERIMENT INDEX</div><h2>Choose your lab</h2></div><span class="count" id="labCount">DISCOVER EXPERIMENTS</span></div>
+        <div class="catalog-toolbar" aria-label="Discover and sort labs">
+          <div class="catalog-field"><label for="labSort">Sort by</label>
+            <select id="labSort">
+              <option value="recommended">Recommended for me</option>
+              <option value="popular">Most opened</option>
+              <option value="recently-opened">Recently opened</option>
+              <option value="recently-updated">Recently updated</option>
+              <option value="alphabetical">Name A–Z</option>
+            </select>
+          </div>
+          <div class="catalog-field"><label for="labCategory">Category</label>
+            <select id="labCategory">
+              <option value="all">All modules</option>
+              <option value="hardware">Hardware & sensors</option>
+              <option value="creative">Visual & creative</option>
+              <option value="tools">Developer & productivity</option>
+              <option value="ideas">Ideas & upcoming</option>
+            </select>
+          </div>
+          <button type="button" id="clearCatalog" class="btn btn-ghost btn-small" hidden>Clear filters</button>
+          <p class="catalog-help">Search any module · use <kbd>/</kbd> to jump to search</p>
+        </div>
+        <p id="catalogStatus" class="catalog-status" role="status" aria-live="polite"></p>
+        <div class="lab-cards" id="labCards">
+          <button type="button" class="lab-card" data-lab-id="haptics" data-category="hardware" data-updated="2026-11-10" data-keywords="vibration feedback patterns rhythm amplitude" data-open="haptics" data-haptic-group="navigation">
             <span class="card-top"><span class="lab-icon purple">〰</span><span class="index">01 / ACTIVE</span></span>
             <strong>Haptic Studio</strong><span>Design and compare button feedback for different UI groups.</span><span class="card-foot">Try the engine <b>↗</b></span>
           </button>
-          <button type="button" class="lab-card" data-open="camera" data-haptic-group="navigation">
+          <button type="button" class="lab-card" data-lab-id="camera" data-category="hardware" data-updated="2026-11-10" data-keywords="photo video lens orientation sensors" data-open="camera" data-haptic-group="navigation">
             <span class="card-top"><span class="lab-icon yellow">◎</span><span class="index">02 / BETA</span></span>
             <strong>Camera Lab</strong><span>Test live camera preview, snapshots and relative orientation.</span><span class="card-foot">Explore sensors <b>↗</b></span>
           </button>
-          <button type="button" class="lab-card" data-open="motion" data-haptic-group="navigation">
+          <button type="button" class="lab-card" data-lab-id="motion" data-category="hardware" data-updated="2026-11-10" data-keywords="vibration movement telemetry inertia gyroscope" data-open="motion" data-haptic-group="navigation">
             <span class="card-top"><span class="lab-icon yellow">⌁</span><span class="index">03 / PROTOTYPE</span></span>
             <strong>VibroMotion</strong><span>Run safe timed vibration experiments with orientation and motion telemetry.</span><span class="card-foot">Open motion bench <b>↗</b></span>
           </button>
-          <a class="lab-card blink-lab-card" href="./labs/blink/" aria-label="Open Blink Lab touch-first portrait calibration">
+          <a class="lab-card blink-lab-card" data-lab-id="blink" data-category="creative" data-updated="2026-11-11" data-keywords="eyes eyelid face photo image calibration" href="./labs/blink/" aria-label="Open Blink Lab touch-first portrait calibration">
             <span class="card-top"><span class="lab-icon purple">◉</span><span class="index">04 / PROTOTYPE</span></span>
             <strong>Blink Lab</strong><span>Calibrate eyelid anchors on a portrait, preview blinking and test responsive photo motion on phone or PC.</span><span class="card-foot">Open Blink Lab <b>↗</b></span>
           </a>
-          <a class="lab-card blink-lab-card" href="./labs/wslx/" aria-label="Open interactive WSLX terminal simulator">
+          <a class="lab-card blink-lab-card" data-lab-id="wslx" data-category="tools" data-updated="2026-11-12" data-keywords="terminal cli linux shell file explorer bash autocomplete" href="./labs/wslx/" aria-label="Open interactive WSLX terminal simulator">
             <span class="card-top"><span class="lab-icon purple">⌘</span><span class="index">05 / PROTOTYPE</span></span>
             <strong>WSLX Terminal Lab</strong><span>Explore the Ubuntu/WSLX CLI, live command/path autocomplete, mobile Tab button and editable File Explorer.</span><span class="card-foot">Open terminal lab <b>↗</b></span>
           </a>
-          <a class="lab-card blink-lab-card" href="./labs/speech/" aria-label="Open Speech and Translate Lab">
+          <a class="lab-card blink-lab-card" data-lab-id="speech" data-category="tools" data-updated="2026-11-13" data-keywords="translation transcription live subtitles dictation whisper tts microphone" href="./labs/speech/" aria-label="Open Speech and Translate Lab">
             <span class="card-top"><span class="lab-icon yellow">♫</span><span class="index">07 / POC</span></span>
             <strong>Speech &amp; Translate Lab</strong><span>Live microphone transcription, real translation, subtitles, spoken playback and a word-error-rate benchmark.</span><span class="card-foot">Open language lab <b>↗</b></span>
           </a>
-          <a class="lab-card blink-lab-card" href="./labs/facefx/" aria-label="Open FaceFX Lab">
+          <a class="lab-card blink-lab-card" data-lab-id="facefx" data-category="creative" data-updated="2026-11-13" data-keywords="AI face filters swap AR mobile RTX mediapipe" href="./labs/facefx/" aria-label="Open FaceFX Lab">
             <span class="card-top"><span class="lab-icon purple">◫</span><span class="index">08 / PREVIEW</span></span>
             <strong>FaceFX Lab</strong><span>Compare real phone face tracking with private NVIDIA GPU processing.</span><span class="card-foot">Open FaceFX Lab <b>↗</b></span>
           </a>
-          <a class="lab-card blink-lab-card" href="./labs/touch-studio/" aria-label="Open Touch and Gesture Studio"><span class="card-top"><span class="lab-icon purple">◌</span><span class="index">09 / PROTOTYPE</span></span><strong>Touch &amp; Gesture Studio</strong><span>Calibrate per-wedge touch zones, local-axis value gestures, radial navigation and live RGBA/Gray controls.</span><span class="card-foot">Open touch lab <b>↗</b></span></a>
-          <button type="button" class="lab-card" data-open="ideas" data-haptic-group="navigation">
+          <a class="lab-card blink-lab-card" data-lab-id="touch" data-category="creative" data-updated="2026-11-13" data-keywords="gesture radial menu color controls touch settings" href="./labs/touch-studio/" aria-label="Open Touch and Gesture Studio"><span class="card-top"><span class="lab-icon purple">◌</span><span class="index">09 / PROTOTYPE</span></span><strong>Touch &amp; Gesture Studio</strong><span>Calibrate per-wedge touch zones, local-axis value gestures, radial navigation and live RGBA/Gray controls.</span><span class="card-foot">Open touch lab <b>↗</b></span></a>
+          <button type="button" class="lab-card" data-lab-id="ideas" data-category="ideas" data-updated="2026-11-10" data-keywords="backlog notes experiment planning" data-open="ideas" data-haptic-group="navigation">
             <span class="card-top"><span class="lab-icon green">✧</span><span class="index">06 / OPEN</span></span>
             <strong>Idea Board</strong><span>Collect questions and weird experiments to build next.</span><span class="card-foot">Add an idea <b>↗</b></span>
           </button>
+          <button type="button" class="lab-card lab-card-upcoming" data-lab-id="infinity" data-category="ideas" data-updated="2026-11-13" data-keywords="infinite canvas mind map graph architecture zoom board nodes spatial workspace" data-open="infinity" data-haptic-group="navigation">
+            <span class="card-top"><span class="lab-icon yellow">◇</span><span class="index construction-tag">UNDER CONSTRUCTION</span></span>
+            <strong>Infinity Board</strong><span>An infinite, zoomable workspace for ideas, architecture maps and connected modules. Preview the concept; the interactive engine is not published yet.</span><span class="card-foot">View the roadmap <b>↗</b></span>
+          </button>
         </div>
+        <p id="catalogEmpty" class="catalog-empty" hidden>No modules match this search. Try another term or clear the filters.</p>
         <p class="inline-note">Core labs run on your device without a database or accounts. Speech &amp; Translate Lab uses optional browser speech services and an external translation API when you activate them. Settings stay in your browser unless exported.</p>
       </section>
 
@@ -264,6 +299,27 @@
           <p class="hint">Stored in this browser only; export a copy before clearing browser data.</p>
         </form>
         <div class="glass-card"><div class="card-head"><h2>Ideas to explore</h2><span class="micro-tag" id="ideaCount">0 IDEAS</span></div><ul class="idea-list" id="ideasList"></ul><div class="toolbar"><button id="exportIdeas" type="button" class="btn btn-secondary">↓ Export ideas</button></div></div>
+      </section>
+      <section id="infinity" class="panel" data-panel="infinity" aria-labelledby="infinity-title" hidden>
+        <div class="section-intro">
+          <div class="eyebrow">EXPERIMENT / SPATIAL WORKSPACE</div>
+          <h1 id="infinity-title">Infinity <span class="gradient-text">Board</span></h1>
+          <p>A future infinite canvas for navigating project architecture, exploring connected ideas, and zooming between the big picture and individual modules.</p>
+        </div>
+        <div class="construction-banner" role="status">
+          <span class="construction-symbol" aria-hidden="true">◇</span>
+          <div><strong>UNDER CONSTRUCTION</strong><p>This is a concept preview, not a functional board. An earlier prototype may be connected after review; no working version has been uploaded here.</p></div>
+        </div>
+        <div class="infinity-preview" aria-label="Static concept illustration of a zoomable map">
+          <div class="board-node board-node-primary"><small>WORKSPACE</small><strong>Infinity Board</strong><span>Connected thinking</span></div>
+          <div class="board-line board-line-left"></div><div class="board-line board-line-right"></div>
+          <div class="board-node board-node-left"><small>ZOOM</small><strong>Architecture map</strong></div>
+          <div class="board-node board-node-right"><small>LINK</small><strong>Idea clusters</strong></div>
+          <span class="board-preview-label">STATIC CONCEPT PREVIEW / NOT INTERACTIVE</span>
+        </div>
+        <div class="toolbar">
+          <button type="button" class="btn btn-secondary" data-open="home" data-haptic-group="navigation">← Explore available labs</button>
+        </div>
       </section>
     </main>
     <footer><span>MOBILAB / BUILD • TEST • LEARN</span><span>Experimental by design · <a href="https://github.com/DorManDel/MobiLab" target="_blank" rel="noopener noreferrer">Source on GitHub ↗</a></span></footer>
