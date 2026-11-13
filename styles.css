@@ -262,3 +262,71 @@ footer a{text-decoration:none;color:#aa92d5}
 .tabs a.blink-tab-link{text-decoration:none;flex:0 0 auto}
 .lab-cards a.blink-lab-card{text-decoration:none;cursor:pointer}
 .lab-cards a.blink-lab-card:focus-visible{outline:2px solid var(--yellow);outline-offset:3px}
+
+/* Discovery shell: light, portfolio-inspired glass surfaces with no JS rendering cost. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.global-search{height:43px;min-width:195px;width:min(29vw,290px);display:flex;gap:9px;align-items:center;padding:0 12px;border:1px solid #b798f253;border-radius:12px;background:linear-gradient(130deg,#38275299,#1a1630c9);color:#d6bfff;box-shadow:inset 0 1px 0 #ffffff13}
+.global-search:focus-within{border-color:var(--purple);box-shadow:0 0 0 3px #ae8aff24}
+.global-search input{border:0;outline:0!important;color:var(--ink);background:transparent;width:100%;min-width:0;height:100%;font-size:13px}
+.global-search input::placeholder{color:#b4a3ce}
+.global-search input::-webkit-search-cancel-button{cursor:pointer}
+.global-search kbd,.catalog-help kbd{font:11px ui-monospace,Consolas,monospace;color:#cabbe2;border:1px solid #ffffff22;background:#ffffff09;border-radius:5px;padding:3px 6px}
+.tab-soon{font-size:9px;color:#f5db89;background:#f9df7616;border-radius:6px;padding:4px 6px;letter-spacing:.5px}
+.catalog-toolbar{display:flex;align-items:end;flex-wrap:wrap;gap:13px;padding:15px 17px;margin-bottom:12px;background:linear-gradient(120deg,#251d3cba,#151222da);border:1px solid #ab8cde3c;border-radius:15px;box-shadow:inset 0 1px 0 #ffffff0c}
+.catalog-field{display:flex;flex-direction:column;gap:7px;flex:0 1 230px;min-width:175px}
+.catalog-field label{font-size:10px;letter-spacing:.9px;font-weight:800;color:#b8a6d4;text-transform:uppercase}
+.catalog-field select{width:100%;max-width:100%;height:42px;background-color:#141024;border-radius:10px;font-size:13px}
+.catalog-help{margin:0 0 7px auto;font-size:11px;color:var(--muted)}
+.catalog-toolbar #clearCatalog{margin-bottom:0}
+.catalog-toolbar #clearCatalog[hidden],.lab-card[hidden],.catalog-empty[hidden]{display:none!important}
+.catalog-status:empty{display:none}
+.catalog-status{margin:-3px 0 12px;font-size:12px;color:#dacdf1}
+.catalog-empty{padding:26px;text-align:center;color:var(--muted);border:1px dashed #ae8aff66;border-radius:13px;background:#b18aff08}
+.lab-card{position:relative;overflow:hidden;box-shadow:inset 0 1px 0 #ffffff12,0 9px 25px #06030e38;background:linear-gradient(130deg,#281e3cde,#161225ef)}
+.lab-card:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,#ffffff0c,transparent 45%,#aa82ec06);opacity:.7}
+.lab-card:hover{background:linear-gradient(130deg,#2e2245,#191329);box-shadow:0 12px 28px #0a061a77,inset 0 1px 0 #ffffff1b}
+.lab-card>*{position:relative}
+.catalog-updated{font-size:10px;letter-spacing:.3px;color:#9d93b3;margin-top:2px}
+.lab-card-upcoming{border-style:dashed;border-color:#efcb794d;background:linear-gradient(120deg,#34282f99,#1a142c)}
+.lab-card-upcoming .construction-tag{color:#f3d88d;font-size:9px;letter-spacing:.3px}
+.construction-banner{display:flex;gap:16px;align-items:center;padding:22px;margin:10px 0 22px;border:1px solid #ebcf765c;border-radius:16px;background:linear-gradient(135deg,#f9df761a,#281d3e66)}
+.construction-symbol{display:grid;place-items:center;flex:0 0 54px;width:54px;height:54px;border-radius:14px;background:#f9df7620;color:var(--yellow);font-size:31px}
+.construction-banner strong{font-size:13px;letter-spacing:1.5px;color:var(--yellow)}
+.construction-banner p{margin:8px 0 0;font-size:13px;line-height:1.65;color:#d6c8e6}
+.infinity-preview{position:relative;isolation:isolate;min-height:365px;overflow:hidden;border:1px solid #ac8af06b;border-radius:18px;background:radial-gradient(circle at 49% 40%,#673f9d62,transparent 50%),linear-gradient(135deg,#171027,#0d0b19)}
+.infinity-preview:before{content:"";position:absolute;inset:0;opacity:.18;background-image:linear-gradient(#c1a5ff44 1px,transparent 1px),linear-gradient(90deg,#c1a5ff44 1px,transparent 1px);background-size:28px 28px;pointer-events:none}
+.board-node{position:absolute;z-index:2;display:flex;flex-direction:column;gap:7px;width:225px;max-width:43%;padding:20px;border:1px solid #c6adff76;border-radius:14px;background:linear-gradient(140deg,#3b285c,#201833);box-shadow:0 14px 33px #05020b88,inset 0 1px #ffffff22}
+.board-node small{color:var(--yellow);font-weight:800;letter-spacing:1.2px;font-size:9px}
+.board-node strong{font-size:15px}
+.board-node span{font-size:11px;color:var(--muted)}
+.board-node-primary{top:45px;left:50%;transform:translateX(-50%);border-color:#d8b8ffb8}
+.board-node-left{left:11%;bottom:65px}
+.board-node-right{right:11%;bottom:65px}
+.board-line{position:absolute;z-index:1;top:161px;width:27%;height:2px;background:linear-gradient(90deg,#ad8aff99,#f9df76);transform-origin:right center}
+.board-line-left{left:21%;transform:rotate(-28deg)}
+.board-line-right{right:21%;transform-origin:left center;transform:rotate(28deg)}
+.board-preview-label{position:absolute;bottom:16px;left:18px;font-size:9px;letter-spacing:1.2px;font-weight:800;color:#9f91b9}
+@media(max-width:900px){
+  .topbar{flex-wrap:wrap}
+  .topbar-actions{flex:1 1 100%;gap:12px;justify-content:space-between}
+  .global-search{flex:1 1 auto;width:auto;max-width:480px}
+}
+@media(max-width:560px){
+  .global-search{min-width:0;max-width:none}
+  .global-search kbd{display:none}
+  .catalog-toolbar{gap:11px;padding:13px}
+  .catalog-field{flex:1 1 130px;min-width:0}
+  .catalog-help{flex:1 1 100%;margin:0}
+  .catalog-field select{font-size:12px}
+  .construction-banner{align-items:flex-start;padding:17px;gap:12px}
+  .construction-symbol{flex-basis:42px;width:42px;height:42px}
+  .infinity-preview{min-height:340px}
+  .board-node{width:46%;max-width:none;padding:13px}
+  .board-node-primary{top:42px;width:57%}
+  .board-node-left{left:4%;bottom:66px}
+  .board-node-right{right:4%;bottom:66px}
+  .board-node strong{font-size:12px}
+  .board-node span{font-size:10px}
+  .board-line-left{left:19%;top:160px;width:28%}
+  .board-line-right{right:19%;top:160px;width:28%}
+}
