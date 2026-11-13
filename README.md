@@ -6,13 +6,17 @@ A mobile-first collection of experimental web mechanics and hardware exploration
 
 - **FaceFX Lab (v0.3 mobile-first)** — on-device local Photo Swap (2D face texture transfer), MediaPipe/Canvas filters and an optional private Python WebRTC + RTX processor with comparison telemetry. [Open lab](./labs/facefx/) · [PC server setup](./facefx-server/) · see [FaceFX notes](./labs/facefx/README.md).
 
-- **Haptic Studio** — 21 timing patterns, accessible swipe/arrow/tap dial, six button-group presets, custom two-pulse designer, browser storage and JSON export.
+- **Haptic Studio** — 21 built-in timing patterns plus locally named user patterns, six button-group assignments, editable ON/OFF segment timeline (0–10s default slider; configurable in seconds), bounded 15s requested playback, ESM/JSON export.
 - **Camera Lab** — permission-based front/back preview, local snapshot and relative orientation.
-- **VibroMotion** — short timed vibration trials with motion/orientation telemetry, protected flat/upright setup modes, no-vibration control, custom pulse trains (on/off/duty), optional local rear-camera contact sheets, physical observations and CSV export.
+- **VibroMotion** — guarded vibration trials up to 15 seconds, 10-second ON/OFF slider bounds, timestamped sensor traces with expected motor-ON overlay and CSV export, baseline controls, safe flat/upright setup modes, optional local contact sheets and physical observations.
 - **Blink Lab** — touch-first profile eyelid overlay calibration, image-space relative eye anchors, auto/manual blink, zoom, crop and tilt preview, local settings and JSON export. Open at [`labs/blink/`](./labs/blink/).
 - **WSLX Terminal Lab** — safe Ubuntu/WSLX command simulator with an editable File Explorer, Windows ↔ WSL path navigation, text editing, virtual filesystem operations, opt-in device file/folder imports and read-only linked-folder refresh where supported. Open at [`labs/wslx/`](./labs/wslx/).
 - **Speech & Translate Lab (beta 0.6)** — canonical source log with opt-in local save/JSON export, Previous/Next/Live focus, last 1–3 subtitle lines, floating translated text above mobile microphone, HTTP 429 quota circuit breaker and opted-in provider fallback, provider comparison scoreboard, paragraph grouping, TTS and latency diagnostics. See [labs/speech/](./labs/speech/) and [latency protocol](./labs/speech/LIVE_LATENCY.md). New: optional local LibreTranslate on PC (no provider daily quota), independent file-upload Whisper node with timestamps and reusable API; [self-host setup](./services/speech-node/README.md). No system audio capture or independent STT ensemble yet; browser STT/provider text may leave the device when those engines are enabled.
+- **UI Mechanics** — fixed-station six-slot Menu Dial with touch/keyboard interaction, editable item list, standalone JavaScript + CSS module export. [Open lab](./labs/ui/).
+- **Settings Mechanism** — compare drawer, sheet, corner and full-screen settings layouts; customize glass, tabs and density; export a reusable state module + UI renderer. [Open lab](./labs/settings/).
 - **Idea Board** — locally saved experiment ideas.
+
+See [Modular Mechanics architecture, APIs and test protocol](./docs/modular-mechanics.md). These new workbenches are preview changes on a feature branch until reviewed and merged.
 
 ## Run
 
@@ -20,7 +24,7 @@ Open **index.html** from the published GitHub Pages site for camera and motion s
 
 To publish: **Settings → Pages → Build and deployment → Deploy from a branch → main → /(root) → Save**.
 
-The project uses plain HTML/CSS/JavaScript modules with no build step. GitHub Pages provides HTTPS. Open the website directly in a full browser, rather than inside a chat app or embedded webview.
+The project uses plain HTML/CSS/JavaScript modules with no build step. The reusable mechanics can be imported independently. Run the modular behavior checks with `node tests/modular-mechanics.test.cjs`. GitHub Pages provides HTTPS. Open the website directly in a full browser, rather than inside a chat app or embedded webview.
 
 ## Haptics limits
 
