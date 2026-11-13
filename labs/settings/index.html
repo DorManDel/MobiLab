@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c0918"><title>Settings Mechanism · MobiLab</title>
+<link rel="stylesheet" href="../workbench.css">
+<style>
+.layout-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:13px 0}
+.layout-options button.is-selected{background:#ad8aff45;color:#f9df76;border-color:#f9df76}
+.field{margin:15px 0}.field-head{display:flex;justify-content:space-between;gap:9px;align-items:center}
+.field-head label{margin:0}.field-head output{font-size:12px;color:#f9df76;font-weight:850;font-variant-numeric:tabular-nums}
+.preview-stage{position:relative;min-height:520px;overflow:hidden;border-radius:15px;border:1px solid #ad8aff55;
+background:radial-gradient(ellipse at 80% 15%,#67498b70,transparent 45%),linear-gradient(145deg,#141127,#0d0a18);
+isolation:isolate}
+.preview-backdrop{padding:21px;color:#f2eafd;opacity:.6;max-width:300px}
+.preview-backdrop h3{font-size:22px;margin:8px 0}.fake-bar{height:12px;border-radius:15px;background:#4b3a6b;margin:13px 0;width:80%}
+.fake-bar:nth-child(odd){width:54%}.fake-chip{display:inline-block;background:#7b59b4;padding:9px 11px;margin:8px 4px;border-radius:10px;font-size:12px}
+.settings-preview{position:absolute;display:flex;flex-direction:column;min-height:0;overflow:hidden;z-index:2;
+border:1px solid #cebcff6b;border-radius:16px;background:rgba(34,25,54,var(--panel-alpha,.92));
+backdrop-filter:blur(var(--panel-blur,18px));-webkit-backdrop-filter:blur(var(--panel-blur,18px));
+box-shadow:0 12px 55px #06020a99;transition:inset .25s,width .25s,height .25s,border-radius .25s}
+.settings-preview.layout-right{top:10px;bottom:10px;right:10px;width:min(85%,var(--panel-size,46%))}
+.settings-preview.layout-bottom{bottom:10px;left:10px;right:10px;height:min(95%,var(--panel-size,46%))}
+.settings-preview.layout-corner{bottom:10px;right:10px;width:min(70%,var(--panel-size,46%));max-height:65%}
+.settings-preview.layout-full{inset:10px}
+.settings-preview[hidden]{display:none}
+.preview-head{padding:14px;border-bottom:1px solid #ad8aff44;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.preview-head strong{font-size:15px}.preview-head button{min-height:30px;padding:4px 9px;font-size:12px}
+.preview-tabs{padding:8px;display:flex;gap:6px;overflow-x:auto;flex:0 0 auto;scrollbar-width:none;border-bottom:1px solid #a993c33c}
+.preview-tabs button{flex:0 0 auto;font-size:11px;min-height:37px;padding:7px 10px;background:#302447}
+.preview-tabs button.is-selected{color:#f9df76;border-color:#f9df76}
+.preview-content{padding:16px;overflow:auto;min-height:0;flex:1}
+.preview-content h3{margin-top:0;font-size:17px}.preview-content p{font-size:12px;line-height:1.65;color:#c9bbdf}
+.preview-content .sample-row{padding:10px;margin:8px 0;border:1px solid #c4a9ff44;border-radius:10px;background:#e0ccff0b;font-size:12px}
+.preview-content.compact{padding:8px}.preview-content.compact .sample-row{padding:5px}
+#tabEditor{display:flex;gap:8px}#tabEditor input{flex:1;min-width:0}
+.stats{margin-top:8px;padding:12px;border-radius:10px;background:#110d20;color:#f9df76;font-size:12px}
+@media(max-width:760px){.preview-stage{min-height:470px}.settings-preview.layout-right{width:min(88%,var(--panel-size,46%))}
+.settings-preview.layout-corner{width:min(78%,var(--panel-size,46%))}}
+</style></head><body>
+<div class="shell">
+<header class="top"><a href="../../#home">← MobiLab</a><b>SETTINGS MECHANISM</b><span>WORKBENCH 01</span></header>
+<div class="eyebrow">LAYOUTS · TABS · EXPORTABLE STATE</div><h1>Settings <em>Mechanism</em></h1>
+<p class="lead">Try layout modes, panel size, glass transparency, blur and tabs on a responsive mock application. Export the state as JSON and reuse the independent state engine in another project.</p>
+<div class="columns">
+<section class="card"><div class="heading"><h2>Mechanic controls</h2><span class="tag">LIVE</span></div>
+<label>Panel placement</label><div class="layout-options">
+<button data-layout="right" type="button">Right drawer</button>
+<button data-layout="bottom" type="button">Bottom sheet</button>
+<button data-layout="corner" type="button">Corner panel</button>
+<button data-layout="full" type="button">Full screen</button></div>
+<div class="field"><div class="field-head"><label for="panelSize">Panel size</label><output id="sizeValue">46%</output></div><input type="range" min="25" max="100" id="panelSize" value="46"></div>
+<div class="field"><div class="field-head"><label for="opacity">Glass opacity</label><output id="opacityValue">92%</output></div><input type="range" min="45" max="100" id="opacity" value="92"></div>
+<div class="field"><div class="field-head"><label for="blur">Background blur</label><output id="blurValue">18px</output></div><input type="range" min="0" max="40" id="blur" value="18"></div>
+<label for="density">Density</label><select id="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select>
+<label for="accent">Accent preview</label><select id="accent"><option value="purple">Purple</option><option value="yellow">Yellow</option><option value="mint">Mint</option></select>
+<label class="toggle"><input type="checkbox" id="animation" checked>Allow transitions (respects reduced-motion)</label>
+<label for="newTab">Add a settings tab</label><div id="tabEditor"><input id="newTab" type="text" maxlength="30" placeholder="e.g. Ripple FX"><button type="button" id="addTab">+ Add</button></div>
+<p class="note">Select a tab in the preview to explore its contents. Double-click a tab to remove it (at least one stays). Imported configurations are validated.</p>
+<div class="actions"><button type="button" class="primary" id="exportJSON">↓ Export JSON</button><button type="button" id="reset">Reset</button></div>
+<div class="actions"><button type="button" id="importButton">↑ Import JSON</button><input id="importFile" type="file" accept=".json,application/json" hidden></div>
+<a class="download" href="../../src/mechanics/settings-store.js" download="settings-store.js">↓ Download independent state module</a>
+</section>
+<section class="card"><div class="heading"><h2>Live preview</h2><span class="tag">ALL SCREEN SIZES</span></div>
+<div class="actions"><button type="button" id="togglePreview">Hide / show settings</button></div>
+<div class="preview-stage" id="previewStage">
+  <div class="preview-backdrop"><div class="eyebrow">DEMO APP</div><h3>Experiment dashboard</h3>
+  <div class="fake-bar"></div><div class="fake-bar"></div><div class="fake-bar"></div>
+  <span class="fake-chip">Ripple FX</span><span class="fake-chip">Haptic</span><span class="fake-chip">Prism</span>
+  <div class="fake-bar"></div><div class="fake-bar"></div>
+  </div>
+  <aside class="settings-preview layout-right" id="settingsPanel" aria-label="Settings panel preview">
+    <div class="preview-head"><strong>⚙ Settings</strong><button type="button" id="closePreview">× Close</button></div>
+    <nav id="previewTabs" class="preview-tabs" aria-label="Settings sections"></nav>
+    <div class="preview-content" id="previewContent"></div>
+  </aside>
+</div>
+<div class="stats" id="summary" aria-live="polite"></div>
+<p class="note">This page exports a reusable state/controller module; a framework-specific renderer or CSS integration is still needed in your destination project. The preview is not a full visual page builder.</p>
+<pre><code>import { SettingsStore } from "./settings-store.js";
+const store = new SettingsStore();
+const unsubscribe = store.subscribe(config => {
+  // Re-render your settings UI
+});
+store.set({ layout: "bottom", blur: 24 });</code></pre>
+</section></div></div>
+<script type="module">
+import { SettingsStore } from "../../src/mechanics/settings-store.js";
+const $=id=>document.getElementById(id);
+const KEY="mobilab.settings-workbench.v1";
+let initial={};
+try { initial=JSON.parse(localStorage.getItem(KEY)||"{}"); } catch(_) {}
+const store=new SettingsStore(initial);
+let activeTab=0, panelVisible=true;
+const saveFile=(name,body,type)=>{
+  const link=document.createElement("a"),url=URL.createObjectURL(new Blob([body],{type}));
+  link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
+};
+function render(config){
+  for(const key of ["panelSize","opacity","blur","density","accent","animation"]){
+    $(key).type==="checkbox"?$(key).checked=config[key]:$(key).value=config[key];
+  }
+  $("sizeValue").textContent=config.panelSize+"%";
+  $("opacityValue").textContent=config.opacity+"%";
+  $("blurValue").textContent=config.blur+"px";
+  document.querySelectorAll("[data-layout]").forEach(b=>b.classList.toggle("is-selected",b.dataset.layout===config.layout));
+  const panel=$("settingsPanel");
+  panel.className="settings-preview layout-"+config.layout;
+  panel.style.setProperty("--panel-size",config.panelSize+"%");
+  panel.style.setProperty("--panel-alpha",config.opacity/100);
+  panel.style.setProperty("--panel-blur",config.blur+"px");
+  panel.style.transitionDuration=config.animation&&!matchMedia("(prefers-reduced-motion: reduce)").matches?".25s":"0s";
+  panel.hidden=!panelVisible;
+  const tabList=$("previewTabs");
+  tabList.replaceChildren();
+  activeTab=Math.min(activeTab,config.tabs.length-1);
+  config.tabs.forEach((tab,index)=>{
+    const button=document.createElement("button");
+    button.type="button";button.textContent=tab;
+    button.classList.toggle("is-selected",index===activeTab);
+    button.setAttribute("aria-selected",String(index===activeTab));
+    button.addEventListener("click",()=>{activeTab=index;render(store.get());});
+    button.addEventListener("dblclick",()=>{
+      if(config.tabs.length<=1)return;
+      store.set({tabs:config.tabs.filter((_,i)=>i!==index)});
+    });
+    tabList.append(button);
+  });
+  const content=$("previewContent");
+  content.className="preview-content "+config.density;
+  content.replaceChildren();
+  const heading=document.createElement("h3");heading.textContent=config.tabs[activeTab]||"Settings";
+  const message=document.createElement("p");message.textContent="This is the "+(config.tabs[activeTab]||"settings")+" tab preview. Add reusable controls and modules here.";
+  content.append(heading,message);
+  for(const sample of ["Enable effect", "Sensitivity", "Advanced options"]){
+    const row=document.createElement("div");row.className="sample-row";row.textContent=sample;content.append(row);
+  }
+  const accents={purple:"#b891ff",yellow:"#f9df76",mint:"#7ae9c3"};
+  panel.style.borderColor=accents[config.accent];
+  $("summary").textContent=config.layout.toUpperCase()+" · "+config.panelSize+"% size · "+config.opacity+"% opacity · "+config.blur+"px blur · "+config.tabs.length+" tabs";
+}
+store.subscribe(config=>{render(config);try{localStorage.setItem(KEY,JSON.stringify(config))}catch(_){}});
+document.querySelectorAll("[data-layout]").forEach(b=>b.addEventListener("click",()=>store.set({layout:b.dataset.layout})));
+for(const key of ["panelSize","opacity","blur","density","accent","animation"]){
+  $(key).addEventListener(key==="density"||key==="accent"?"change":"input",()=>store.set({[key]:$(key).type==="checkbox"?$(key).checked:$(key).value}));
+}
+$("addTab").addEventListener("click",()=>{
+  const name=$("newTab").value.trim();
+  if(!name)return;
+  const tabs=store.get().tabs;
+  if(tabs.length>=12||tabs.includes(name)){alert("Max 12 unique tabs");return}
+  store.set({tabs:[...tabs,name]});$("newTab").value="";activeTab=tabs.length;render(store.get());
+});
+$("togglePreview").addEventListener("click",()=>{panelVisible=!panelVisible;render(store.get())});
+$("closePreview").addEventListener("click",()=>{panelVisible=false;render(store.get())});
+$("exportJSON").addEventListener("click",()=>saveFile("settings-mechanism.json",JSON.stringify(store.export(),null,2),"application/json"));
+$("reset").addEventListener("click",()=>{if(confirm("Reset workbench settings?")){activeTab=0;store.reset();}});
+$("importButton").addEventListener("click",()=>$("importFile").click());
+$("importFile").addEventListener("change",async()=>{
+  const file=$("importFile").files?.[0]; if(!file)return;
+  if(file.size>100000){alert("Settings file is too large");return}
+  try{store.import(await file.text());activeTab=0;render(store.get());}
+  catch(error){alert("Import failed: "+error.message)}
+  $("importFile").value="";
+});
+</script></body></html>
