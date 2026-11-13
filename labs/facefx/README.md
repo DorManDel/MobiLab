@@ -1,4 +1,4 @@
-# FaceFX Lab v0.4.1 — mobile-first + CDN recovery and portraits
+# FaceFX Lab v0.5 — mobile-first + CDN recovery and portraits
 
 ## Mobile: no PC required
 Open **https://dormandel.github.io/MobiLab/labs/facefx/** on your phone using Chrome or Samsung Internet. Select **Mobile** (default), pick one of the three synthetic sample portraits or choose a clear single-face portrait with consent, tap **Start camera**, grant permission, and try **Photo Swap · local (2D)**.
@@ -25,3 +25,11 @@ The original CDN `+esm` import produced `Failed to fetch dynamically imported mo
 
 ### v0.4.1 version correction
 An actual Chromium network test revealed that `0.10.22/vision_bundle.mjs` returned HTTP 404. Moved to version `0.10.35`, which publishes `vision_bundle.mjs`; the module and the `/wasm` loader are always pinned to the same release. An on-device Samsung retest is still required.
+
+## v0.5 — source and camera detection recovery
+The UI status *Face engine ready* only reports that MediaPipe loaded. It does **not** mean a face was detected. The live pipeline now reports detection checks and successful swap frames independently from DISPLAY FPS.
+- VIDEO and IMAGE tasks are independent, CPU-first on the phone, with fallback to GPU **only if CPU initialization fails**. This avoids switching a shared GPU task between camera and gallery images.
+- Source photo detection tries the original portrait plus two padded passes (18% and 34%). Landmark coordinates are mapped back into the source image coordinate system.
+- If live VIDEO detection repeatedly returns zero faces, an independent IMAGE-mode pass can recover and mark IMAGE fallback in the pipeline status.
+- For a real camera check, keep the entire face (forehead through chin) visible and look at **FACES** and the pipeline health field; 60 DISPLAY FPS only measures Canvas redraw.
+- A fully validated photo swap still requires testing on an actual Samsung/Chrome camera. If it continues to report 0 faces, collect the diagnostics log; do not count an unverified swap as success.
