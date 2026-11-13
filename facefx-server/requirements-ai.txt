@@ -1,0 +1,4 @@
+# Optional AI Face Swap: install only after basic debug bridge works.
+# Check the official InsightFace model licence and CUDA/cuDNN compatibility first.
+insightface==0.7.3
+onnxruntime-gpu
