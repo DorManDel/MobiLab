@@ -494,7 +494,7 @@ const queue = new TranslationQueue({onChange:updateRow,maxPending:8});
 function addPhrase(text,source,target,candidates=null,automatic=true,sttMs=null,finalPerf=performance.now()) {
   text=text.trim();
   if (!text || rows.length >= MAX_PHRASES) {
-    if (rows.length >= MAX_PHRASES) { if(micActive)stopMic();status("Session capped at 250 phrases. Export or clear before recording more.",true);}
+    if (rows.length >= MAX_PHRASES) { if(micActive)stopMic();status("Session reached the 3,000-paragraph safety cap. Export the log before starting a new session.",true);}
     return;
   }
   const previous = rows[rows.length-1];
@@ -503,22 +503,37 @@ function addPhrase(text,source,target,candidates=null,automatic=true,sttMs=null,
   const row = { id:++rowId,at:Date.now(),offset:Date.now()-sessionStart,text,source,target,
     candidates,results:{},queueStatus:"saved",sttMs,finalPerf,
     fromSpeech:Array.isArray(candidates),queueWaitMs:null,finalToSubtitleMs:null,
-    captionProvider:$("captionProvider").value,displayText:"",displayProvider:null,displayShown:false };
-  rows.push(row);
+    captionProvider:$("captionProvider").value,displayText:"",displayProvider:null,displayShown:false,
+    fallbackUsed:false };
+  ledger.append(row);
   interimActive=false;
   renderRows();showCaption(row);showComparison(row);showCandidates(row);
   liveView.final(row);
+  syncFloating(row);
+  saveLocalSoon();
   if (automatic) translateRow(row);
   else status("Phrase saved. Tap 'Translate saved' whenever you're ready.");
 }
 function translateRow(row) {
   try {
-    const providers = activeProviders();
+    const providers=activeProviders();
+    if(!providers.length){
+      row.queueStatus="unavailable";
+      const reason=circuit.reason("cloud")||
+        "No translation engine is available. Configure and enable your own HTTPS LibreTranslate server or a supported on-device translator.";
+      row.results.cloud={status:"error",error:reason};
+      showProviderProblem(reason,Boolean(circuit.reason("cloud")));
+      liveView.failed(row,reason);
+      renderRows();saveLocalSoon();return;
+    }
+    if(row.captionProvider!=="fastest" && !providers.some(x=>x.id===row.captionProvider)){
+      row.captionProvider="fastest";row.fallbackUsed=true;
+    }
     const realtime=micActive && $("subtitlePriority").value==="live";
     const accepted=realtime
       ? queue.enqueueRealtime(row,providers,2)
       : queue.enqueue(row,providers);
-    if (!accepted) status("Translation queue is full; transcript was still saved.",true);
+    if(!accepted)status("Translation backlog is full. Original saved; retry that paragraph later.",true);
   } catch (error) {
     row.queueStatus="skipped";
     status("Comparison setting: "+error.message,true);
@@ -527,8 +542,12 @@ function translateRow(row) {
 }
 function translateSaved() {
   queue.start();
-  const targets=rows.filter(row => ["saved","canceled","skipped"].includes(row.queueStatus)
-    && Object.values(row.results).every(x=>x.status!=="running"));
+  const targets=rows.filter(row =>
+    (["saved","canceled","skipped","unavailable"].includes(row.queueStatus) ||
+      (row.queueStatus==="completed"&&!row.displayText))
+    && Object.values(row.results).every(x=>x.status!=="running"))
+    .slice(0,8); // deliberate batch: do not silently enqueue hundreds of quota-consuming calls
+  if(targets.length)status("Translating up to 8 stored paragraphs. Repeat after completion for more.");
   if (!targets.length) {
     const latest=rows[rows.length-1];
     if(latest) {
@@ -542,7 +561,13 @@ function translateSaved() {
     } else status("No saved phrases to translate yet.",true);
     return;
   }
-  for(const row of targets) translateRow(row);
+  for(const row of targets){
+    row.results={};row.queueStatus="saved";
+    row.captionProvider=$("captionProvider").value;row.fallbackUsed=false;
+    row.displayText="";row.displayProvider=null;row.displayShown=false;
+    row.finalToSubtitleMs=null;row.finalPerf=performance.now();
+    translateRow(row);
+  }
 }
 $("translateSaved").addEventListener("click",translateSaved);
 
@@ -578,7 +603,7 @@ $("clearAll").addEventListener("click",()=>{
   queue.stop();
   translationCache.clear();
   paragraphs.clear();
-  rows=[];rowId=0;lastSubtitleShownId=0;sessionStart=Date.now();recordingStart=sessionStart;
+  ledger.clear();rowId=0;lastSubtitleShownId=0;sessionStart=Date.now();recordingStart=sessionStart;
   interimActive=false;
   $("recordTime").textContent="00:00";
   $("wer").textContent="—";
@@ -587,6 +612,9 @@ $("clearAll").addEventListener("click",()=>{
   $("speechCandidates").replaceChildren();
   renderRows();showComparison(null);
   cancelDraft();liveView.reset();
+  syncFloating();
+  if($("saveLocal").checked)archive.clear().catch(e=>status("Local archive deletion failed: "+e.message,true));
+  hideProviderProblem();
   status("Session cleared. Nothing is uploaded by the app itself.");
 });
 $("compareLocal").disabled=!localTranslator.supported();
@@ -650,7 +678,7 @@ function renderRows() {
     empty.textContent="No saved speech yet. Tap Start recording, or type a sentence.";
     container.append(empty);
   }
-  for(const row of rows.slice().reverse()){
+  for(const row of rows.slice(-displayLimit).reverse()){
     const card=document.createElement("article");card.className="segment";
     const meta=document.createElement("div");meta.className="meta";
     const label=document.createElement("span");label.textContent=new Date(row.at).toLocaleTimeString();
@@ -658,6 +686,16 @@ function renderRows() {
     meta.append(label,lang);
     const orig=document.createElement("p");orig.className="original";orig.textContent=row.text;
     card.append(meta,orig);
+    const actions=document.createElement("div");actions.className="row";
+    const focus=document.createElement("button");
+    focus.type="button";focus.className="read-entry";
+    focus.textContent="⌖ Focus paragraph #"+row.id;
+    focus.addEventListener("click",()=>focusView(ledger.focus(row.id)));
+    actions.append(focus);
+    const info=document.createElement("span");info.className="log-info";
+    info.textContent=row.displayText?"Caption: "+(row.displayProvider||"translator"):
+      "State: "+(row.queueStatus||"saved");
+    actions.append(info);card.append(actions);
     let count=0;
     for(const id of ["cloud","local","libre"]){
       const result=row.results[id];
@@ -686,6 +724,7 @@ function renderRows() {
     container.append(card);
   }
   $("phraseCount").textContent=String(rows.length);
+  $("showMoreRows").disabled=displayLimit>=rows.length;
   $("latency").textContent=(()=>{for(let i=rows.length-1;i>=0;i--){
     if(typeof rows[i].results.cloud?.ms==="number")return rows[i].results.cloud.ms+"ms";
   }return "—";})();
