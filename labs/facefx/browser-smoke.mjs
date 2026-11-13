@@ -9,7 +9,13 @@ const vertices=Array.from({length:478},(_,i)=>({x:.5+.18*Math.sin(i*12.83),y:.5+
 ids.forEach((id,i)=>{const angle=2*Math.PI*i/ids.length;vertices[id]={x:.5+.3*Math.sin(angle),y:.5-.37*Math.cos(angle),z:0}});
 const instance={ async setOptions(){}, detect(){return {faceLandmarks:[vertices]}},detectForVideo(){return {faceLandmarks:[vertices]}} };
 export const FilesetResolver={async forVisionTasks(){return {}}};
-export const FaceLandmarker={async createFromOptions(){return instance}};
+export const FaceLandmarker={
+  FACE_LANDMARKS_TESSELATION:[{start:0,end:1},{start:1,end:2},{start:2,end:0}],
+  FACE_LANDMARKS_FACE_OVAL:ids.map((start,i)=>({start,end:ids[(i+1)%ids.length]})),
+  FACE_LANDMARKS_CONTOURS:[{start:33,end:263}],
+  FACE_LANDMARKS_LIPS:[{start:61,end:291}],
+  async createFromOptions(){return instance}
+};
 `;
 const browser=await chromium.launch({headless:true});
 try{
@@ -24,6 +30,15 @@ try{
   await page.goto(base,{waitUntil:'domcontentloaded'});
   assert.equal(await page.locator('[data-preset]').count(),3,'three preset buttons');
   assert.equal(await page.locator('#viewerGrid').getAttribute('data-view'),'mobile');
+  assert.equal(await page.locator('#effect').inputValue(),'mesh','real mapping is the default');
+  assert.equal(await page.locator('#sourcePicker').isVisible(),false,'portrait source belongs to swap only');
+  const oldHeight=await page.locator('#pipelineStatus').evaluate(el=>el.getBoundingClientRect().height);
+  await page.locator('#effect').selectOption('contours');
+  await page.locator('#effect').selectOption('points');
+  await page.locator('#effect').selectOption('swap');
+  assert.equal(await page.locator('#sourcePicker').isVisible(),true,'portrait picker available for swap');
+  const newHeight=await page.locator('#pipelineStatus').evaluate(el=>el.getBoundingClientRect().height);
+  assert.equal(oldHeight,newHeight,'status row must not resize when message changes');
   await page.locator('[data-preset="studio-curly"]').click();
   await page.waitForFunction(()=>document.querySelector('#sourceStatus')?.textContent?.startsWith('SOURCE VERIFIED'),{timeout:15000});
   const ready=await page.locator('#sourceStatus').textContent();
