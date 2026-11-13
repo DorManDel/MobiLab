@@ -12,7 +12,8 @@ const state = {
   remoteMode: null, sentPings: new Map(), pingIndex: 0,
   photoSwap: new LocalPhotoSwap(), modelBusy: false, swapDrawAt: 0, sourceLoading: false,
   imageEngine: null, imagePromise: null, visionFileset: null, visionSdk: null, sdkPromise: null,
-  health: new TrackingHealth(), imageFallback: false, fallbackLoading: false, retryDetectAt: 0
+  health: new TrackingHealth(), imageFallback: false, fallbackLoading: false, retryDetectAt: 0,
+  peekOriginal: false, lastDetectionTotal: 0, lastSwapTotal: 0
 };
 let visionModule = null;
 function say(message) {
@@ -39,6 +40,8 @@ function buttons() {
 function resetMetrics() {
   for (const id of ['localFps', 'localMs', 'faceCount', 'remoteFps', 'remoteMs', 'remoteRtt']) $(id).textContent = '—';
   state.renderCount = 0; state.renderStart = performance.now(); state.localMs = null;
+  state.lastDetectionTotal=state.health.attempts;state.lastSwapTotal=state.health.swapFrames;
+  $('trackingFps').textContent='—';$('swapFps').textContent='—';
 }
 function displayMode(next) {
   $('viewerGrid').dataset.view = next;
@@ -216,26 +219,29 @@ function localLoop(now) {
         state.tracked=found;
         $('faceCount').textContent=found?'1':'0';
         if(found)state.lastFaceAt=now;
-        const stage=found ? (state.photoSwap.ready?'TRACKED · PHOTO READY':'TRACKED · CHOOSE PHOTO')
-          : 'NO FACE · keep your entire face centered and well lit';
+        const stage=!found?'NO FACE · keep your entire face centered and well lit'
+          : effect==='swap'?(state.photoSwap.ready?'TRACKED · PHOTO READY':'TRACKED · CHOOSE PHOTO')
+          : 'AR FILTER · '+$('effect').selectedOptions[0].text;
         pipelineStatus(stage+' · '+(state.imageFallback?'IMAGE':'VIDEO')+' · '+state.health.attempts+' checks · '+state.health.swapFrames+' swaps',!!found);
       } catch(error) {say('Face detection error: '+error.message);pipelineStatus('DETECTION ERROR · '+error.message);state.localEngine=null;state.visionPromise=null;}
       state.lastDetect=now;state.lastFrameTime=video.currentTime;
     }
-    if (effect!=='none' && state.tracked) {
+    if (effect!=='none' && state.tracked && !state.peekOriginal) {
       const alpha=Math.max(0,1-Math.max(0,now-state.lastFaceAt-180)/260);
       const pts=easePoints(state.tracked);
-      if(effect === 'swap' && state.photoSwap.ready && now - state.swapDrawAt > 1000/12) {
+      const qualityMode=$('swapQuality').value;
+      const quality=qualityMode==='fast'?.55:qualityMode==='detail'?1:canvas.width>700?.65:.80;
+      const swapHz=qualityMode==='fast'?9:qualityMode==='detail'?12:11;
+      if(effect === 'swap' && state.photoSwap.ready && now - state.swapDrawAt > 1000/swapHz) {
         const beginSwap=performance.now();
-        const quality=canvas.width > 700 ? 0.65 : 1;
-        state.photoSwap.render(pts,canvas.width,canvas.height,quality);
+        state.photoSwap.render(pts,canvas.width,canvas.height,quality,Number($('expression').value)/100);
         state.health.swapFrames++;
-        pipelineStatus('FACE SWAP ACTIVE · '+state.health.swapFrames+' frames',true);
+        pipelineStatus('FACE SWAP ACTIVE · '+state.health.swapFrames+' frames'+(state.photoSwap.visibility<.75?' · profile angle protection':'') ,true);
         state.swapDrawAt=now;
         $('localMs').textContent=(state.localMs+performance.now()-beginSwap).toFixed(1);
       }
       if(effect==='swap' && state.photoSwap.ready){
-        ctx.globalAlpha=alpha*Number($('intensity').value)/100;
+        ctx.globalAlpha=alpha*Number($('intensity').value)/100*state.photoSwap.visibility;
         ctx.drawImage(state.photoSwap.buffer,0,0,canvas.width,canvas.height);
         ctx.globalAlpha=1;
       }else if(effect!=='swap'){
@@ -245,7 +251,11 @@ function localLoop(now) {
     ctx.restore();
     state.renderCount++;
     if (now-state.renderStart>=1000) {
-      $('localFps').textContent=String(Math.round(state.renderCount*1000/(now-state.renderStart)));
+      const dt=(now-state.renderStart)/1000;
+      $('localFps').textContent=String(Math.round(state.renderCount/dt));
+      $('trackingFps').textContent=(Math.max(0,state.health.attempts-state.lastDetectionTotal)/dt).toFixed(1);
+      $('swapFps').textContent=(Math.max(0,state.health.swapFrames-state.lastSwapTotal)/dt).toFixed(1);
+      state.lastDetectionTotal=state.health.attempts;state.lastSwapTotal=state.health.swapFrames;
       state.renderCount=0;state.renderStart=now;
     }
   }
@@ -264,6 +274,7 @@ async function startCamera() {
     $('sourceVideo').srcObject=stream;
     await $('sourceVideo').play();
     state.tracked=null;state.smooth=null;state.lastFrameTime=-1;state.lastDetect=0;state.lastFaceAt=0;state.swapDrawAt=0;
+    state.peekOriginal=false; $('peekOriginal').classList.remove('pressed');
     resetMetrics();state.health.reset();state.imageFallback=false;
     pipelineStatus('CAMERA LIVE · waiting for first face detection');
     $('localPlaceholder').hidden=true;
@@ -291,8 +302,16 @@ async function stopCamera() {
 }
 $('cameraStart').addEventListener('click',startCamera);
 $('cameraStop').addEventListener('click',stopCamera);
+const peekButton=$('peekOriginal');
+function setPeek(active){state.peekOriginal=!!active;peekButton.classList.toggle('pressed',!!active);peekButton.setAttribute('aria-pressed',String(!!active));}
+peekButton.addEventListener('pointerdown',e=>{e.preventDefault();setPeek(true);peekButton.setPointerCapture?.(e.pointerId);});
+for(const type of ['pointerup','pointercancel','lostpointercapture','pointerleave'])peekButton.addEventListener(type,()=>setPeek(false));
+peekButton.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();setPeek(true);}});
+peekButton.addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();setPeek(false);}});
+$('expression').addEventListener('input',()=>{$('expressionValue').textContent=$('expression').value+'%';});
 $('effect').addEventListener('change',()=>{
   state.swapDrawAt=0;
+  pipelineStatus('EFFECT CHANGED · '+$('effect').selectedOptions[0].text);
   $('sourcePicker').hidden = $('effect').value!=='swap';
   if(state.stream && $('effect').value!=='none')initLandmarker().catch(e=>say('Model: '+e.message));
 });
@@ -323,7 +342,7 @@ async function loadPhoto(file,presetId=''){
         return found.landmarks;
       }finally {state.modelBusy=false;}
     });
-    state.swapDrawAt=0;selectedPreset(presetId);
+    state.swapDrawAt=0;state.health.swapFrames=0;state.lastSwapTotal=0;selectedPreset(presetId);
     $('sourcePreview').src=state.photoSwap.photo.toDataURL('image/webp',.78);
     $('sourcePreview').hidden=false;
     $('sourceStatus').textContent='SOURCE VERIFIED · '+file.name+' · '+result.triangles+' triangles ('+photoStrategy+'). '+(state.stream?'Center your whole face in the camera.':'Tap Start camera.');
@@ -497,4 +516,4 @@ $('snapshot').addEventListener('click',()=>{
 // Closing the page or hiding it stops camera and remote processing.
 window.addEventListener('pagehide',()=>{void stopCamera();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.stream)void stopCamera();});
-buttons();resetMetrics();displayMode('mobile');modelStatus('Not loaded yet · select a portrait or start the camera');say('FaceFX v0.5 ready · independent CPU-first photo/video detection and live diagnostics.');
+buttons();resetMetrics();displayMode('mobile');modelStatus('Not loaded yet · select a portrait or start the camera');say('FaceFX v0.6 preview · controlled expressions, correct AR masks, live rates and before/after.');
