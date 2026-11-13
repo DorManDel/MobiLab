@@ -163,13 +163,22 @@ function faceOverlay(ctx, points, effect, intensity, w, h, alpha) {
     ctx.beginPath();ctx.moveTo(-width*.69,-width*.20);ctx.lineTo(width*.69,-width*.20);ctx.lineTo(width*.56,width*.23);ctx.quadraticCurveTo(0,width*.48,-width*.56,width*.23);ctx.closePath();
     const grd=ctx.createLinearGradient(0,-width*.2,0,width*.5);grd.addColorStop(0,'rgba(177,104,255,.68)');grd.addColorStop(1,'rgba(21,218,228,.2)');
     ctx.fillStyle=grd;ctx.fill();ctx.strokeStyle='#e6cbff';ctx.lineWidth=Math.max(2,width*.022);ctx.stroke();
-    ctx.fillStyle='#ffeaa5';ctx.font=`${Math.round(width*.095)}px monospace`;ctx.textAlign='center';ctx.fillText('FACE TRACKED',0,-width*.27);
+    // The camera preview is mirrored: avoid mirrored text on the visor.
+    ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=Math.max(1,width*.014);
+    ctx.beginPath();ctx.moveTo(-width*.42,-width*.1);ctx.lineTo(-width*.18,-width*.1);ctx.stroke();
   } else if (effect === 'mask') {
-    const l = p(234), r = p(454), cheekL = p(205), cheekR = p(425);
-    ctx.beginPath();ctx.moveTo(l.x,l.y);ctx.lineTo(cheekL.x,cheekL.y);ctx.lineTo(nose.x,nose.y);ctx.lineTo(cheekR.x,cheekR.y);ctx.lineTo(r.x,r.y);ctx.lineTo(chin.x,chin.y);ctx.closePath();
-    ctx.fillStyle='rgba(57,18,109,.42)';ctx.fill();ctx.strokeStyle='#9cf9db';ctx.lineWidth=Math.max(2,w/230);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(left.x,left.y);ctx.lineTo(nose.x,nose.y);ctx.lineTo(right.x,right.y);ctx.stroke();
-    ctx.fillStyle='#ffe48f';ctx.beginPath();ctx.arc(nose.x,nose.y,Math.max(4,w/100),0,Math.PI*2);ctx.fill();
+    const cheekL=p(205), cheekR=p(425), bridge=p(4);
+    const jaw=[454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234];
+    ctx.beginPath();const anchor=p(234);ctx.moveTo(anchor.x,anchor.y);
+    ctx.quadraticCurveTo(cheekL.x,cheekL.y,bridge.x,bridge.y);
+    ctx.quadraticCurveTo(cheekR.x,cheekR.y,p(454).x,p(454).y);
+    for(const id of jaw.slice(1)){const q=p(id);ctx.lineTo(q.x,q.y);}
+    ctx.closePath();
+    ctx.fillStyle='rgba(57,18,109,.50)';ctx.fill();ctx.strokeStyle='#9cf9db';ctx.lineWidth=Math.max(2,w/260);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cheekL.x,cheekL.y);ctx.lineTo(p(58).x,p(58).y);
+    ctx.moveTo(cheekR.x,cheekR.y);ctx.lineTo(p(288).x,p(288).y);
+    ctx.strokeStyle='rgba(156,249,219,.55)';ctx.stroke();
+    ctx.fillStyle='#ffe48f';ctx.beginPath();ctx.arc(bridge.x,bridge.y,Math.max(3,w/125),0,Math.PI*2);ctx.fill();
   }
   ctx.restore();
 }
