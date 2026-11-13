@@ -7,7 +7,7 @@ on:
   push:
     branches:
       - main
-      - feat/speech-paragraph-captions-floating-v04
+      - fix/speech-ledger-focus-provider-429-v05
     paths:
       - 'labs/speech/**'
       - '.github/workflows/speech-lab.yml'
@@ -34,6 +34,9 @@ jobs:
           node --check labs/speech/src/paragraph-builder.js
           node --check labs/speech/src/caption-selection.js
           node --check labs/speech/src/speech-floating-controls.js
+          node --check labs/speech/src/session-ledger.js
+          node --check labs/speech/src/local-archive.js
+          node --check labs/speech/src/provider-stats.js
       - name: Run pure unit tests and DOM contract
         working-directory: labs/speech
         run: npm test
