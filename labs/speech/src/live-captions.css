@@ -118,3 +118,43 @@
   .live-output{bottom:18px}
   .live-output .live-translation{font-size:clamp(19px,4.5vw,26px)}
 }
+
+/* Beta 0.5: the log owns complete text, the viewer owns only a focused viewport. */
+.focus-controls{display:flex;align-items:center;justify-content:flex-end;gap:5px;margin:9px 0 8px}
+.focus-controls span{flex:1;min-width:0;font-size:11px;color:#b6a8d3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.focus-controls button{min-height:34px;min-width:37px;border:1px solid #806ca5;border-radius:9px;background:#302546;color:#f3e9ff;padding:5px 10px}
+.focus-controls #focusLive{min-width:65px;font-size:11px;color:#f7d977}
+.focus-controls #focusLive[aria-pressed=true]{border-color:#d1ae63;background:#483d4d}
+.provider-banner{display:flex;align-items:center;gap:8px;background:rgba(86,43,51,.75);
+ border:1px solid rgba(255,174,135,.6);padding:10px;border-radius:11px;margin:8px 0;
+ color:#ffe0be;font-size:12px;line-height:1.4}
+.provider-banner[hidden]{display:none}
+.provider-banner span{flex:1;min-width:0;overflow-wrap:anywhere}
+.provider-banner button{min-height:35px;padding:6px 9px;font-size:11px;white-space:nowrap}
+.live-deck .live-partial{max-height:none;height:3.2em;overflow:hidden;line-height:1.6;
+ font-size:clamp(15px,2vw,19px);direction:inherit}
+#liveSourceWindow{overflow:hidden}
+.focus-tail{line-height:1.6;overflow-wrap:anywhere;white-space:pre-wrap;unicode-bidi:plaintext}
+.live-deck .live-output{max-height:calc(3em + var(--caption-lines,2)*1.4em + 22px)}
+.live-translation-window{overflow:auto;scrollbar-width:none;height:calc(var(--caption-lines,2)*1.4em);
+ overscroll-behavior:contain}
+.live-translation-window::-webkit-scrollbar{display:none}
+.live-deck .live-output #liveTranslation{display:block;-webkit-line-clamp:unset;line-clamp:unset;
+ max-height:none!important;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere;
+ unicode-bidi:plaintext;overflow:visible}
+.live-deck[data-mode=roll] .live-partial,
+.live-deck[data-mode=ticker] .live-partial{max-height:none;overflow:hidden;height:3.2em}
+#segments .segment{scroll-margin-block:10px}
+#segments .segment:focus-within{border-color:#dcbaf8}
+#segments .segment .original{white-space:pre-wrap;overflow-wrap:anywhere}
+#segments .segment .read-entry{font-size:12px;font-weight:700;min-height:38px;padding:7px 11px;margin:5px 0}
+#segments .segment .log-info{color:#bcaecc;font-size:11px;line-height:1.45}
+#segments .segment .log-error{color:#ffd1a4;font-size:12px}
+@media(max-width:740px){
+ .live-deck .live-partial{left:12px;right:12px;top:44px;height:3.1em}
+ .provider-banner{flex-wrap:wrap}
+ .provider-banner span{flex-basis:100%}
+ .live-translation-window{height:calc(var(--caption-lines,2)*1.4em)}
+ .live-deck .live-output{bottom:15px}
+ .focus-controls button{min-width:37px}
+}
