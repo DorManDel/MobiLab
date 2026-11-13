@@ -7,7 +7,7 @@ on:
   push:
     branches:
       - main
-      - feat/speech-live-captions-latency-v03
+      - feat/speech-paragraph-captions-floating-v04
     paths:
       - 'labs/speech/**'
       - '.github/workflows/speech-lab.yml'
@@ -31,6 +31,9 @@ jobs:
           node --check labs/speech/src/engine-compare.js
           node --check labs/speech/src/live-captions.js
           node --check labs/speech/src/live-view.js
+          node --check labs/speech/src/paragraph-builder.js
+          node --check labs/speech/src/caption-selection.js
+          node --check labs/speech/src/speech-floating-controls.js
       - name: Run pure unit tests and DOM contract
         working-directory: labs/speech
         run: npm test
