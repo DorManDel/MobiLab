@@ -39,13 +39,14 @@ function clamp(value, min, max) {
 }
 export function sanitizePattern(pattern) {
   if (!Array.isArray(pattern)) return [];
-  return pattern.slice(0, 9).map((value) => clamp(value, 0, 300));
+  return pattern.slice(0, 63).map((value) => clamp(value, 0, 120000));
 }
 function makeDefaults() {
   return {
     enabled: true,
     groups: Object.fromEntries(GROUPS.map((group) => [group.id, group.defaultPreset])),
-    custom: [25, 45, 35]
+    custom: [25, 45, 35],
+    saved: {}
   };
 }
 export class HapticEngine {
@@ -55,9 +56,16 @@ export class HapticEngine {
       const stored = JSON.parse(localStorage.getItem(KEY) || "null");
       if (stored && typeof stored === "object") {
         this.config.enabled = stored.enabled !== false;
+        // Accept only bounded, serializable names and timing data from local storage.
+        if (stored.saved && typeof stored.saved === "object") {
+          for (const [id, item] of Object.entries(stored.saved).slice(0, 50)) {
+            if (!/^saved-[a-z0-9-]{1,50}$/.test(id) || typeof item?.name !== "string") continue;
+            this.config.saved[id] = { name: item.name.slice(0, 60), pattern: sanitizePattern(item.pattern) };
+          }
+        }
         for (const group of GROUPS) {
           const value = stored.groups?.[group.id];
-          if (typeof value === "string" && Object.hasOwn(PRESETS, value)) {
+          if (typeof value === "string" && (Object.hasOwn(PRESETS, value) || Object.hasOwn(this.config.saved, value))) {
             this.config.groups[group.id] = value;
           }
         }
@@ -75,7 +83,7 @@ export class HapticEngine {
     this.save();
   }
   setGroup(groupId, presetId) {
-    if (!GROUPS.some((group) => group.id === groupId) || !Object.hasOwn(PRESETS, presetId)) return;
+    if (!GROUPS.some((group) => group.id === groupId) || !Object.hasOwn(this.allPresets(), presetId)) return;
     this.config.groups[groupId] = presetId;
     this.save();
   }
@@ -83,8 +91,27 @@ export class HapticEngine {
     this.config.custom = sanitizePattern(pattern);
     this.save();
   }
+  allPresets() { return { ...PRESETS, ...this.config.saved }; }
+  saveNamed(name, pattern, id = null) {
+    const label = String(name || "").trim().slice(0, 60);
+    if (!label) throw new Error("A name is required");
+    const safe = sanitizePattern(pattern);
+    if (!safe.some((v, i) => i % 2 === 0 && v > 0)) throw new Error("Add a vibration step");
+    const existing = id && Object.hasOwn(this.config.saved, id) ? id : null;
+    if (!existing && Object.keys(this.config.saved).length >= 50) throw new Error("50 saved patterns maximum");
+    const key = existing || "saved-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    this.config.saved[key] = { name: label, pattern: safe };
+    this.save();
+    return key;
+  }
+  deleteNamed(id) {
+    if (!Object.hasOwn(this.config.saved, id)) return;
+    delete this.config.saved[id];
+    for (const group of GROUPS) if (this.config.groups[group.id] === id) this.config.groups[group.id] = "off";
+    this.save();
+  }
   pattern(presetId) {
-    return presetId === "custom" ? [...this.config.custom] : [...(PRESETS[presetId]?.pattern || [])];
+    return presetId === "custom" ? [...this.config.custom] : [...(this.allPresets()[presetId]?.pattern || [])];
   }
   play(pattern, { ignoreEnabled = false } = {}) {
     if (!ignoreEnabled && !this.config.enabled) return { ok: false, reason: "Haptics disabled" };
@@ -94,8 +121,19 @@ export class HapticEngine {
       this.stop();
       return { ok: true, reason: "Silent pattern" };
     }
-    const ok = navigator.vibrate(safePattern);
-    return { ok: Boolean(ok), reason: ok ? "Pattern requested" : "Vibration request rejected" };
+    // Bounded physical playback: editing/export can exceed this limit, but one playback cannot.
+    const MAX_PLAY_MS = 15000;
+    let budget = MAX_PLAY_MS;
+    const bounded = [];
+    for (const ms of safePattern) {
+      if (budget <= 0) break;
+      const used = Math.min(ms, budget);
+      bounded.push(used);
+      budget -= used;
+    }
+    const truncated = safePattern.reduce((sum, ms) => sum + ms, 0) > MAX_PLAY_MS;
+    const ok = navigator.vibrate(bounded);
+    return { ok: Boolean(ok), truncated, reason: ok ? (truncated ? "Pattern requested (truncated to 15s)" : "Pattern requested") : "Vibration request rejected" };
   }
   playPreset(presetId) { return this.play(this.pattern(presetId)); }
   playGroup(groupId) { return this.playPreset(this.config.groups[groupId] || "off"); }
@@ -103,7 +141,7 @@ export class HapticEngine {
   reset() { this.config = makeDefaults(); this.stop(); this.save(); }
   export() {
     return JSON.stringify({
-      schema: "MobiLab.HapticProfiles.v1",
+      schema: "MobiLab.HapticProfiles.v2",
       exportedAt: new Date().toISOString(),
       ...this.config
     }, null, 2);
