@@ -5,3 +5,43 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 
 .layout-fields [hidden]{display:none!important}.workspace[data-edge-side=left] .edge-handle{right:auto;left:0;border-radius:0 10px 10px 0}.workspace.is-original .edge-handle{display:none}
+
+/* Settings Dock V4 mobile comfort pass: usable presets, touch targets and controls. */
+@media(max-width:560px){
+  .shell{padding-inline:12px}
+  .intro h1{font-size:30px}
+  .intro p{font-size:12px;line-height:1.5}
+  .toolbar{position:relative;gap:8px}
+  .toolbar .btn{min-height:45px;justify-content:center;flex:1 1 auto}
+  #layoutToggle{flex:1 1 100%}
+  .layout-settings{padding:12px}
+  .presets{display:flex;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;gap:8px;padding:2px 2px 9px;scrollbar-width:thin}
+  .presets button{flex:0 0 98px;min-height:64px;scroll-snap-align:start;flex-direction:column;gap:4px;font-size:11px;padding:5px}
+  .presets button span{font-size:22px}
+  .layout-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .layout-fields label.check{min-height:42px}
+  .layout-fields select,.custom-fields select,.custom-fields input{height:44px}
+  .custom-fields{grid-template-columns:minmax(0,1fr) auto;gap:8px}
+  .workspace{height:610px;min-height:0;border-radius:15px}
+  .workspace[data-layout=corner] .dock{width:min(350px,calc(100% - 16px));height:57%}
+  .workspace[data-layout=top] .dock{width:calc(100% - 16px);height:55%}
+  .workspace[data-layout=side] .dock{width:84%}
+  .workspace[data-layout=bottom] .dock{height:60%}
+  .dock-header{min-height:52px;padding:7px 9px}
+  .dock .icon{min-width:38px;height:38px;padding:7px}
+  .modebar{flex-wrap:wrap;gap:5px;padding:7px}
+  .modebar button{min-height:36px;flex:1 1 75px;font-size:11px}
+  .modebar input{flex:1 1 100%;height:36px;font-size:12px}
+  .dock .tabs{display:flex;overflow-x:auto;scrollbar-width:thin;overscroll-behavior-x:contain;gap:5px;scroll-snap-type:x proximity}
+  .dock .tabs button{flex:0 0 69px;scroll-snap-align:start;min-height:51px;font-size:10px}
+  .dock-footer button{min-height:37px;font-size:10px}
+  .control{padding:10px}
+  .control-head strong{font-size:12px}
+  .controls{padding:7px}
+  .readout{line-height:1.5}
+}
+@media(max-height:480px) and (orientation:landscape){
+  .workspace{height:480px;min-height:0}
+  .intro{padding:10px 0}
+  .intro h1{font-size:27px}
+}
