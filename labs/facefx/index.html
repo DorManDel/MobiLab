@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0e0b1b" />
   <meta name="description" content="FaceFX Lab — local phone face swap and effects, optional private RTX comparison." />
-  <title>FaceFX Lab v0.5 · MobiLab</title>
-  <link rel="stylesheet" href="./style.css?v=0.5.0" />
-  <script type="module" src="./client.js?v=0.5.0"></script>
+  <title>FaceFX Lab v0.6 · MobiLab</title>
+  <link rel="stylesheet" href="./style.css?v=0.6.0" />
+  <script type="module" src="./client.js?v=0.6.0"></script>
 </head>
 <body>
 <main class="shell">
@@ -37,12 +37,14 @@
         <canvas id="localCanvas" aria-label="Live phone camera with optional locally rendered face effect"></canvas>
         <div class="placeholder" id="localPlaceholder"><span class="place-icon">◎</span><strong>Local camera</strong><small>Runs on this device</small></div>
         <div class="frame-label">LOCAL / LIVE</div>
+        <button id="peekOriginal" class="peek-original" type="button" aria-pressed="false">Hold: original</button>
       </div>
       <div class="metrics">
         <div><strong id="localFps">—</strong><small>DISPLAY FPS · UI ONLY</small></div>
         <div><strong id="localMs">—</strong><small>LOCAL PROCESS ms</small></div>
         <div><strong id="faceCount">—</strong><small>FACES</small></div>
       </div>
+      <div class="process-rates"><span>DETECT <strong id="trackingFps">—</strong> FPS</span><span>SWAP <strong id="swapFps">—</strong> FPS</span></div>
       <div class="pipeline-health" id="pipelineStatus" role="status" aria-live="polite">CAMERA OFF · start to test tracking</div>
       <div class="viewer-controls">
         <label>Live effect <select id="effect"><option value="swap">Photo Swap · local (2D)</option><option value="visor">Neon visor</option><option value="mesh">Face mesh</option><option value="mask">Cyber mask</option><option value="none">Original (no effect)</option></select></label>
@@ -59,9 +61,17 @@
           <div class="model-tools"><span id="modelStatus" role="status">Face engine not loaded</span><button class="btn tiny" type="button" id="retryModel">↻ Retry face engine</button></div>
         </div>
         <div class="range-field"><label for="intensity">Intensity <output id="intensityValue">80%</output></label><input id="intensity" type="range" min="10" max="100" step="5" value="80" /></div>
+        <div class="range-field"><label for="expression">Expression movement <output id="expressionValue">45%</output></label><input id="expression" type="range" min="0" max="100" step="5" value="45" /><small>Less protects source face structure · More follows live expressions</small></div>
+        <label class="quality-select">Swap quality
+          <select id="swapQuality">
+            <option value="fast">Fast · save battery</option>
+            <option value="balanced" selected>Balanced · default</option>
+            <option value="detail">Detail · heavier</option>
+          </select>
+        </label>
         <div class="range-field"><label for="stability">Stability <output id="stabilityValue">65%</output></label><input id="stability" type="range" min="0" max="90" step="5" value="65" /></div>
         <div class="range-field"><label for="trackingRate">Tracking cap <output id="trackingValue">15 FPS</output></label><input id="trackingRate" type="range" min="5" max="30" step="5" value="15" /></div>
-        <p class="note" id="localNote">Mobile Photo Swap is a 2D landmark-based face replacement (not generative or photorealistic). MediaPipe model files download on first use. Camera and selected portrait stay on your phone unless you explicitly connect a PC.</p>
+        <p class="note" id="localNote">Mobile Photo Swap is a 2D landmark-based face replacement (not generative or photorealistic). Profile angles are automatically faded; hand occlusion still needs segmentation. MediaPipe model files download on first use. Camera and selected portrait stay on your phone unless you explicitly connect a PC.</p>
       </div>
     </section>
     <section class="viewer-card gpu-card" aria-labelledby="gpuTitle">
@@ -121,7 +131,7 @@
   </section>
   <section class="card console-card"><div class="section-head"><h2>Diagnostics</h2><button class="btn tiny" id="clearLog">Clear</button></div><pre id="log" aria-live="polite"></pre></section>
   <video id="sourceVideo" autoplay playsinline muted hidden></video>
-  <footer>MobiLab / FaceFX Lab v0.4.1 · Camera only starts after your permission. Stop all to close it.</footer>
+  <footer>MobiLab / FaceFX Lab v0.6.1 · Camera only starts after your permission. Stop all to close it.</footer>
 </main>
 </body>
 </html>
