@@ -406,13 +406,13 @@ async function translateMyMemory(text, source, target, signal) {
     return result;
   } finally {timeout.release();}
 }
-async function translateLibre(text, source, target, signal, endpoint, key="") {
+async function translateLibre(text, source, target, signal, endpoint, key="",token="") {
   if (source === target) return text;
   const timeout = timeoutSignal(signal,15000);
   try {
     const response = await fetch(endpoint,{
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{"Content-Type":"application/json",...(token?{Authorization:"Bearer "+token}:{})},
       body:JSON.stringify({...{q:text,source,target,format:"text"},...(key?{api_key:key}:{})}),
       signal:timeout.signal
     });
@@ -426,7 +426,12 @@ async function translateLibre(text, source, target, signal, endpoint, key="") {
 }
 function activeProviders() {
   const list=[];
-  if(circuit.canCall("cloud"))list.push({
+  // Selecting a local translator must NOT silently consume the daily
+  // MyMemory quota. Opt in to cloud benchmarking explicitly.
+  const selected=$("captionProvider").value;
+  const cloudRequested=selected==="cloud" || $("compareCloud").checked ||
+    (selected==="fastest" && !$("compareLibre").checked && !$("compareLocal").checked);
+  if(cloudRequested && circuit.canCall("cloud"))list.push({
     id:"cloud",label:"MyMemory (cloud)",
     run:(text,source,target,signal) => translateMyMemory(text,source,target,signal)
   });
@@ -442,15 +447,16 @@ function activeProviders() {
     });
   }
   if ($("compareLibre").checked) {
-    // Keep the cloud baseline running even if the optional endpoint is malformed.
+    // Only the user-approved LibreTranslate endpoint may receive these texts.
     let endpoint, configurationError;
     try { endpoint = safeLibreEndpoint($("libreEndpoint").value.trim()); }
     catch(error) { configurationError = error.message; }
-    const key=$("libreKey").value.trim(); // in-memory only; never added to source log or exports
+    const key=$("libreKey").value.trim(); // in-memory only, never in exports
+    const nodeToken=$("nodeToken").value.trim(); // optional bearer token, also RAM only
     list.push({id:"libre",label:"Your LibreTranslate server",
       run:(text,source,target,signal)=>{
         if (configurationError) throw new Error(configurationError);
-        return translateLibre(text,source,target,signal,endpoint,key);
+        return translateLibre(text,source,target,signal,endpoint,key,nodeToken);
       }});
   }
   return list;
