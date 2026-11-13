@@ -110,9 +110,9 @@ try {
   await page.locator("#floatingControls #apply").click();
   assert.equal(await page.locator("#captionLines").inputValue(),"3");
   assert.equal(await page.locator("#captionProvider").inputValue(),"fastest");
-  await page.locator("#captionProvider").selectOption("cloud");
   await page.locator("#floatingControls #settings").click();
-  await page.locator("#floatingControls #close").click();
+  await page.locator("#floatingControls #provider").selectOption("cloud");
+  await page.locator("#floatingControls #apply").click();
   await page.locator("#liveSettings summary").click();
   await page.locator("#silenceDuration").selectOption("900");
   await page.locator("#floatingControls #record").click();
