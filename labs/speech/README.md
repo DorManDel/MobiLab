@@ -1,6 +1,38 @@
-# Speech & Translate Lab — Live Subtitle Studio beta 0.4
+# Speech & Translate Lab — Canonical Transcript & Focused Captions beta 0.5
 
 Entry point: ./index.html, linked as a tab and overview card in MobiLab.
+
+## Beta 0.5 — fixed from real Android screen recording
+
+### Diagnosed user-visible failures
+- The attached Android recording (193.69s) showed a long accumulated Hebrew source paragraph and an untranslated caption error. When the user opened the Session transcript section, the MyMemory result explicitly reported **HTTP 429**. This is a rate/quota limit, not a successful empty translation.
+- MyMemory anonymous usage has a documented **5,000-character/day** quota, and an individual get request is limited to 500 UTF-8 bytes. The MyMemory adapter already chunks requests but long conversations can exhaust the daily limit quickly.
+- Speech output should never be framed as translated if only source text exists. Comparison engines are distinct; late results must never overwrite captions from a chosen provider.
+
+### Canonical log → focused caption viewport
+- `src/session-ledger.js` is the **only source transcript log**. Every finalized paragraph has a stable ID and immutable original text. Providers attach separate translated results, status, errors and timings.
+- The live subtitle viewer now uses a **cursor into the log**: Previous / Next / Follow Live. One, two or three visible lines focus the **end of the selected paragraph** (not the first few words). The source text and translation are kept in separate viewport layers.
+- Paragraphs/Rising/Ticker derive from that same canonical log, not independent streams; a late provider result does not reorder paragraph history. The full log remains exportable.
+- The mobile `speech-floating-controls` UI-only Web Component now shows a compact **translated excerpt above the microphone button**. While translation is unavailable it visibly labels the original-source fallback. A hide/show button controls the floating subtitle.
+- The older Subtitle stage below the fold is also clipped to a small scrollable view, not another unlimited copy of the transcript.
+
+### API failure handling and model comparisons
+- MyMemory HTTP 429 (including responseStatus=429) opens a clear quota warning and **opens a per-session circuit breaker** that blocks further repeated calls until an explicit Retry. The original transcript keeps accumulating.
+- Only engines explicitly enabled by the user are candidates for fallback: supported Chrome on-device Translator, or a trusted HTTPS LibreTranslate-compatible endpoint. For hosted LibreTranslate servers requiring it, users can enter an optional API key **for the current tab only** (not saved to exports or source).
+- A selected display engine retains ownership unless it fails; then the UI can explicitly fall back to another **already enabled** engine. If none is available, captions show "translation unavailable", not invented output.
+- `src/provider-stats.js` generates a transparent engine scoreboard from the canonical log: completed responses, errors, canceled/skipped, p50 provider latency and similarity only where a human supplies a reference translation. Similarity is not a certified quality/accuracy score.
+- Individual reference translations belong to the **focused log entry**, allowing per-paragraph quality comparisons across a long conversation.
+
+### Long-session and privacy controls
+- Session TXT and approximate VTT export retained; added **JSON log export** including original entries and per-provider attempts/status/latencies. No secret API key is included.
+- Optional checkbox saves the text transcript locally in IndexedDB and restores it on reload. This is **off by default**. Disabling or clicking Delete saved local copy erases the persisted copy; source remains in RAM until cleared. No raw audio recording is created.
+- Log UI shows a manageable batch (40 entries), Show older adds more; the full log remains in memory/export and a 3,000-paragraph safety cap guards against unbounded page growth.
+- Final-fragment overlap de-duplication is conservative; it avoids repeated cumulative recognition tails only when five or more words overlap. It does not silently rewrite completed stored transcript entries.
+
+### Verification boundary
+- Node and mocked mobile Chromium regression checks include user-reported HTTP 429, blocked subsequent requests, fallback to user-enabled provider, floating caption display, log focus, tail viewport and IndexedDB opt-in/restore/delete.
+- Real Android audio and latency, actual server quotas, browser speaker output, true TV/tab/system audio capture and physical-device stability are still **unverified** by automated tests.
+- This beta uses the microphone/browser speech recognition only. Capturing another app's audio or transcribing a media file requires a separate authorized input + streaming STT adapter.
 
 ## New in beta 0.4 — stable paragraphs and floating microphone
 

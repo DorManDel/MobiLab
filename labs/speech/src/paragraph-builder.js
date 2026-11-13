@@ -1,3 +1,4 @@
+import { dedupeFinalOverlap } from "./session-ledger.js";
 /**
  * ParagraphBuilder groups finalized SpeechRecognition phrases by silence.
  * It never stores interim hypotheses; those are for UI preview only.
@@ -40,7 +41,9 @@ export class ParagraphBuilder {
     // Source/target changes must never mix two language pairs in one paragraph.
     if(this.meta && (this.meta.source!==meta.source || this.meta.target!==meta.target))
       this.flush("language-change");
-    this.parts.push(cleaned);
+    const unique=dedupeFinalOverlap(this.pending,cleaned);
+    if(!unique) { this.arm(); return false; }
+    this.parts.push(unique);
     this.meta={...meta,startedAt:this.meta?.startedAt??meta.finalPerf??null,
       finalPerf:meta.finalPerf??this.meta?.finalPerf??null};
     this.onPreview(this.pending);

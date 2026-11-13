@@ -1,18 +1,83 @@
 import { createChromeTranslatorAdapter, lexicalAgreement } from "./engine-compare.js";
 import { TranslationQueue, wordErrorRate, characterSimilarity, safeLibreEndpoint } from "./bench-core.js";
 import { ParagraphBuilder } from "./paragraph-builder.js";
+import {SessionLedger,ProviderCircuit} from "./session-ledger.js";
+import {LocalTranscriptArchive} from "./local-archive.js";
+import {summarizeProviders} from "./provider-stats.js";
 import { acceptCaption } from "./caption-selection.js";
 import "./speech-floating-controls.js";
 import { LiveCaptionView } from "./live-view.js";
 
 const $ = (id) => document.getElementById(id);
+const ledger=new SessionLedger();
+const circuit=new ProviderCircuit();
+const archive=new LocalTranscriptArchive();
 const liveView = new LiveCaptionView(document);
+liveView.bindLedger(ledger);
 const floating = $("floatingControls");
+let archiveTimer=null;
+let displayLimit=40;
+function focusedState() {
+  return ledger.focused||ledger.latest;
+}
+function syncFloating(row=focusedState(),meta={}) {
+  if(!ledger.followLive && row?.id!==ledger.cursor) return;
+  if(row) {
+    const chosen=row.displayProvider||row.captionProvider||"cloud";
+    const problem=row.results?.[chosen]?.error||circuit.reason("cloud");
+    floating.setCaption({
+      text:row.displayText||row.text,
+      source:row.source,target:row.target,translated:Boolean(row.displayText),
+      status:row.displayText?(row.fallbackUsed?"FALLBACK · ":"")+chosen:
+        problem?"Translation unavailable":"Waiting for translation"
+    });
+  } else floating.setCaption({text:meta.text||"Start speaking…",
+    translated:Boolean(meta.translated),status:meta.status||"Ready"});
+}
+function focusView(row) {
+  if(!row)return;
+  liveView.focus(row);
+  syncFloating(row);
+  $("referenceTranslation").value=row.translationReference||"";
+  updateReferenceScores();
+}
+$("focusPrev").addEventListener("click",()=>focusView(ledger.step(-1)));
+$("focusNext").addEventListener("click",()=>focusView(ledger.step(1)));
+$("focusLive").addEventListener("click",()=>focusView(ledger.resumeLive()));
+function showProviderProblem(message,blocked=false) {
+  const box=$("providerBanner");
+  box.hidden=false;
+  $("providerBannerText").textContent=message;
+  $("retryCloud").hidden=!blocked;
+}
+function hideProviderProblem() { $("providerBanner").hidden=true; }
+$("providerSetup").addEventListener("click",()=>{
+  const advanced=document.querySelector(".provider-config");
+  if(advanced){advanced.open=true;advanced.scrollIntoView({behavior:"smooth",block:"center"});}
+});
+$("retryCloud").addEventListener("click",()=>{
+  circuit.reset("cloud");hideProviderProblem();
+  status("MyMemory retry enabled. If its daily quota is still exhausted, it will be blocked again.");
+});
+function saveLocalSoon() {
+  if(!$("saveLocal").checked)return;
+  clearTimeout(archiveTimer);
+  archiveTimer=setTimeout(async()=>{
+    try {
+      await archive.save(rows.map(row=>({...row,results:{...row.results}})));
+      $("archiveStatus").textContent="Saved locally on this device · "+rows.length+" transcript paragraphs. No audio saved.";
+    }catch(e){$("archiveStatus").textContent="Local save failed: "+e.message;}
+  },650);
+}
 let translateOnFinish=false;
 const paragraphs = new ParagraphBuilder({
   silenceMs:1600,
   onPreview(text){
-    if(micActive && text)liveView.pendingParagraph(text);
+    if(micActive&&text){
+      liveView.pendingParagraph(text);
+      if(ledger.followLive)floating.setCaption({text,translated:false,
+        source:$("sourceLang").value,target:$("targetLang").value,status:"Building source paragraph"});
+    }
   },
   onParagraph(data){
     interimActive=false;
@@ -24,6 +89,7 @@ const paragraphs = new ParagraphBuilder({
   }
 });
 liveView.setVisibleLines(2);
+floating.setLineCount(2);
 floating.addEventListener("speech:toggle",()=>$("recordToggle").click());
 floating.addEventListener("speech:language-change",(event)=>{
   if(micActive){
@@ -36,12 +102,29 @@ floating.addEventListener("speech:language-change",(event)=>{
   refreshRecordingUI();
 });
 floating.addEventListener("speech:display-change",(event)=>liveView.setMode(event.detail.mode));
+floating.addEventListener("speech:lines-change",(event)=>{
+  $("captionLines").value=String(event.detail.lines);
+  liveView.setVisibleLines(event.detail.lines);
+  floating.setLineCount(event.detail.lines);
+});
+floating.addEventListener("speech:provider-change",(event)=>{
+  $("captionProvider").value=event.detail.provider;
+  if(event.detail.provider==="cloud"&&!circuit.canCall("cloud"))
+    showProviderProblem(circuit.reason("cloud"),true);
+  status("Caption engine selected for new paragraphs. Saved results are not overwritten.");
+});
 for(const btn of document.querySelectorAll("[data-caption-mode]"))
   btn.addEventListener("click",()=>floating.setState({mode:btn.dataset.captionMode}));
 $("sourceLang").addEventListener("change",()=>refreshRecordingUI());
 $("targetLang").addEventListener("change",()=>refreshRecordingUI());
-$("captionLines").addEventListener("change",()=>liveView.setVisibleLines($("captionLines").value));
+$("captionLines").addEventListener("change",()=>{
+  liveView.setVisibleLines($("captionLines").value);
+  floating.setLineCount($("captionLines").value);
+});
 $("silenceDuration").addEventListener("change",()=>paragraphs.setSilence($("silenceDuration").value));
+$("captionProvider").addEventListener("change",()=>{
+  floating.setState({provider:$("captionProvider").value});
+});
 $("chunkMode").addEventListener("change",()=>paragraphs.flush("settings-change"));
 let draftTimer=null, draftAbort=null, draftVersion=0, lastDraftRequest=-Infinity;
 function cancelDraft() {
@@ -53,7 +136,8 @@ function scheduleDraft(text) {
   clearTimeout(draftTimer);
   const version=++draftVersion;
   const trimmed=text.trim();
-  if(!$("earlyPreview").checked || trimmed.split(/\s+/u).length<4 || !micActive)return;
+  if(!$("earlyPreview").checked || !circuit.canCall("cloud") ||
+    trimmed.split(/\s+/u).length<4 || !micActive)return;
   // Extra translation requests are opt-in; cap text size and global call rate.
   const delay=Math.max(650,3600-(performance.now()-lastDraftRequest));
   draftTimer=setTimeout(async()=>{
@@ -68,6 +152,8 @@ function scheduleDraft(text) {
         $("sourceLang").value,$("targetLang").value,controller.signal);
       if(version===draftVersion && micActive && !controller.signal.aborted){
         liveView.early(out,performance.now()-began);
+        if(ledger.followLive)floating.setCaption({text:out,translated:true,status:"EARLY DRAFT",
+          source:$("sourceLang").value,target:$("targetLang").value});
       }
     }catch(error){
       if(version===draftVersion && micActive && !controller.signal.aborted){
@@ -85,7 +171,7 @@ const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const synthesis = window.speechSynthesis;
 const localTranslator = createChromeTranslatorAdapter(window);
 const translationCache = new Map();
-let rows = [];
+let rows = ledger.entries;
 let rowId = 0;
 let sessionStart = Date.now();
 let recordingStart = Date.now();
@@ -99,7 +185,7 @@ let interimActive = false;
 let currentUtterance = null;
 let voiceChoices = [];
 let lastSubtitleShownId=0;
-const MAX_PHRASES = 250;
+const MAX_PHRASES = 3000;
 
 function status(message, warning = false) {
   $("status").textContent = message;
@@ -118,7 +204,8 @@ function refreshRecordingUI() {
   $("recordState").textContent = micActive ? "● REC" : "OFFLINE";
   $("recordState").classList.toggle("live", micActive);
   floating.setState({listening:micActive,source:$("sourceLang").value,
-    target:$("targetLang").value,mode:liveView.mode});
+    target:$("targetLang").value,mode:liveView.mode,
+    lines:Number($("captionLines").value),provider:$("captionProvider").value});
 }
 function clockText(ms) {
   const s = Math.max(0, Math.floor(ms/1000));
@@ -151,11 +238,10 @@ function stopMic(translateLast=false) {
   refreshRecordingUI();
   status(translateLast
     ? "Mic off. Earlier pending translations canceled; only the last unfinished paragraph may finish translating."
-    : "Mic off. Transcript saved locally; translations canceled.");
-  if (rows.length) {
-    const latest = rows[rows.length - 1];
-    showCaption(latest);
-    showComparison(latest);
+    : "Mic off. Transcript remains in this page; translations canceled.");
+  if(rows.length){
+    const latest=rows[rows.length-1];
+    showCaption(latest);showComparison(latest);focusView(ledger.focused||latest);
   }
 }
 function activateRecognizer(token) {
@@ -289,6 +375,7 @@ function splitText(text) {
 }
 async function translateMyMemory(text, source, target, signal) {
   if (source === target) return text;
+  if(!circuit.canCall("cloud"))throw new Error(circuit.reason("cloud"));
   const key = source+"|"+target+"|"+text;
   if (translationCache.has(key)) return translationCache.get(key);
   const out = [];
@@ -297,8 +384,18 @@ async function translateMyMemory(text, source, target, signal) {
     for (const chunk of splitText(text)) {
       const q = new URLSearchParams({q:chunk,langpair:source+"|"+target});
       const response = await fetch("https://api.mymemory.translated.net/get?"+q,{signal:timeout.signal});
+      if(response.status===429){
+        const msg="MyMemory rate limit (HTTP 429): its free anonymous quota has been exhausted. Original text is safe in the log. Enable a different translation engine or retry after the quota resets.";
+        circuit.block("cloud",msg);
+        showProviderProblem(msg,true);
+        throw new Error(msg);
+      }
       if (!response.ok) throw new Error("MyMemory HTTP "+response.status);
       const data = await response.json();
+      if (Number(data.responseStatus)===429 || /quota|rate.limit|too many requests/i.test(String(data.responseDetails||""))){
+        const msg="MyMemory daily usage limit reached. Transcript saved. Select another provider to keep translating.";
+        circuit.block("cloud",msg);showProviderProblem(msg,true);throw new Error(msg);
+      }
       if (Number(data.responseStatus) !== 200 || !data.responseData?.translatedText) {
         throw new Error(data.responseDetails || "MyMemory returned no translation.");
       }
@@ -309,14 +406,14 @@ async function translateMyMemory(text, source, target, signal) {
     return result;
   } finally {timeout.release();}
 }
-async function translateLibre(text, source, target, signal, endpoint) {
+async function translateLibre(text, source, target, signal, endpoint, key="") {
   if (source === target) return text;
   const timeout = timeoutSignal(signal,15000);
   try {
     const response = await fetch(endpoint,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({q:text,source,target,format:"text"}),
+      body:JSON.stringify({...{q:text,source,target,format:"text"},...(key?{api_key:key}:{})}),
       signal:timeout.signal
     });
     if (!response.ok) throw new Error("LibreTranslate HTTP "+response.status);
@@ -328,10 +425,11 @@ async function translateLibre(text, source, target, signal, endpoint) {
   } finally {timeout.release();}
 }
 function activeProviders() {
-  const list = [{
+  const list=[];
+  if(circuit.canCall("cloud"))list.push({
     id:"cloud",label:"MyMemory (cloud)",
     run:(text,source,target,signal) => translateMyMemory(text,source,target,signal)
-  }];
+  });
   if ($("compareLocal").checked && localTranslator.supported()) {
     list.push({
       id:"local",label:"Chrome on-device Translator",
@@ -348,10 +446,11 @@ function activeProviders() {
     let endpoint, configurationError;
     try { endpoint = safeLibreEndpoint($("libreEndpoint").value.trim()); }
     catch(error) { configurationError = error.message; }
+    const key=$("libreKey").value.trim(); // in-memory only; never added to source log or exports
     list.push({id:"libre",label:"Your LibreTranslate server",
       run:(text,source,target,signal)=>{
         if (configurationError) throw new Error(configurationError);
-        return translateLibre(text,source,target,signal,endpoint);
+        return translateLibre(text,source,target,signal,endpoint,key);
       }});
   }
   return list;
@@ -360,43 +459,62 @@ function updateRow(row,id,patch) {
   if(!row)return;
   if(id==="queue") {
     row.queueStatus=patch.status;
-  } else {
+  }else{
     row.results[id]={...(row.results[id]||{}),...patch};
     const now=performance.now();
-    if(patch.status==="running"&&row.queueWaitMs===null)
+    if(patch.status==="running" && row.queueWaitMs===null)
       row.queueWaitMs=Math.max(0,now-row.finalPerf);
-    if(patch.status==="success"&&patch.text
-      && acceptCaption(row,id,patch.text,now)) {
+    if(patch.status==="error" && id===row.captionProvider && !row.displayText){
+      // A user-enabled alternate engine can take over ONLY after the selected
+      // provider has failed. No unapproved endpoint is contacted.
+      const alternatives=Object.entries(row.results).filter(([pid,info])=>pid!==id &&
+        ["running","success","queued"].includes(info.status));
+      const configured=Object.keys(row.results).some(pid=>pid!==id);
+      if(alternatives.length||configured) {
+        row.captionProvider="fastest";
+        row.fallbackUsed=true;
+        const completed=alternatives.find(([,info])=>info.status==="success"&&info.text);
+        if(completed)acceptCaption(row,completed[0],completed[1].text,now);
+      }
+    }
+    if(patch.status==="success" && patch.text &&
+      acceptCaption(row,id,patch.text,now)){
       if(row.fromSpeech)liveView.latencies.push(row.finalToSubtitleMs);
       if(liveView.latencies.length>60)liveView.latencies.shift();
     }
   }
+  const focused=ledger.focused?.id===row.id;
   if(patch.status!=="running"||id==="queue")renderRows();
-  const latest=rows[rows.length-1]?.id===row.id;
-  if(latest){
-    if(!interimActive)showCaption(row);
-    showComparison(row);
-  }
-  // Only one engine per paragraph is allowed to control the live subtitle.
-  // Late results remain visible in Compare engines, but cannot rewrite it.
-  if(row.displayText&&!row.displayShown&&row.id>=lastSubtitleShownId) {
+  if(rows.at(-1)?.id===row.id)showComparison(row);
+  if(focused && !interimActive)showCaption(row);
+  liveView.drawHistory();
+  if(row.displayText && !row.displayShown){
     row.displayShown=true;
-    lastSubtitleShownId=row.id;
     const provider={cloud:"MyMemory",local:"Chrome",libre:"LibreTranslate"}[row.displayProvider]||row.displayProvider;
     liveView.translated(row,row.displayText,provider,interimActive);
+    if(focused)syncFloating(row);
+  }else if(id==="queue" && patch.status==="completed" && !row.displayText){
+    const firstError=Object.values(row.results).find(v=>v.status==="error");
+    const problem=firstError?.error||"No provider returned a completed translation.";
+    if(focused) {
+      liveView.failed(row,problem);
+      syncFloating(row);
+      showProviderProblem(problem,Boolean(circuit.reason("cloud")));
+    }
+  }else if(id==="queue" && patch.status==="skipped"){
+    liveView.skipped(row);
+    if(focused)syncFloating(row);
+  }else if(focused && !interimActive){
     liveView.showQueue(row);
-  } else if(id==="queue"&&patch.status==="skipped"&&!interimActive
-    &&row.id>=lastSubtitleShownId){
-    liveView.skipped(row);liveView.showQueue(row);
-  } else if(latest&&row.id>=lastSubtitleShownId){
-    liveView.showQueue(row);
+    syncFloating(row);
   }
+  if(patch.status!=="running"){renderScoreboard();saveLocalSoon();}
 }
 const queue = new TranslationQueue({onChange:updateRow,maxPending:8});
 function addPhrase(text,source,target,candidates=null,automatic=true,sttMs=null,finalPerf=performance.now()) {
   text=text.trim();
   if (!text || rows.length >= MAX_PHRASES) {
-    if (rows.length >= MAX_PHRASES) { if(micActive)stopMic();status("Session capped at 250 phrases. Export or clear before recording more.",true);}
+    if (rows.length >= MAX_PHRASES) { if(micActive)stopMic();status("Session reached the 3,000-paragraph safety cap. Export the log before starting a new session.",true);}
     return;
   }
   const previous = rows[rows.length-1];
@@ -405,22 +523,37 @@ function addPhrase(text,source,target,candidates=null,automatic=true,sttMs=null,
   const row = { id:++rowId,at:Date.now(),offset:Date.now()-sessionStart,text,source,target,
     candidates,results:{},queueStatus:"saved",sttMs,finalPerf,
     fromSpeech:Array.isArray(candidates),queueWaitMs:null,finalToSubtitleMs:null,
-    captionProvider:$("captionProvider").value,displayText:"",displayProvider:null,displayShown:false };
-  rows.push(row);
+    captionProvider:$("captionProvider").value,displayText:"",displayProvider:null,displayShown:false,
+    fallbackUsed:false };
+  ledger.append(row);
   interimActive=false;
-  renderRows();showCaption(row);showComparison(row);showCandidates(row);
+  renderRows();renderScoreboard();showCaption(row);showComparison(row);showCandidates(row);
   liveView.final(row);
+  syncFloating(row);
+  saveLocalSoon();
   if (automatic) translateRow(row);
   else status("Phrase saved. Tap 'Translate saved' whenever you're ready.");
 }
 function translateRow(row) {
   try {
-    const providers = activeProviders();
+    const providers=activeProviders();
+    if(!providers.length){
+      row.queueStatus="unavailable";
+      const reason=circuit.reason("cloud")||
+        "No translation engine is available. Configure and enable your own HTTPS LibreTranslate server or a supported on-device translator.";
+      row.results.cloud={status:"error",error:reason};
+      showProviderProblem(reason,Boolean(circuit.reason("cloud")));
+      liveView.failed(row,reason);
+      renderRows();saveLocalSoon();return;
+    }
+    if(row.captionProvider!=="fastest" && !providers.some(x=>x.id===row.captionProvider)){
+      row.captionProvider="fastest";row.fallbackUsed=true;
+    }
     const realtime=micActive && $("subtitlePriority").value==="live";
     const accepted=realtime
       ? queue.enqueueRealtime(row,providers,2)
       : queue.enqueue(row,providers);
-    if (!accepted) status("Translation queue is full; transcript was still saved.",true);
+    if(!accepted)status("Translation backlog is full. Original saved; retry that paragraph later.",true);
   } catch (error) {
     row.queueStatus="skipped";
     status("Comparison setting: "+error.message,true);
@@ -429,8 +562,12 @@ function translateRow(row) {
 }
 function translateSaved() {
   queue.start();
-  const targets=rows.filter(row => ["saved","canceled","skipped"].includes(row.queueStatus)
-    && Object.values(row.results).every(x=>x.status!=="running"));
+  const targets=rows.filter(row =>
+    (["saved","canceled","skipped","unavailable"].includes(row.queueStatus) ||
+      (row.queueStatus==="completed"&&!row.displayText))
+    && Object.values(row.results).every(x=>x.status!=="running"))
+    .slice(0,8); // deliberate batch: do not silently enqueue hundreds of quota-consuming calls
+  if(targets.length)status("Translating up to 8 stored paragraphs. Repeat after completion for more.");
   if (!targets.length) {
     const latest=rows[rows.length-1];
     if(latest) {
@@ -444,9 +581,19 @@ function translateSaved() {
     } else status("No saved phrases to translate yet.",true);
     return;
   }
-  for(const row of targets) translateRow(row);
+  for(const row of targets){
+    row.results={};row.queueStatus="saved";
+    row.captionProvider=$("captionProvider").value;row.fallbackUsed=false;
+    row.displayText="";row.displayProvider=null;row.displayShown=false;
+    row.finalToSubtitleMs=null;row.finalPerf=performance.now();
+    translateRow(row);
+  }
 }
 $("translateSaved").addEventListener("click",translateSaved);
+$("showMoreRows").addEventListener("click",()=>{
+  displayLimit=Math.min(3000,displayLimit+40);
+  renderRows();
+});
 
 async function detectTypedLanguage(text) {
   if (/[א-ת]/u.test(text)) return "he";
@@ -480,15 +627,18 @@ $("clearAll").addEventListener("click",()=>{
   queue.stop();
   translationCache.clear();
   paragraphs.clear();
-  rows=[];rowId=0;lastSubtitleShownId=0;sessionStart=Date.now();recordingStart=sessionStart;
+  ledger.clear();rowId=0;lastSubtitleShownId=0;sessionStart=Date.now();recordingStart=sessionStart;
   interimActive=false;
   $("recordTime").textContent="00:00";
   $("wer").textContent="—";
   $("captionOriginal").textContent="Waiting for input…";
   $("captionTranslated").textContent="Translation will appear here.";
   $("speechCandidates").replaceChildren();
-  renderRows();showComparison(null);
+  renderRows();showComparison(null);renderScoreboard();
   cancelDraft();liveView.reset();
+  syncFloating();
+  if($("saveLocal").checked)archive.clear().catch(e=>status("Local archive deletion failed: "+e.message,true));
+  hideProviderProblem();
   status("Session cleared. Nothing is uploaded by the app itself.");
 });
 $("compareLocal").disabled=!localTranslator.supported();
@@ -506,12 +656,14 @@ if(!Recognition || !isSecureContext) status("Use HTTPS in a supporting browser f
 function showCaption(row) {
   if (!row) return;
   $("captionOriginal").textContent=row.text;
+  requestAnimationFrame(()=>{$("captionOriginal").scrollTop=$("captionOriginal").scrollHeight;});
   const result = row.displayText;
   const finished = ["stopped","saved","skipped","canceled","completed"].includes(row.queueStatus)
     || Object.values(row.results).some(x=>x.status==="canceled");
   $("captionTranslated").textContent=result || (finished
     ? "Chosen caption engine has no completed translation; inspect comparison or re-run."
     : "Translating paragraph…");
+  requestAnimationFrame(()=>{$("captionTranslated").scrollTop=$("captionTranslated").scrollHeight;});
   $("detectedLang").textContent=row.source.toUpperCase()+" → "+row.target.toUpperCase();
 }
 function showCandidates(row) {
@@ -552,7 +704,7 @@ function renderRows() {
     empty.textContent="No saved speech yet. Tap Start recording, or type a sentence.";
     container.append(empty);
   }
-  for(const row of rows.slice().reverse()){
+  for(const row of rows.slice(-displayLimit).reverse()){
     const card=document.createElement("article");card.className="segment";
     const meta=document.createElement("div");meta.className="meta";
     const label=document.createElement("span");label.textContent=new Date(row.at).toLocaleTimeString();
@@ -560,6 +712,16 @@ function renderRows() {
     meta.append(label,lang);
     const orig=document.createElement("p");orig.className="original";orig.textContent=row.text;
     card.append(meta,orig);
+    const actions=document.createElement("div");actions.className="row";
+    const focus=document.createElement("button");
+    focus.type="button";focus.className="read-entry";
+    focus.textContent="⌖ Focus paragraph #"+row.id;
+    focus.addEventListener("click",()=>focusView(ledger.focus(row.id)));
+    actions.append(focus);
+    const info=document.createElement("span");info.className="log-info";
+    info.textContent=row.displayText?"Caption: "+(row.displayProvider||"translator"):
+      "State: "+(row.queueStatus||"saved");
+    actions.append(info);card.append(actions);
     let count=0;
     for(const id of ["cloud","local","libre"]){
       const result=row.results[id];
@@ -588,6 +750,7 @@ function renderRows() {
     container.append(card);
   }
   $("phraseCount").textContent=String(rows.length);
+  $("showMoreRows").disabled=displayLimit>=rows.length;
   $("latency").textContent=(()=>{for(let i=rows.length-1;i>=0;i--){
     if(typeof rows[i].results.cloud?.ms==="number")return rows[i].results.cloud.ms+"ms";
   }return "—";})();
@@ -673,9 +836,25 @@ $("stopVoice").addEventListener("click",()=>{
 $("speechRate").addEventListener("input",()=>{$("speechRateValue").textContent=Number($("speechRate").value).toFixed(1)+"×";});
 $("speechVolume").addEventListener("input",()=>{$("speechVolumeValue").textContent=Math.round(Number($("speechVolume").value)*100)+"%";});
 
+function renderScoreboard(){
+  const target=$("providerScoreRows");target.replaceChildren();
+  const summary=summarizeProviders(rows);
+  const names={cloud:"MyMemory",local:"Chrome local",libre:"LibreTranslate"};
+  for(const item of summary){
+    const div=document.createElement("div");div.className="score-row";
+    const name=document.createElement("strong");name.textContent=names[item.id]||item.id;
+    const detail=document.createElement("span");
+    const p50=item.p50===null?"—":Math.round(item.p50)+" ms";
+    const score=item.referenceCount>0?Math.round(item.similarity*100)+"% similarity ("+
+      item.referenceCount+" references)":"No human reference";
+    detail.textContent="✓ "+item.success+" · errors "+item.errors+" · skipped "+item.canceled+
+      " · p50 "+p50+" · "+score;
+    div.append(name,detail);target.append(div);
+  }
+}
 function updateReferenceScores(){
   const reference=$("referenceTranslation").value.trim();
-  const row=rows[rows.length-1];
+  const row=ledger.focused||ledger.latest;
   const el=$("benchResults");el.replaceChildren();
   if(!reference||!row){el.textContent="Enter an expected translation to compare engines with the same reference.";return;}
   for(const [id,label] of [["cloud","MyMemory"],["local","Chrome Translator"],["libre","LibreTranslate"]]){
@@ -689,7 +868,11 @@ function updateReferenceScores(){
   }
   if(!el.childNodes.length)el.textContent="No completed translations to score yet.";
 }
-$("referenceTranslation").addEventListener("input",updateReferenceScores);
+$("referenceTranslation").addEventListener("input",()=>{
+  const row=ledger.focused||ledger.latest;
+  if(row)row.translationReference=$("referenceTranslation").value.trim();
+  updateReferenceScores();renderScoreboard();saveLocalSoon();
+});
 $("scoreWer").addEventListener("click",()=>{
   const reference=$("referenceText").value.trim();
   const spoken=rows.filter(row=>Array.isArray(row.candidates)).map(row=>row.text).join(" ");
@@ -698,6 +881,54 @@ $("scoreWer").addEventListener("click",()=>{
   $("wer").textContent=(score*100).toFixed(1)+"%";
   status("WER computed from your human reference. Lower is better.");
 });
+// User-controlled device persistence: never sends text or keys to a server.
+const CONSENT_KEY="mobilab.speech.localSaveEnabled";
+$("saveLocal").addEventListener("change",async()=>{
+  const enable=$("saveLocal").checked;
+  try{
+    if(enable){localStorage.setItem(CONSENT_KEY,"1");saveLocalSoon();}
+    else{
+      clearTimeout(archiveTimer);
+      localStorage.removeItem(CONSENT_KEY);
+      await archive.clear();
+      $("archiveStatus").textContent="Local saved copy deleted. Current transcript remains in RAM.";
+    }
+  }catch(error){$("archiveStatus").textContent="Storage error: "+error.message;}
+});
+$("clearLocal").addEventListener("click",async()=>{
+  try{
+    clearTimeout(archiveTimer);
+    await archive.clear();
+    localStorage.removeItem(CONSENT_KEY);
+    $("saveLocal").checked=false;
+    $("archiveStatus").textContent="Saved browser copy deleted. In-memory transcript unchanged.";
+  }catch(error){$("archiveStatus").textContent="Cannot delete saved copy: "+error.message;}
+});
+$("exportJson").addEventListener("click",()=>download("mobilab-speech-log.json",
+  JSON.stringify({schema:"mobilab.speech.log.v1",exportedAt:new Date().toISOString(),
+    entries:ledger.snapshot()},null,2),"application/json;charset=utf-8"));
+(async function restoreLocalLog(){
+  try{
+    if(localStorage.getItem(CONSENT_KEY)!=="1")return;
+    $("saveLocal").checked=true;
+    const data=await archive.load();
+    if(!data?.entries?.length)return;
+    for(const saved of data.entries.slice(0,3000)){
+      const row={...saved,results:saved.results||{},queueStatus:
+        ["running","queued"].includes(saved.queueStatus)?"canceled":saved.queueStatus,
+        finalPerf:performance.now(),displayShown:Boolean(saved.displayText)};
+      if(!Number.isInteger(row.id)||!row.text)continue;
+      ledger.append(row);rowId=Math.max(rowId,row.id);
+    }
+    const first=rows[0];
+    if(first)sessionStart=(first.at||Date.now())-(first.offset||0);
+    renderRows();renderScoreboard();
+    liveView.drawHistory();
+    focusView(ledger.resumeLive());
+    showComparison(rows.at(-1));
+    $("archiveStatus").textContent="Restored "+rows.length+" local transcript paragraphs. Microphone remains off.";
+  }catch(error){$("archiveStatus").textContent="Could not restore local transcript: "+error.message;}
+})();
 function transcriptText(){
   return rows.map(row=>row.text+"\n"+["cloud","local","libre"].filter(id=>row.results[id]?.text)
     .map(id=>id+": "+row.results[id].text).join("\n")).join("\n\n");
@@ -740,4 +971,5 @@ window.addEventListener("pagehide",()=>{
 });
 refreshRecordingUI();
 renderRows();
+renderScoreboard();
 showComparison(null);

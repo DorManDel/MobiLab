@@ -1,4 +1,4 @@
-# Live Subtitle Studio — beta 0.4
+# Canonical Transcript & Focused Subtitles — beta 0.5
 
 ## Goals
 Give a phone-first, legible live translation experience while exposing the real sources of latency. Three display modes share one transcript and provider pipeline; visual transitions do not represent changes in recognition speed.
@@ -9,6 +9,15 @@ Give a phone-first, legible live translation experience while exposing the real 
 - **Ticker:** one translated line scrolls horizontally like an RSS/news feed. CSS animation; motion stops when reduced-motion is requested.
 - Language selectors + Start/Finish recording appear before advanced controls at the top, without needing to scroll on a phone.
 - Quick sound button runs the latest translated text through existing speech synthesis (mic must be stopped to prevent feedback).
+
+## New v0.5: source-of-truth log and viewport projection
+
+- The finalized transcript is an append-only list of source entries. Translation events enrich per-provider result metadata, never overwrite canonical original text. Source can be exported as TXT / approximate VTT / detailed JSON, or optionally stored on-device with opt-in IndexedDB.
+- Focus cursor selects an entry independently from translation completion. Follow Live auto-points to newest paragraph; Previous/Next let user review older paragraphs while new text continues to append.
+- The subtitle renderer scrolls the LAST 1–3 rendered lines into view. It does not truncate the canonical paragraph. Long older Subtitle stage cards also scroll instead of flooding the page.
+- The floating Web Component displays the focused translation or visibly tagged source fallback, and can be minimized. Its host app retains all audio/provider functionality.
+- Rate-limit diagnostics: MyMemory 429 disables further calls within the current tab unless the user explicitly retries. The UI can fall back to **already enabled** engines only. Anonymous MyMemory (5,000 characters/day) is unsuitable as a sole long-form translator.
+- Per-engine comparison includes real success/error counts and provider latency percentiles, plus human-reference character similarity where entered; do not label similarity as semantic accuracy.
 
 ## Paragraph grouping and display engine stability (v0.4)
 
