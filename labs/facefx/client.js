@@ -195,7 +195,7 @@ function localLoop(now) {
         if(!ok && state.health.shouldTryImageFallback()){
           if(state.imageEngine && !state.imageFallback){
             const backup=state.imageEngine.detect(video).faceLandmarks?.[0]||null;
-            if(backup?.length>=468){found=backup;state.imageFallback=true;say('Video mode missed the face; image-mode fallback found one.');}
+            if(backup?.length>=468){found=backup;state.imageFallback=true;state.health.misses=0;state.health.found++;state.health.lastSeen=now;say('Video mode missed the face; image-mode fallback found one.');}
           } else if(!state.imageEngine && !state.fallbackLoading){
             state.fallbackLoading=true;
             initPhotoLandmarker().catch(e=>say('Static fallback unavailable: '+e.message)).finally(()=>{state.fallbackLoading=false;});
