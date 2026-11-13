@@ -186,6 +186,7 @@ try {
   assert.equal(await page.locator("#saveLocal").isChecked(),true);
   assert.equal(Number(await page.locator("#phraseCount").textContent()),savedCount);
   await page.locator("#clearLocal").click();
+  await page.waitForFunction(()=>document.querySelector("#saveLocal")?.checked===false);
   assert.equal(await page.locator("#saveLocal").isChecked(),false);
 
   const dims=await page.evaluate(()=>({
