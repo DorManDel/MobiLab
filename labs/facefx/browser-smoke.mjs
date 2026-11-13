@@ -35,7 +35,7 @@ try{
   assert.equal(await page.locator('#trackingFps').count(),1,'tracking FPS visible');
   assert.equal(await page.locator('#swapFps').count(),1,'swap FPS visible');
   assert.equal(await page.locator('#expressionValue').textContent(),'45%');
-  await page.locator('#expression').fill('20');
+  await page.locator('#expression').evaluate(el=>{el.value='20';el.dispatchEvent(new Event('input',{bubbles:true}));});
   assert.equal(await page.locator('#expressionValue').textContent(),'20%');
   await page.locator('#swapQuality').selectOption('fast');
   assert.equal(await page.locator('#swapQuality').inputValue(),'fast');
