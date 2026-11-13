@@ -199,6 +199,8 @@ function activateRecognizer(token) {
       interimActive = true;
       $("captionOriginal").textContent = interim.trim() + " …";
       $("captionTranslated").textContent = "Listening for the end of this phrase…";
+      // Interim updates mean speech is still ongoing; don't close the paragraph mid-sentence.
+      if(paragraphs.pending)paragraphs.arm();
       const preview=[paragraphs.pending,interim.trim()].filter(Boolean).join(" ");
       liveView.interim(preview);
       scheduleDraft(interim.trim());
