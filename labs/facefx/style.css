@@ -29,3 +29,7 @@
 .model-tools span{font-size:11px;color:#a6e9be;line-height:1.4}
 .model-tools button{white-space:nowrap;min-height:36px}
 @media(max-width:380px){.source-presets button img{height:80px}.model-tools{align-items:stretch;flex-direction:column}.source-presets{gap:5px}}
+
+/* v0.5: unmistakable live detection status separate from display repaint FPS. */
+.pipeline-health{padding:12px 16px;font-size:12px;font-weight:750;background:#32223b;border-top:1px solid #59415a;border-bottom:1px solid #59415a;color:#ffe6a1;line-height:1.45;overflow-wrap:anywhere}
+.pipeline-health.is-ok{background:#17362f;color:#a8f5c8;border-color:#2c6650}
