@@ -355,6 +355,7 @@ function splitText(text) {
 }
 async function translateMyMemory(text, source, target, signal) {
   if (source === target) return text;
+  if(!circuit.canCall("cloud"))throw new Error(circuit.reason("cloud"));
   const key = source+"|"+target+"|"+text;
   if (translationCache.has(key)) return translationCache.get(key);
   const out = [];
@@ -363,8 +364,18 @@ async function translateMyMemory(text, source, target, signal) {
     for (const chunk of splitText(text)) {
       const q = new URLSearchParams({q:chunk,langpair:source+"|"+target});
       const response = await fetch("https://api.mymemory.translated.net/get?"+q,{signal:timeout.signal});
+      if(response.status===429){
+        const msg="MyMemory rate limit (HTTP 429): its free anonymous quota has been exhausted. Original text is safe in the log. Enable a different translation engine or retry after the quota resets.";
+        circuit.block("cloud",msg);
+        showProviderProblem(msg,true);
+        throw new Error(msg);
+      }
       if (!response.ok) throw new Error("MyMemory HTTP "+response.status);
       const data = await response.json();
+      if (Number(data.responseStatus)===429 || /quota|rate.limit|too many requests/i.test(String(data.responseDetails||""))){
+        const msg="MyMemory daily usage limit reached. Transcript saved. Select another provider to keep translating.";
+        circuit.block("cloud",msg);showProviderProblem(msg,true);throw new Error(msg);
+      }
       if (Number(data.responseStatus) !== 200 || !data.responseData?.translatedText) {
         throw new Error(data.responseDetails || "MyMemory returned no translation.");
       }
@@ -375,14 +386,14 @@ async function translateMyMemory(text, source, target, signal) {
     return result;
   } finally {timeout.release();}
 }
-async function translateLibre(text, source, target, signal, endpoint) {
+async function translateLibre(text, source, target, signal, endpoint, key="") {
   if (source === target) return text;
   const timeout = timeoutSignal(signal,15000);
   try {
     const response = await fetch(endpoint,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({q:text,source,target,format:"text"}),
+      body:JSON.stringify({...{q:text,source,target,format:"text"},...(key?{api_key:key}:{})}),
       signal:timeout.signal
     });
     if (!response.ok) throw new Error("LibreTranslate HTTP "+response.status);
@@ -394,10 +405,11 @@ async function translateLibre(text, source, target, signal, endpoint) {
   } finally {timeout.release();}
 }
 function activeProviders() {
-  const list = [{
+  const list=[];
+  if(circuit.canCall("cloud"))list.push({
     id:"cloud",label:"MyMemory (cloud)",
     run:(text,source,target,signal) => translateMyMemory(text,source,target,signal)
-  }];
+  });
   if ($("compareLocal").checked && localTranslator.supported()) {
     list.push({
       id:"local",label:"Chrome on-device Translator",
@@ -414,10 +426,11 @@ function activeProviders() {
     let endpoint, configurationError;
     try { endpoint = safeLibreEndpoint($("libreEndpoint").value.trim()); }
     catch(error) { configurationError = error.message; }
+    const key=$("libreKey").value.trim(); // in-memory only; never added to source log or exports
     list.push({id:"libre",label:"Your LibreTranslate server",
       run:(text,source,target,signal)=>{
         if (configurationError) throw new Error(configurationError);
-        return translateLibre(text,source,target,signal,endpoint);
+        return translateLibre(text,source,target,signal,endpoint,key);
       }});
   }
   return list;
