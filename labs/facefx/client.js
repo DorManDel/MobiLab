@@ -1,4 +1,5 @@
 import { LocalPhotoSwap } from './swap.js';
+import { detectPortrait, TrackingHealth } from './detection.js';
 // FaceFX Lab v0.3 — on-device live photo swap and filters, optional encrypted PC WebRTC bridge.
 // Local Photo Swap: landmark-driven 2D texture warping. NOT a generative/photorealistic model.
 'use strict';
@@ -9,7 +10,9 @@ const state = {
   tracked: null, smooth: null, lastDetect: 0, lastFrameTime: -1,
   lastFaceAt: 0, renderCount: 0, renderStart: 0, localMs: null,
   remoteMode: null, sentPings: new Map(), pingIndex: 0,
-  photoSwap: new LocalPhotoSwap(), modelBusy: false, swapDrawAt: 0, sourceLoading: false
+  photoSwap: new LocalPhotoSwap(), modelBusy: false, swapDrawAt: 0, sourceLoading: false,
+  imageEngine: null, imagePromise: null, visionFileset: null, visionSdk: null, sdkPromise: null,
+  health: new TrackingHealth(), imageFallback: false, fallbackLoading: false, retryDetectAt: 0
 };
 let visionModule = null;
 function say(message) {
@@ -55,62 +58,81 @@ $('trackingRate').addEventListener('input', () => { $('trackingValue').textConte
 $('clearLog').addEventListener('click', () => { $('log').textContent = ''; });
 $('resetMetrics').addEventListener('click', resetMetrics);
 
-// Use the official ESM bundle, not jsDelivr's +esm transpilation endpoint.
-const MEDIAPIPE_VERSION = '0.10.35';
-const VISION_URLS = [
-  {name:'jsDelivr', module:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION+'/vision_bundle.mjs',
-   wasm:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION+'/wasm'},
-  {name:'unpkg', module:'https://unpkg.com/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION+'/vision_bundle.mjs',
-   wasm:'https://unpkg.com/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION+'/wasm'}
+// MediaPipe's IMAGE and VIDEO modes use independent CPU-first instances.
+// This avoids resetting one GPU task between source photos and live camera frames.
+const MEDIAPIPE_VERSION='0.10.35';
+const MODEL_URL='https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+const VISION_URLS=[
+  {name:'jsDelivr',module:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION+'/vision_bundle.mjs',wasm:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION+'/wasm'},
+  {name:'unpkg',module:'https://unpkg.com/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION+'/vision_bundle.mjs',wasm:'https://unpkg.com/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION+'/wasm'}
 ];
-function modelStatus(message){ $('modelStatus').textContent = message; }
-async function initLandmarker() {
-  if (state.localEngine) return state.localEngine;
-  if (state.visionPromise) return state.visionPromise;
-  state.visionPromise = (async () => {
+function modelStatus(message){$('modelStatus').textContent=message;}
+async function loadVisionRuntime(){
+  if(state.visionSdk && state.visionFileset)return {sdk:state.visionSdk,fs:state.visionFileset};
+  if(state.sdkPromise)return state.sdkPromise;
+  state.sdkPromise=(async()=>{
     let lastError;
-    for (const source of VISION_URLS) {
-      try {
-        modelStatus('Loading face engine from '+source.name+'…');
-        $('localNote').textContent = 'Downloading MediaPipe for local processing. This can take a moment on first launch.';
-        const sdk = await import(/* @vite-ignore */ source.module);
-        if (!sdk?.FaceLandmarker || !sdk?.FilesetResolver) throw new Error('Required exports not found');
-        visionModule = sdk;
-        const fs = await sdk.FilesetResolver.forVisionTasks(source.wasm);
-        const options = {
-          baseOptions: {
-            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
-            delegate: 'GPU'
-          },
-          runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: false,
-          minTrackingConfidence: 0.55
-        };
-        try {
-          state.localEngine = await sdk.FaceLandmarker.createFromOptions(fs, options);
-          say('MediaPipe engine ready · GPU · '+source.name);
-          modelStatus('Face engine ready · GPU · '+source.name);
-        } catch (gpuError) {
-          say('GPU failed, trying CPU: '+gpuError.message);
-          options.baseOptions.delegate='CPU';
-          state.localEngine = await sdk.FaceLandmarker.createFromOptions(fs, options);
-          modelStatus('Face engine ready · CPU · '+source.name);
-          say('MediaPipe engine ready · CPU · '+source.name);
-        }
-        $('localNote').textContent='On-device face tracking ready. Photo Swap is a 2D texture deformation (not generative AI).';
-        return state.localEngine;
-      } catch (error) {
-        lastError = error;
-        state.localEngine = null;
-        say('MediaPipe '+source.name+' failed: '+(error?.message||String(error)));
-      }
+    for(const source of VISION_URLS){
+      try{
+        modelStatus('Downloading face engine · '+source.name);
+        const sdk=await import(/* @vite-ignore */ source.module);
+        if(!sdk?.FaceLandmarker||!sdk?.FilesetResolver)throw new Error('MediaPipe exports missing');
+        const fs=await sdk.FilesetResolver.forVisionTasks(source.wasm);
+        state.visionSdk=sdk;state.visionFileset=fs;
+        say('MediaPipe runtime loaded · '+source.name);
+        return {sdk,fs};
+      }catch(e){lastError=e;say('Runtime '+source.name+': '+e.message);}
     }
-    modelStatus('Could not load the face engine. Try Retry after checking your connection.');
-    throw new Error('Face engine download failed. Try Wi-Fi/mobile data, Chrome, or Retry. See Diagnostics for technical details.');
+    throw new Error('Face model runtime unavailable. Check browser connection/CDN: '+(lastError?.message||'unknown'));
   })();
-  try { return await state.visionPromise; }
-  catch (error) { state.visionPromise = null; throw error; }
+  try{return await state.sdkPromise;}catch(e){state.sdkPromise=null;throw e;}
 }
-
+async function makeLandmarker(mode){
+  const {sdk,fs}=await loadVisionRuntime();
+  const opts={
+    baseOptions:{modelAssetPath:MODEL_URL,delegate:'CPU'},
+    runningMode:mode,
+    numFaces:1,outputFaceBlendshapes:false,
+    minFaceDetectionConfidence:0.30,
+    minFacePresenceConfidence:0.30,
+    minTrackingConfidence:0.45
+  };
+  try{return {engine:await sdk.FaceLandmarker.createFromOptions(fs,opts),delegate:'CPU'};}
+  catch(cpuError){
+    say(mode+' CPU unavailable, trying GPU: '+cpuError.message);
+    opts.baseOptions.delegate='GPU';
+    return {engine:await sdk.FaceLandmarker.createFromOptions(fs,opts),delegate:'GPU'};
+  }
+}
+async function initLandmarker(){
+  if(state.localEngine)return state.localEngine;
+  if(state.visionPromise)return state.visionPromise;
+  state.visionPromise=(async()=>{
+    modelStatus('Initializing face tracking…');
+    const {engine,delegate}=await makeLandmarker('VIDEO');
+    state.localEngine=engine;
+    modelStatus('Face tracking '+delegate+' · VIDEO mode');
+    $('localNote').textContent='Tracking uses '+delegate+' on the phone. Source photos use a separate IMAGE-mode detector.';
+    say('Face tracker ready · '+delegate+' VIDEO');
+    return engine;
+  })();
+  try{return await state.visionPromise;}catch(error){state.visionPromise=null;modelStatus('Tracker failed: '+error.message);throw error;}
+}
+async function initPhotoLandmarker(){
+  if(state.imageEngine)return state.imageEngine;
+  if(state.imagePromise)return state.imagePromise;
+  state.imagePromise=(async()=>{
+    const {engine,delegate}=await makeLandmarker('IMAGE');
+    state.imageEngine=engine;
+    say('Source portrait detector ready · '+delegate+' IMAGE');
+    return engine;
+  })();
+  try{return await state.imagePromise;}catch(e){state.imagePromise=null;throw e;}
+}
+function pipelineStatus(message,ok=false){
+  const el=$('pipelineStatus'); if(!el)return;
+  el.textContent=message;el.classList.toggle('is-ok',ok);
+}
 function easePoints(raw) {
   if (!raw) return null;
   if (!state.smooth || state.smooth.length !== raw.length) state.smooth = raw.map(p => ({x:p.x,y:p.y,z:p.z}));
@@ -166,13 +188,28 @@ function localLoop(now) {
     if (state.localEngine && !state.modelBusy && effect!=='none' && now - state.lastDetect >= 1000/Number($('trackingRate').value) && video.currentTime !== state.lastFrameTime) {
       const begin=performance.now();
       try {
-        const result=state.localEngine.detectForVideo(video,now);
+        const mode=state.imageFallback && state.imageEngine?'IMAGE fallback':'VIDEO';
+        const result=mode==='IMAGE fallback'?state.imageEngine.detect(video):state.localEngine.detectForVideo(video,now);
+        let found=result.faceLandmarks?.[0]||null;
+        const ok=state.health.accept(found,now);
+        if(!ok && state.health.shouldTryImageFallback()){
+          if(state.imageEngine && !state.imageFallback){
+            const backup=state.imageEngine.detect(video).faceLandmarks?.[0]||null;
+            if(backup?.length>=468){found=backup;state.imageFallback=true;say('Video mode missed the face; image-mode fallback found one.');}
+          } else if(!state.imageEngine && !state.fallbackLoading){
+            state.fallbackLoading=true;
+            initPhotoLandmarker().catch(e=>say('Static fallback unavailable: '+e.message)).finally(()=>{state.fallbackLoading=false;});
+          }
+        }
         state.localMs=performance.now()-begin;
         $('localMs').textContent=state.localMs.toFixed(1);
-        state.tracked=result.faceLandmarks[0]||null;
-        $('faceCount').textContent=String(result.faceLandmarks.length);
-        if (state.tracked) state.lastFaceAt=now;
-      } catch(error) {say('Face detection error: '+error.message);state.localEngine=null;state.visionPromise=null;}
+        state.tracked=found;
+        $('faceCount').textContent=found?'1':'0';
+        if(found)state.lastFaceAt=now;
+        const stage=found ? (state.photoSwap.ready?'TRACKED · PHOTO READY':'TRACKED · CHOOSE PHOTO')
+          : 'NO FACE · keep your entire face centered and well lit';
+        pipelineStatus(stage+' · '+(state.imageFallback?'IMAGE':'VIDEO')+' · '+state.health.attempts+' checks · '+state.health.swapFrames+' swaps',!!found);
+      } catch(error) {say('Face detection error: '+error.message);pipelineStatus('DETECTION ERROR · '+error.message);state.localEngine=null;state.visionPromise=null;}
       state.lastDetect=now;state.lastFrameTime=video.currentTime;
     }
     if (effect!=='none' && state.tracked) {
@@ -182,6 +219,8 @@ function localLoop(now) {
         const beginSwap=performance.now();
         const quality=canvas.width > 700 ? 0.65 : 1;
         state.photoSwap.render(pts,canvas.width,canvas.height,quality);
+        state.health.swapFrames++;
+        pipelineStatus('FACE SWAP ACTIVE · '+state.health.swapFrames+' frames',true);
         state.swapDrawAt=now;
         $('localMs').textContent=(state.localMs+performance.now()-beginSwap).toFixed(1);
       }
@@ -215,7 +254,8 @@ async function startCamera() {
     $('sourceVideo').srcObject=stream;
     await $('sourceVideo').play();
     state.tracked=null;state.smooth=null;state.lastFrameTime=-1;state.lastDetect=0;state.lastFaceAt=0;state.swapDrawAt=0;
-    resetMetrics();
+    resetMetrics();state.health.reset();state.imageFallback=false;
+    pipelineStatus('CAMERA LIVE · waiting for first face detection');
     $('localPlaceholder').hidden=true;
     $('remoteVideo').classList.toggle('mirror',$('camera').value==='user');
     setState('localState','LIVE',true);
@@ -232,7 +272,8 @@ async function stopCamera() {
   await stopRemote();
   cancelAnimationFrame(state.animation);state.animation=0;
   if (state.stream)state.stream.getTracks().forEach(t=>t.stop());
-  state.stream=null;state.tracked=null;state.smooth=null;
+  state.stream=null;state.tracked=null;state.smooth=null;state.imageFallback=false;
+  pipelineStatus('CAMERA OFF · no frames being processed');
   $('sourceVideo').pause();$('sourceVideo').srcObject=null;
   $('localPlaceholder').hidden=false;
   $('localCanvas').getContext('2d')?.clearRect(0,0,$('localCanvas').width,$('localCanvas').height);
@@ -262,24 +303,24 @@ async function loadPhoto(file,presetId=''){
   state.sourceLoading=true;buttons();
   $('sourceStatus').textContent='Preparing face source locally · no uploads…';
   try {
-    const engine=await initLandmarker();
+    const engine=await initPhotoLandmarker();
+    let photoStrategy='original';
     const result=await state.photoSwap.loadFile(file,async image=>{
       state.modelBusy=true;
       try {
-        await engine.setOptions({runningMode:'IMAGE'});
-        return engine.detect(image).faceLandmarks[0]||null;
-      }finally {
-        try { await engine.setOptions({runningMode:'VIDEO'}); }
-        finally { state.modelBusy=false;state.lastFrameTime=-1; }
-      }
+        const found=detectPortrait(engine,image);
+        photoStrategy=found.strategy;
+        return found.landmarks;
+      }finally {state.modelBusy=false;}
     });
     state.swapDrawAt=0;selectedPreset(presetId);
     $('sourcePreview').src=state.photoSwap.photo.toDataURL('image/webp',.78);
     $('sourcePreview').hidden=false;
-    $('sourceStatus').textContent='Ready: '+file.name+' · '+result.triangles+' face triangles. '+(state.stream?'Move in front of the camera.':'Now tap Start camera at the top.');
+    $('sourceStatus').textContent='SOURCE VERIFIED · '+file.name+' · '+result.triangles+' triangles ('+photoStrategy+'). '+(state.stream?'Center your whole face in the camera.':'Tap Start camera.');
+    pipelineStatus('PHOTO READY · waiting for live face');
     say('Source ready · '+file.name+' · '+result.triangles+' triangles');
   }catch(error){
-    $('sourceStatus').textContent='Unable to load photo: '+(error?.message||String(error));
+    $('sourceStatus').textContent='SOURCE NOT DETECTED · '+(error?.message||String(error))+' · Please try another portrait with eyes, nose and chin visible.';
     say('Source face error: '+(error?.message||String(error)));
   }finally{state.sourceLoading=false;$('sourcePhoto').value='';buttons();}
 }
@@ -302,9 +343,15 @@ for(const button of document.querySelectorAll('[data-preset]')){
   });
 }
 $('retryModel').addEventListener('click',async()=>{
-  if(state.visionPromise)return;
-  try{await initLandmarker();$('sourceStatus').textContent='Face engine ready. Choose a preset or your own photo.';}
-  catch(error){$('sourceStatus').textContent=error.message;}
+  modelStatus('Restarting detector · CPU first…');
+  try{
+    state.localEngine?.close?.();state.imageEngine?.close?.();
+    state.localEngine=null;state.imageEngine=null;state.visionPromise=null;state.imagePromise=null;
+    state.tracked=null;state.health.reset();state.imageFallback=false;
+    await initLandmarker();await initPhotoLandmarker();
+    $('sourceStatus').textContent='Detectors restarted. Select a preset to test source-face detection.';
+    pipelineStatus('DETECTORS RESTARTED · test a preset');
+  }catch(e){$('sourceStatus').textContent=e.message;modelStatus('Restart failed · '+e.message);}
 });
 $('clearSource').addEventListener('click',()=>{
   if(state.sourceLoading)return;
@@ -440,4 +487,4 @@ $('snapshot').addEventListener('click',()=>{
 // Closing the page or hiding it stops camera and remote processing.
 window.addEventListener('pagehide',()=>{void stopCamera();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.stream)void stopCamera();});
-buttons();resetMetrics();displayMode('mobile');modelStatus('Not loaded yet · select a portrait or start the camera');say('FaceFX v0.4.1 ready · mobile Photo Swap with presets and CDN fallback.');
+buttons();resetMetrics();displayMode('mobile');modelStatus('Not loaded yet · select a portrait or start the camera');say('FaceFX v0.5 ready · independent CPU-first photo/video detection and live diagnostics.');
