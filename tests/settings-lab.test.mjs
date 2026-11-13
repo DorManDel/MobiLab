@@ -52,6 +52,14 @@ test('Original source preview is sandboxed and does not grant same-origin',()=>{
  assert.match(js,/postMessage/);
  assert.match(js,/settings-panel/);
 });
+test('Pinned MyPortfolio inventory matches 16 original groups and source commit',()=>{
+  const data=JSON.parse(read('labs/settings/myportfolio-settings-inventory.json'));
+  assert.equal(data.source.commit,'e13f57e3dbfb116003e705df89ce13fa00cfaf6a');
+  assert.equal(data.summary.groups,16);
+  assert.equal(data.summary.controls_in_settings_panel,72);
+  assert.ok(data.groups.some(g=>g.id==='wp3-ripple-settings'));
+  assert.ok(data.groups.some(g=>g.id==='dev-carousel-sound'));
+});
 test('Independent scripts parse',()=>{
  for(const file of ['labs/settings/engine.js','labs/settings/settings.js']){
   const result=spawnSync(process.execPath,['--check',path.join(root,file)],{encoding:'utf8'});
