@@ -236,7 +236,7 @@ function localLoop(now) {
         const beginSwap=performance.now();
         state.photoSwap.render(pts,canvas.width,canvas.height,quality,Number($('expression').value)/100);
         state.health.swapFrames++;
-        pipelineStatus('FACE SWAP ACTIVE · '+state.health.swapFrames+' frames'+(state.photoSwap.visibility<.75?' · profile angle protection':'') ,true);
+        pipelineStatus('FACE SWAP ACTIVE · '+state.health.swapFrames+' frames'+(state.photoSwap.visibility<.75?' · profile-angle fade':'') ,true);
         state.swapDrawAt=now;
         $('localMs').textContent=(state.localMs+performance.now()-beginSwap).toFixed(1);
       }
@@ -304,7 +304,7 @@ $('cameraStart').addEventListener('click',startCamera);
 $('cameraStop').addEventListener('click',stopCamera);
 const peekButton=$('peekOriginal');
 function setPeek(active){state.peekOriginal=!!active;peekButton.classList.toggle('pressed',!!active);peekButton.setAttribute('aria-pressed',String(!!active));}
-peekButton.addEventListener('pointerdown',e=>{e.preventDefault();setPeek(true);peekButton.setPointerCapture?.(e.pointerId);});
+peekButton.addEventListener('pointerdown',e=>{e.preventDefault();setPeek(true);});
 for(const type of ['pointerup','pointercancel','lostpointercapture','pointerleave'])peekButton.addEventListener(type,()=>setPeek(false));
 peekButton.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();setPeek(true);}});
 peekButton.addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();setPeek(false);}});
