@@ -136,7 +136,7 @@ def make_app(source: Path | None, model: Path | None, session_token: str):
     async def health(request):
         require_token(request)
         has_model = bool(source and model and source.is_file() and model.is_file())
-        return web.json_response({"service": "MobiLab FaceFX v0.2", "swap_configured": has_model,
+        return web.json_response({"service": "MobiLab FaceFX v0.4", "swap_configured": has_model,
                                   "recording": False, "transport": "WebRTC encrypted"})
 
     async def offer(request):
@@ -231,6 +231,13 @@ def make_app(source: Path | None, model: Path | None, session_token: str):
         app.router.add_get(route, page)
     for prefix in ("/", "/labs/facefx/"):
         app.router.add_get(prefix + "{file}", static)
+    async def preset(request):
+        name = request.match_info["name"]
+        if name not in {"studio-curly.webp", "studio-ginger.webp", "studio-bangs.webp"}:
+            raise web.HTTPNotFound()
+        return web.FileResponse(CLIENT_DIR / "presets" / name)
+    for prefix in ("/", "/labs/facefx/"):
+        app.router.add_get(prefix + "presets/{name}", preset)
     app.on_shutdown.append(shutdown)
     return app
 
