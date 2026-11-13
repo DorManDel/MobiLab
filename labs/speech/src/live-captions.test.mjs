@@ -14,4 +14,5 @@ assert.equal(formatLatency(null),"—");
 assert.equal(formatLatency(125.9),"126 ms");
 assert.equal(validCaptionMode("bad"),"bottom");
 assert.equal(validCaptionMode("roll"),"roll");
+assert.equal(validCaptionMode("append"),"append");
 console.log("Live subtitle chunking, modes and measured percentiles verified.");
