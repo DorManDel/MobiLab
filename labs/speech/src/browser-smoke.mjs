@@ -30,8 +30,10 @@ try {
       emitFinal(transcript){
         this.onspeechstart?.();
         const alternatives=[{transcript,confidence:0.95}];
-        const results=[Object.assign(alternatives,{isFinal:true})];
-        this.onresult?.({resultIndex:0,results});
+        this.entries ||= [];
+        const index=this.entries.length;
+        this.entries.push(Object.assign(alternatives,{isFinal:true}));
+        this.onresult?.({resultIndex:index,results:this.entries});
       }
     }
     Object.defineProperty(window,"SpeechRecognition",{value:MockSpeechRecognition,configurable:true});
@@ -82,14 +84,41 @@ try {
   await page.locator("#speakLast").click();
   assert.equal(await page.evaluate(()=>window.__spoken),"Translation A");
 
-  await page.locator("#recordToggle").click();
+  await page.locator("#floatingControls #record").click();
   assert.equal(await page.locator("#recordToggle").getAttribute("aria-pressed"),"true");
   await page.evaluate(()=>window.__recognition.emitInterim("אני מדבר עכשיו וזו בדיקה של כתוביות"));
   assert.match(await page.locator("#livePartial").textContent(),/אני מדבר עכשיו/);
   await page.evaluate(()=>window.__recognition.emitFinal("עוד משפט"));
-  await page.locator("#recordToggle").click();
+  await page.locator("#floatingControls #record").click();
   assert.equal(await page.locator("#recordToggle").getAttribute("aria-pressed"),"false");
   assert.ok((await page.evaluate(()=>window.__aborted))>=1);
+
+  // Floating UI and paragraph grouping: successive finals are one paragraph until pause.
+  await page.locator("#floatingControls #langs").click();
+  assert.equal(await page.locator("#floatingControls #panel").getAttribute("hidden"),null);
+  await page.locator("#floatingControls #close").click();
+  await page.locator("#liveSettings summary").click();
+  await page.locator("#silenceDuration").selectOption("900");
+  await page.locator("#floatingControls #record").click();
+  assert.equal(await page.locator("#recordToggle").getAttribute("aria-pressed"),"true");
+  const before=await page.locator("#segments article").count();
+  await page.evaluate(()=>{
+    window.__recognition.emitFinal("זאת פסקה אחת");
+    window.__recognition.emitFinal("והיא ממשיכה לפני שהדובר עוצר");
+  });
+  assert.equal(await page.locator("#segments article").count(),before,"Must not commit a paragraph before silence");
+  await page.waitForFunction((before)=>{
+    return document.querySelectorAll("#segments article").length===before+1;
+  },before);
+  assert.match(await page.locator("#segments article .original").first().textContent(),
+    /זאת פסקה אחת והיא ממשיכה לפני שהדובר עוצר/);
+  await page.locator('[data-caption-mode="append"]').click();
+  await page.waitForFunction(()=>document.querySelectorAll("#liveAppend .append-entry").length>0);
+  assert.equal(await page.locator("#liveDeck").getAttribute("data-mode"),"append");
+  await page.locator("#captionLines").selectOption("3");
+  assert.equal(await page.locator("#liveDeck").evaluate(el=>el.style.getPropertyValue("--caption-lines")),"3");
+  await page.locator("#floatingControls #record").click();
+  assert.equal(await page.locator("#recordToggle").getAttribute("aria-pressed"),"false");
   assert.match(await page.locator("#liveSttMs").textContent(),/ms|—/);
   assert.match(await page.locator("#liveTotalMs").textContent(),/ms|—/);
 
@@ -101,6 +130,8 @@ try {
   await page.locator("#translateManual").click();
   await page.waitForFunction(()=>document.querySelector("#libreEngineResult")?.textContent==="Translation B");
   assert.equal(await page.locator("#cloudEngineResult").textContent(),"Translation A");
+  assert.equal(await page.locator("#liveTranslation").textContent(),"Translation A",
+    "Late comparison provider must not overwrite selected MyMemory caption.");
   await page.locator("#referenceTranslation").fill("Translation A");
   assert.match(await page.locator("#benchResults").textContent(),/MyMemory.*100%/);
 

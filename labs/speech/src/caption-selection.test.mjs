@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+import {acceptCaption} from "./caption-selection.js";
+const fixed={captionProvider:"cloud",finalPerf:100,displayText:"",displayProvider:null};
+assert.equal(acceptCaption(fixed,"libre","other model",120),false);
+assert.equal(acceptCaption(fixed,"cloud","stable sentence",200),true);
+assert.equal(fixed.finalToSubtitleMs,100);
+assert.equal(acceptCaption(fixed,"libre","late overwrite",220),false);
+assert.equal(fixed.displayText,"stable sentence");
+const first={captionProvider:"fastest",finalPerf:500,displayText:""};
+assert.equal(acceptCaption(first,"libre","fast response",540),true);
+assert.equal(acceptCaption(first,"cloud","slow response",800),false);
+assert.equal(first.displayText,"fast response");
+assert.equal(first.displayProvider,"libre");
+console.log("Caption result locking prevents late provider overwrites.");

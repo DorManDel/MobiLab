@@ -32,7 +32,7 @@ export function timeStats(values) {
 export function formatLatency(ms) {
   return Number.isFinite(ms) && ms>=0 ? Math.round(ms)+" ms" : "—";
 }
-export const CAPTION_MODES=["bottom","roll","ticker"];
+export const CAPTION_MODES=["bottom","append","roll","ticker"];
 export function validCaptionMode(mode) {
   return CAPTION_MODES.includes(mode) ? mode : "bottom";
 }

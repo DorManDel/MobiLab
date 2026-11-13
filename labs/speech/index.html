@@ -139,6 +139,7 @@
     <div class="live-toolbar">
       <div class="caption-switch" role="group" aria-label="Subtitle visual mode">
         <button type="button" data-caption-mode="bottom" aria-pressed="true">▱ Subtitles</button>
+        <button type="button" data-caption-mode="append" aria-pressed="false">☷ Paragraphs</button>
         <button type="button" data-caption-mode="roll" aria-pressed="false">↥ Rising</button>
         <button type="button" data-caption-mode="ticker" aria-pressed="false">⇢ Ticker</button>
       </div>
@@ -152,9 +153,11 @@
         <div id="liveTranslation" class="live-translation" dir="auto">Translation appears here</div>
       </div>
       <div id="liveRoll" class="live-roll" aria-hidden="true"></div>
+      <div id="liveAppend" class="live-append" aria-label="Completed translated paragraphs" role="log" aria-live="off"></div>
       <div class="live-ticker" aria-hidden="true"><div id="liveTicker" class="ticker-rail">Translation appears here</div></div>
     </div>
     <p class="live-sr-only" id="liveAccessible" role="status" aria-live="polite" aria-atomic="true"></p>
+    <speech-floating-controls id="floatingControls" aria-label="Floating microphone and language controls"></speech-floating-controls>
     <p class="live-source-status" id="liveNotice">Interim text appears instantly; translation accuracy and delay depend on the speech and translation engines.</p>
     <div class="live-metrics" aria-label="Latency measurements">
       <div><span>Speech start → final*</span><strong id="liveSttMs">—</strong><small>Approx. + speech duration</small></div>
@@ -166,11 +169,30 @@
       <summary>⚙ Live translation tuning · chunk size &amp; latency</summary>
       <div class="live-setting-grid">
         <div class="field">
-          <label for="chunkMode">Finalize as</label>
+          <label for="chunkMode">Paragraph detection</label>
           <select id="chunkMode">
-            <option value="sentence">Whole finalized phrase · best context</option>
-            <option value="line" selected>Subtitle line · up to 9 words</option>
-            <option value="short">Fast chunks · up to 4 words</option>
+            <option value="paragraph" selected>Group speech until pause</option>
+            <option value="immediate">Each final speech result (faster)</option>
+          </select>
+        </div>
+        <div class="field"><label for="silenceDuration">End paragraph after pause</label>
+          <select id="silenceDuration">
+            <option value="900">0.9 seconds · fast</option>
+            <option value="1600" selected>1.6 seconds · balanced</option>
+            <option value="2500">2.5 seconds · longer turns</option>
+          </select>
+        </div>
+        <div class="field"><label for="captionLines">Subtitle lines on screen</label>
+          <select id="captionLines">
+            <option value="1">1 line</option><option value="2" selected>2 lines</option><option value="3">3 lines</option>
+          </select>
+        </div>
+        <div class="field"><label for="captionProvider">Engine used for captions</label>
+          <select id="captionProvider">
+            <option value="cloud" selected>MyMemory · stable</option>
+            <option value="fastest">First result · lock caption</option>
+            <option value="local">Chrome local · requires enabling</option>
+            <option value="libre">My LibreTranslate · requires setup</option>
           </select>
         </div>
         <div class="field">
@@ -181,14 +203,14 @@
           </select>
         </div>
         <label class="check fullrow" for="earlyPreview"><input id="earlyPreview" type="checkbox"> Experimental early translation of interim text (opt-in; may change or use extra API quota)</label>
-        <p class="live-help fullrow">SpeechRecognition decides when its results become final. Smaller chunks split the returned text for reading, but cannot force the speech engine to recognize earlier. Short chunks may lose context. Early translation can show provisional words before finalization, throttled to protect quotas.</p>
+        <p class="live-help fullrow">SpeechRecognition determines finalization. We group finalized speech until a pause and translate complete paragraphs. Two or three lines is a viewport choice, not separate translation requests. The display engine is locked per paragraph; comparison engines cannot overwrite captions. Early drafts are provisional and may consume API quota.</p>
       </div>
     </details>
     <a class="live-access" href="#controls">Advanced controls, voice and model comparison ↓</a>
   </section>
 
   <div class="intro">
-    <div class="eyebrow">EXPERIMENT 07 · LANGUAGE & AUDIO · LIVE BETA 0.3</div>
+    <div class="eyebrow">EXPERIMENT 07 · LANGUAGE & AUDIO · LIVE BETA 0.4</div>
     <h1>Speech & <em>Translate</em> Lab</h1>
     <p>A mobile-first listening workbench: record and save transcripts, translate through real engines, compare outputs and hear the result. Designed for reusable components.</p>
     <div class="row"><span class="tag">🎙 Live microphone</span><span class="tag">🗺 Translation</span><span class="tag">🔊 TTS</span><span class="tag">📊 WER test</span></div>

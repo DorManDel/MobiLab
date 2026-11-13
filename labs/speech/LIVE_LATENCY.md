@@ -1,4 +1,4 @@
-# Live Subtitle Studio — beta 0.3
+# Live Subtitle Studio — beta 0.4
 
 ## Goals
 Give a phone-first, legible live translation experience while exposing the real sources of latency. Three display modes share one transcript and provider pipeline; visual transitions do not represent changes in recognition speed.
@@ -9,6 +9,16 @@ Give a phone-first, legible live translation experience while exposing the real 
 - **Ticker:** one translated line scrolls horizontally like an RSS/news feed. CSS animation; motion stops when reduced-motion is requested.
 - Language selectors + Start/Finish recording appear before advanced controls at the top, without needing to scroll on a phone.
 - Quick sound button runs the latest translated text through existing speech synthesis (mic must be stopped to prevent feedback).
+
+## Paragraph grouping and display engine stability (v0.4)
+
+- The browser's finalized speech fragments are accumulated until an inactivity threshold (default 1.6 s) measured from browser result updates; ongoing interim updates reset the timer. A word cap triggers a safety flush. This approximates a speaking turn; it is **not** a physical silence detector.
+- Translate one completed paragraph at a time. The prior 4/9-word segmentation is no longer the default, so punctuation and adjacent speech fragments can retain context.
+- Select the subtitle viewport line count independently (1–3). A visual clamp does not cut up the translation request. In Paragraphs view, complete translated paragraphs append to a bounded scrollable window. Full text session history is still retained separately.
+- The selected **display translation provider** (default MyMemory) controls the rendered subtitle. Once set on a paragraph, its result is immutable even if other translators finish later; model comparison remains available below.
+- The floating microphone/language UI is exposed as a self-contained Web Component. It emits `speech:toggle`, `speech:language-change` and `speech:display-change`. Host invokes `setState({listening,source,target,mode})`. The component never captures microphone or sends network requests.
+- Late provider timestamps are still recorded for benchmarking, but final-to-subtitle latency is measured when the selected provider's result becomes displayable.
+- Finishing recording cancels outstanding earlier work; the final unfinished paragraph may make one new explicit translation request when auto-translate is enabled. This should not be confused with the prior endless-queue behavior.
 
 ## Processing and low-latency tradeoffs
 1. Web Speech API delivers provisional (interim) text and eventually a final result; it does **not** expose low-level audio buffers to the page or a guarantee for when finalization occurs.
