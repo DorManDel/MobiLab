@@ -1,6 +1,15 @@
-# Speech & Translate Lab — Live Subtitle Studio beta 0.3
+# Speech & Translate Lab — Live Subtitle Studio beta 0.4
 
 Entry point: ./index.html, linked as a tab and overview card in MobiLab.
+
+## New in beta 0.4 — stable paragraphs and floating microphone
+
+- SpeechRecognition final fragments are **collected into one paragraph** until 0.9, 1.6 (default), or 2.5 seconds pass without a new interim/final event. That delay starts after the recognizer's *final result*, so it is a browser-visible approximation of silence, not a waveform-level voice activity detector. A hard paragraph length cap protects against unlimited memory. You can also choose Immediate mode to commit each final result.
+- A paragraph is translated as **one unit**, preserving context. Choosing 1, 2 (default) or 3 visible subtitle lines changes the viewport clipping only; it does not send one API request per line. To read complete results use the Paragraphs append mode, which retains a bounded on-screen history while the full transcript remains in session memory.
+- **Stable caption provider:** MyMemory by default, or explicitly Chrome/LibreTranslate, or first-success wins. The chosen result is locked for that paragraph; late outputs from other comparison providers still appear in their benchmark panels but never replace live subtitles. This is not multi-model fusion.
+- A reusable, **UI-only floating Web Component** in `src/speech-floating-controls.js` provides a compact mobile mic start/stop and language/settings popover. The app owns microphone permissions and translates the component's events to the existing engine. Desktop full controls remain.
+- Finish microphone cancels old pending provider work and **optionally translates only the last incomplete paragraph** when auto-translation is on. A background stop never starts new provider requests. Transcript is text-only.
+- Tests: paragraph timeout/grouping, provider result lock, mobile floating UI, paragraph append mode and configurable subtitle line count (CI mock browser + Node). Actual phone speech timing and availability remain field-tested, not assumed.
 
 ## New in beta 0.3 — instantly accessible subtitles
 
