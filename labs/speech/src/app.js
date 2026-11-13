@@ -119,7 +119,8 @@ function scheduleDraft(text) {
   clearTimeout(draftTimer);
   const version=++draftVersion;
   const trimmed=text.trim();
-  if(!$("earlyPreview").checked || trimmed.split(/\s+/u).length<4 || !micActive)return;
+  if(!$("earlyPreview").checked || !circuit.canCall("cloud") ||
+    trimmed.split(/\s+/u).length<4 || !micActive)return;
   // Extra translation requests are opt-in; cap text size and global call rate.
   const delay=Math.max(650,3600-(performance.now()-lastDraftRequest));
   draftTimer=setTimeout(async()=>{
@@ -134,6 +135,8 @@ function scheduleDraft(text) {
         $("sourceLang").value,$("targetLang").value,controller.signal);
       if(version===draftVersion && micActive && !controller.signal.aborted){
         liveView.early(out,performance.now()-began);
+        if(ledger.followLive)floating.setCaption({text:out,translated:true,status:"EARLY DRAFT",
+          source:$("sourceLang").value,target:$("targetLang").value});
       }
     }catch(error){
       if(version===draftVersion && micActive && !controller.signal.aborted){
@@ -217,11 +220,10 @@ function stopMic(translateLast=false) {
   refreshRecordingUI();
   status(translateLast
     ? "Mic off. Earlier pending translations canceled; only the last unfinished paragraph may finish translating."
-    : "Mic off. Transcript saved locally; translations canceled.");
-  if (rows.length) {
-    const latest = rows[rows.length - 1];
-    showCaption(latest);
-    showComparison(latest);
+    : "Mic off. Transcript remains in this page; translations canceled.");
+  if(rows.length){
+    const latest=rows[rows.length-1];
+    showCaption(latest);showComparison(latest);focusView(ledger.focused||latest);
   }
 }
 function activateRecognizer(token) {
@@ -570,6 +572,10 @@ function translateSaved() {
   }
 }
 $("translateSaved").addEventListener("click",translateSaved);
+$("showMoreRows").addEventListener("click",()=>{
+  displayLimit=Math.min(3000,displayLimit+40);
+  renderRows();
+});
 
 async function detectTypedLanguage(text) {
   if (/[א-ת]/u.test(text)) return "he";
@@ -835,6 +841,54 @@ $("scoreWer").addEventListener("click",()=>{
   $("wer").textContent=(score*100).toFixed(1)+"%";
   status("WER computed from your human reference. Lower is better.");
 });
+// User-controlled device persistence: never sends text or keys to a server.
+const CONSENT_KEY="mobilab.speech.localSaveEnabled";
+$("saveLocal").addEventListener("change",async()=>{
+  const enable=$("saveLocal").checked;
+  try{
+    if(enable){localStorage.setItem(CONSENT_KEY,"1");saveLocalSoon();}
+    else{
+      clearTimeout(archiveTimer);
+      localStorage.removeItem(CONSENT_KEY);
+      await archive.clear();
+      $("archiveStatus").textContent="Local saved copy deleted. Current transcript remains in RAM.";
+    }
+  }catch(error){$("archiveStatus").textContent="Storage error: "+error.message;}
+});
+$("clearLocal").addEventListener("click",async()=>{
+  try{
+    clearTimeout(archiveTimer);
+    await archive.clear();
+    localStorage.removeItem(CONSENT_KEY);
+    $("saveLocal").checked=false;
+    $("archiveStatus").textContent="Saved browser copy deleted. In-memory transcript unchanged.";
+  }catch(error){$("archiveStatus").textContent="Cannot delete saved copy: "+error.message;}
+});
+$("exportJson").addEventListener("click",()=>download("mobilab-speech-log.json",
+  JSON.stringify({schema:"mobilab.speech.log.v1",exportedAt:new Date().toISOString(),
+    entries:ledger.snapshot()},null,2),"application/json;charset=utf-8"));
+(async function restoreLocalLog(){
+  try{
+    if(localStorage.getItem(CONSENT_KEY)!=="1")return;
+    $("saveLocal").checked=true;
+    const data=await archive.load();
+    if(!data?.entries?.length)return;
+    for(const saved of data.entries.slice(0,3000)){
+      const row={...saved,results:saved.results||{},queueStatus:
+        ["running","queued"].includes(saved.queueStatus)?"canceled":saved.queueStatus,
+        finalPerf:performance.now(),displayShown:Boolean(saved.displayText)};
+      if(!Number.isInteger(row.id)||!row.text)continue;
+      ledger.append(row);rowId=Math.max(rowId,row.id);
+    }
+    const first=rows[0];
+    if(first)sessionStart=(first.at||Date.now())-(first.offset||0);
+    renderRows();
+    liveView.drawHistory();
+    focusView(ledger.resumeLive());
+    showComparison(rows.at(-1));
+    $("archiveStatus").textContent="Restored "+rows.length+" local transcript paragraphs. Microphone remains off.";
+  }catch(error){$("archiveStatus").textContent="Could not restore local transcript: "+error.message;}
+})();
 function transcriptText(){
   return rows.map(row=>row.text+"\n"+["cloud","local","libre"].filter(id=>row.results[id]?.text)
     .map(id=>id+": "+row.results[id].text).join("\n")).join("\n\n");
