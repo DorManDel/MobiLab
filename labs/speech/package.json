@@ -1,9 +1,9 @@
 {
   "name": "mobilab-speech-lab",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test src/engine-compare.test.mjs src/bench-core.test.mjs src/live-captions.test.mjs src/dom-contract.test.mjs"
+    "test": "node --test src/engine-compare.test.mjs src/bench-core.test.mjs src/live-captions.test.mjs src/paragraph-builder.test.mjs src/caption-selection.test.mjs src/dom-contract.test.mjs"
   }
 }
