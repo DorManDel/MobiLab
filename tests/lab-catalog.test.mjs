@@ -72,11 +72,14 @@ test("MobiLab HTML has unique ids and one catalog entry per module", () => {
   const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map(match => match[1]);
   assert.equal(new Set(ids).size, ids.length);
   const entryIds = [...html.matchAll(/<(?:a|button)\b[^>]*class="lab-card[^"]*"[^>]*data-lab-id="([^"]+)"/g)].map(match => match[1]);
-  assert.equal(entryIds.length, 11);
+  assert.equal(entryIds.length, 12);
   assert.equal(new Set(entryIds).size, entryIds.length);
-  for (const id of ["labSearch", "labSort", "labCategory", "labCards", "catalogEmpty", "infinity"]) {
+  for (const id of ["labSearch", "labSort", "labCategory", "labCards", "catalogEmpty", "infinity", "densityToggle", "mobileHome", "mobileExplore", "mobileRecent"]) {
     assert.ok(ids.includes(id), "Missing " + id);
   }
   assert.match(html, /UNDER CONSTRUCTION/);
   assert.match(html, /data-panel="infinity"/);
+  assert.match(html, /href="\.\/labs\/settings\/"/);
+  assert.ok(entryIds.includes("settings"));
+  assert.ok(entryIds.includes("liquid"));
 });
