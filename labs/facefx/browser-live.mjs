@@ -50,6 +50,7 @@ try {
   }
   console.log('Real MediaPipe LIVE local swap:',await page.locator('#pipelineStatus').textContent());
   if((await page.locator('#pipelineStatus').textContent()).includes('SWAP SUCCESS'))throw Error('Misleading success banner');
+  if(!(await page.locator('#pipelineStatus').evaluate(el=>el.classList.contains('is-rendered')&&!el.classList.contains('is-ok'))))throw Error('2D texture should have neutral rendered indicator, not green success');
   await page.locator('#effect').selectOption('mesh');
   await page.waitForFunction(()=>document.querySelector('#pipelineStatus')?.textContent==='FACE MAPPING ACTIVE',null,{timeout:15000});
   console.log('Real 478-point face mapping:',await page.locator('#pipelineStatus').textContent());
