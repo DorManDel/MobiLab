@@ -129,7 +129,7 @@ def make_app(source: Path | None, model: Path | None, session_token: str):
 
     async def static(request):
         filename = request.match_info["file"]
-        if filename not in {"client.js", "style.css", "swap.js"}:
+        if filename not in {"client.js", "style.css", "swap.js", "detection.js", "warp-geometry.js"}:
             raise web.HTTPNotFound()
         return web.FileResponse(CLIENT_DIR / filename)
 
