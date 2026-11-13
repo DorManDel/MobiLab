@@ -32,6 +32,7 @@ function navigate(target, updateLocation = true) {
   }
   if (currentTab === "haptics" && nextTab !== "haptics") haptics.stop();
   if (currentTab === "motion" && nextTab !== "motion") motionBench?.stop();
+  if (nextTab === "motion") motionBench?.refreshPresets();
   currentTab = nextTab;
 
   function setupLabIndex() {
