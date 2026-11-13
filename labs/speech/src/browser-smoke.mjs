@@ -84,12 +84,12 @@ try {
   await page.locator("#speakLast").click();
   assert.equal(await page.evaluate(()=>window.__spoken),"Translation A");
 
-  await page.locator("#recordToggle").click();
+  await page.locator("#floatingControls #record").click();
   assert.equal(await page.locator("#recordToggle").getAttribute("aria-pressed"),"true");
   await page.evaluate(()=>window.__recognition.emitInterim("אני מדבר עכשיו וזו בדיקה של כתוביות"));
   assert.match(await page.locator("#livePartial").textContent(),/אני מדבר עכשיו/);
   await page.evaluate(()=>window.__recognition.emitFinal("עוד משפט"));
-  await page.locator("#recordToggle").click();
+  await page.locator("#floatingControls #record").click();
   assert.equal(await page.locator("#recordToggle").getAttribute("aria-pressed"),"false");
   assert.ok((await page.evaluate(()=>window.__aborted))>=1);
 
