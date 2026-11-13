@@ -181,7 +181,7 @@
       <div><span id="liveTotalLabel">Final → subtitle</span><strong id="liveTotalMs">—</strong><small id="livePercentile">p50/p90: —</small></div>
     </div>
     <details class="live-setting-details" id="liveSettings">
-      <summary>⚙ Live translation tuning · chunk size &amp; latency</summary>
+      <summary>⚙ Live paragraph timing, display &amp; latency</summary>
       <div class="live-setting-grid">
         <div class="field">
           <label for="chunkMode">Paragraph detection</label>
@@ -235,7 +235,7 @@
     <section class="card" id="controls" aria-labelledby="controlTitle">
       <div class="row between"><div><div class="eyebrow">01 / INPUT</div><h2 id="controlTitle">Recording details</h2></div><span class="tag" id="browserSupport">Checking…</span></div>
       <p class="hint">Microphone recognition requires a selected spoken language. Auto detection is experimental and only available for typed text. The built-in browser recognizer is <strong>not</strong> a reliable multilingual auto-detector.</p>
-      <label class="check" for="autoTranslate"><input id="autoTranslate" type="checkbox" checked> Translate each finalized phrase while recording</label>
+      <label class="check" for="autoTranslate"><input id="autoTranslate" type="checkbox" checked> Translate each completed paragraph while listening</label>
       <button type="button" id="translateSaved" class="btn-translate-saved">↻ Translate saved phrases / re-run latest</button>
       <p class="hint">Stop immediately ends speech recognition and cancels outstanding translations. The final <strong>text transcript</strong> stays in this page until you clear or close it; <strong>no raw audio recording is saved</strong>.</p>
       <p class="status" aria-live="polite"><span id="stateDot" class="dot"></span><span id="status">Ready. Microphone is off.</span></p>
@@ -320,7 +320,7 @@
       <p class="hint">Final text is appended once with a stable ID. Translation engines add separate results; the subtitle viewer only focuses on one log entry.</p>
       <label class="check" for="saveLocal"><input id="saveLocal" type="checkbox"> Save transcript on this device (opt-in)</label>
       <p id="archiveStatus" class="hint">In-memory until exported or local saving is enabled. No raw audio files are created.</p>
-      <div id="segments" class="segments" aria-live="polite"><p class="hint">Finalized phrases will appear here. Interim results appear above but are not translated or stored.</p></div>
+      <div id="segments" class="segments" aria-live="off"><p class="hint">Finalized phrases will appear here. Interim results appear above but are not translated or stored.</p></div>
       <div class="row" style="margin-top:14px"><button id="copyTranscript">Copy text</button><button id="exportTxt">↓ TXT</button><button id="exportJson">↓ JSON log</button><button id="exportVtt">↓ VTT*</button></div>
       <div class="row" style="margin-top:10px"><button id="showMoreRows">Show older paragraphs</button><button id="clearLocal">Delete saved local copy</button></div>
       <p class="hint">* VTT cues use approximate session times; they are NOT synchronized to an external video.</p>
