@@ -26,6 +26,15 @@ Opening a lab through the MobiLab menu/card is counted locally in `localStorage`
 
 Run discovery checks locally with `node --test tests/lab-catalog.test.mjs` (Node 20+). The lightweight UI uses no external packages and leaves all other lab engines unchanged.
 
+## Settings Dock V4 + mobile navigation (2026-11-13)
+
+- **Settings Dock Lab** is at [`labs/settings/`](./labs/settings/). Five selectable layouts — Corner, Top, Side, Bottom and Custom Floating — support local drag/resize/lock/save controls and a restricted original MyPortfolio settings preview. **This does not modify MyPortfolio itself.** Review and improve the reusable engine here before integrating it elsewhere.
+- **Mobile navigation** (narrow screens up to 650px) replaces the long horizontal list of tabs with a four-action bottom dock: Home, Explore, Recent and Settings. The desktop tabs are preserved. The floating dock respects device safe-area insets.
+- **Compact module rows** are the default for narrow screens to avoid excessive vertical scrolling. The Compact/Cards toggle controls the density, independently saved in `mobilab.catalog.density.v1` on this browser. New sites have compact mode by default.
+- **Explore** jumps to the module catalog, **Recent** selects the existing locally maintained Recently Opened sort (not recent Git commits), and **Settings** opens the standalone Settings Dock Lab. The top search is still available from every main app panel.
+- Settings and module usage preferences remain local to the browser; there is no cross-device sync or analytics upload. The original Settings Lab snapshot is informational and not a production MyPortfolio adapter.
+- Check with `node --test tests/lab-catalog.test.mjs tests/mobile-shell.test.mjs tests/settings-lab.test.mjs`. Before claiming real-phone verification, also inspect 360×800 and 390×844 portrait and 832×384 landscape, especially bottom dock safe areas and Settings Lab touch targets.
+
 ## Run
 
 Open **index.html** from the published GitHub Pages site for camera and motion sensor permissions.
