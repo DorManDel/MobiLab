@@ -68,3 +68,6 @@
 .model-tools span{max-height:3.6em;overflow:hidden;min-width:0;overflow-wrap:anywhere}
 .source-picker[hidden]{display:none!important}
 @media(max-width:650px){.pipeline-health{font-size:11px;padding:0 7px!important}.model-tools button{font-size:11px}}
+
+/* v0.7.1: rendered 2D texture gets a neutral amber stage, not a green swap-success banner. */
+.pipeline-health.is-rendered{background:#30271c!important;color:#f2d9a0!important;border-color:#544531!important}
