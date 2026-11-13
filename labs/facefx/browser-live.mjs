@@ -11,7 +11,7 @@ try {
   await page.goto(target,{waitUntil:'domcontentloaded'});
   await page.locator('[data-preset="studio-ginger"]').click();
   try{
-    await page.waitForFunction(()=>document.querySelector('#sourceStatus')?.textContent?.startsWith('Ready:'),null,{timeout:90000});
+    await page.waitForFunction(()=>document.querySelector('#sourceStatus')?.textContent?.startsWith('SOURCE VERIFIED'),null,{timeout:90000});
   }catch(e){
     console.error('Real model status:',await page.locator('#modelStatus').textContent());
     console.error('Photo status:',await page.locator('#sourceStatus').textContent());
@@ -20,6 +20,6 @@ try {
     console.error('Browser requests:',events.slice(-12));
     throw e;
   }
-  console.log('Real MediaPipe loaded and detected studio-ginger face:',await page.locator('#sourceStatus').textContent());
+  console.log('Real MediaPipe PHOTO detector loaded studio-ginger face:',await page.locator('#sourceStatus').textContent());
   console.log('Engine:',await page.locator('#modelStatus').textContent());
 }finally { await browser.close(); }
