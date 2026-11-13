@@ -955,12 +955,14 @@ function vttTime(ms){
     .map(n=>String(n).padStart(2,"0")).join(":")+"."+String(value%1000).padStart(3,"0");
 }
 $("exportVtt").addEventListener("click",()=>{
-  let out="WEBVTT\n\nNOTE Approximate session times, not synchronized to a video.\n\n";
+  let out="WEBVTT\n\nNOTE Spoken session times approximate; imported local media segments use Whisper timestamps.\n\n";
   rows.forEach((row,i)=>{
-    const begin=Math.max(0,row.offset);
+    const media=Number.isFinite(row.mediaStartMs)&&Number.isFinite(row.mediaEndMs);
+    const begin=media?Math.max(0,row.mediaStartMs):Math.max(0,row.offset);
     const next=rows[i+1]?.offset;
-    const end=next>begin?Math.min(next,begin+5000):begin+2500;
-    const cap=row.results.cloud?.text||row.results.local?.text||row.results.libre?.text||row.text;
+    const end=media?Math.max(begin+100,row.mediaEndMs):
+      (next>begin?Math.min(next,begin+5000):begin+2500);
+    const cap=row.displayText||row.text;
     out+=(i+1)+"\n"+vttTime(begin)+" --> "+vttTime(end)+"\n"+cap.replace(/\n/g," ")+"\n\n";
   });
   download("mobilab-session-approx.vtt",out,"text/vtt;charset=utf-8");
