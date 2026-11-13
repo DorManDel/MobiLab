@@ -86,7 +86,7 @@
       <label>Private PC address <input id="serverUrl" type="url" placeholder="https://your-pc.your-tailnet.ts.net" autocomplete="url" inputmode="url" /></label>
       <label>One-session token <input id="pairToken" type="password" placeholder="Copy token from PC terminal" autocomplete="off" spellcheck="false" /></label>
     </div>
-    <div class="action-row"><button id="checkServer" class="btn">↗ Test connection</button><a class="btn" href="https://github.com/DorManDel/MobiLab/archive/refs/heads/main.zip" target="_blank" rel="noopener">↓ Download MobiLab + PC server*</a></div>
+    <div class="action-row"><button id="checkServer" class="btn">↗ Test connection</button><a class="btn" href="https://github.com/DorManDel/MobiLab/archive/refs/heads/feature/facefx-dual-engine-v02.zip" target="_blank" rel="noopener">↓ Download preview + PC server*</a></div>
     <p id="healthStatus" class="note" role="status">Not connected. The token stays in this tab's memory and is not saved.</p>
     <details class="setup-details"><summary>Windows setup commands &amp; connection help</summary>
       <div class="guide">
@@ -96,7 +96,7 @@
 .\facefx-server\.venv\Scripts\python.exe facefx-server\server.py</pre>
         <p>Copy the session token printed in PowerShell. On another terminal, after signing in to Tailscale on your PC and phone:</p><pre>tailscale serve 8080</pre>
         <p>Copy the HTTPS address shown by Tailscale above. Start with Debug, then configure a licensed ONNX swap model to enable AI Face Swap. No model weights or personal photographs belong in this public repository.</p>
-        <p class="note">*The main-branch download includes this lab only after it is merged. Until then, use the preview ZIP supplied with this experiment.</p>
+        <p class="note">*This link downloads the preview branch. Before merging into main, point it to a stable main-branch download or release.</p>
       </div>
     </details>
   </section>
