@@ -192,6 +192,20 @@ $('fetchOriginal').onclick=async()=>{
  finally{sourceLoading=false;$('fetchOriginal').disabled=false}
 };
 $('fileOriginal').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>13_000_000)throw Error('File exceeds 13 MB');renderOriginal(await file.text());$('sourceStatus').textContent='Initializing selected HTML: '+file.name}catch(err){$('sourceStatus').textContent=err.message}finally{e.target.value=''}};
+$('showPinnedInventory').onclick=async()=>{
+  const el=$('sourceStatus');
+  try{
+    const response=await fetch('./myportfolio-settings-inventory.json',{cache:'force-cache'});
+    if(!response.ok)throw Error('HTTP '+response.status);
+    const data=await response.json();
+    if(data.source?.commit!==PINNED_PORTFOLIO_SHA||!Array.isArray(data.groups))throw Error('Invalid source inventory');
+    realInventory={groupCount:data.summary.groups,controlCount:data.summary.controls_in_settings_panel,groups:data.groups.map(g=>({id:g.id,name:g.title,controls:g.controls}))};
+    $('inventory').hidden=false;
+    $('inventory').textContent='Static HTML inventory at '+PINNED_PORTFOLIO_SHA.slice(0,9)+' · '+realInventory.groupCount+' groups / '+realInventory.controlCount+' controls (including items outside groups)\n'+realInventory.groups.map(g=>'• '+g.name+' ('+g.controls.length+')').join('\n');
+    $('exportInventory').disabled=false;
+    el.textContent='Pinned source structure loaded. This is extracted HTML only; dynamic controls may be added by JS at runtime.';
+  }catch(e){el.textContent='Pinned inventory unavailable in this offline view ('+e.message+'). Use hosted MobiLab source or load trusted local index.html.'}
+};
 $('exportInventory').onclick=()=>{if(realInventory)download('myportfolio-real-settings-inventory.json',JSON.stringify({sourceSha:PINNED_PORTFOLIO_SHA,inventory:realInventory},null,2))};
 
 // Use the same registry for future apps; UI lifecycle remains explicit.
