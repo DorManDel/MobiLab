@@ -17,4 +17,7 @@ for(const id of ["liveDeck","livePartial","liveTranslation","chunkMode","earlyPr
 assert.ok(html.indexOf('id="recordDock"')<html.indexOf('id="controlTitle"'),
   "Mic button must appear before advanced controls.");
 assert.ok(html.includes('src/live-captions.css'),"Live deck CSS must load.");
+for(const id of ["silenceDuration","captionLines","captionProvider","liveAppend","floatingControls"]){
+  assert.ok(ids.includes(id),"Missing paragraph/floating control: "+id);
+}
 console.log("HTML DOM contract passed ("+ids.length+" IDs, "+required.length+" JS bindings).");
