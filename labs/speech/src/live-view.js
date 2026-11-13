@@ -68,9 +68,8 @@ export class LiveCaptionView {
     this.el("liveTotalLabel").textContent=row.fromSpeech?"Final → subtitle":"Submit → subtitle";
     this.el("liveSttMs").textContent=formatLatency(row.sttMs);
     this.el("liveQueueMs").textContent=formatLatency(row.queueWaitMs);
-    const results=Object.values(row.results||{}).filter(v=>v?.text);
-    const fastest=results.length ? results.reduce((best,r)=>!best||r.ms<best.ms?r:best,null) : null;
-    this.el("liveApiMs").textContent=formatLatency(fastest?.ms);
+    const displayed=row.displayProvider ? row.results?.[row.displayProvider] : null;
+    this.el("liveApiMs").textContent=formatLatency(displayed?.ms);
     this.el("liveTotalMs").textContent=formatLatency(row.finalToSubtitleMs);
     const stats=timeStats(this.latencies);
     this.el("livePercentile").textContent=stats.count ? "p50 "+formatLatency(stats.p50)+" · p90 "+formatLatency(stats.p90) : "p50/p90: —";
