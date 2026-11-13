@@ -33,3 +33,27 @@ The UI status *Face engine ready* only reports that MediaPipe loaded. It does **
 - If live VIDEO detection repeatedly returns zero faces, an independent IMAGE-mode pass can recover and mark IMAGE fallback in the pipeline status.
 - For a real camera check, keep the entire face (forehead through chin) visible and look at **FACES** and the pipeline health field; 60 DISPLAY FPS only measures Canvas redraw.
 - A fully validated photo swap still requires testing on an actual Samsung/Chrome camera. If it continues to report 0 faces, collect the diagnostics log; do not count an unverified swap as success.
+
+## v0.6 review — Samsung Browser recording (2026-11-13, ~3:23)
+**Observed:** MediaPipe now detects one live face; photo presets and a photo from the gallery produce swap frames. The previous zero-faces blocker is no longer present in this recording. Display FPS approximately 16–60 and local process around 23–62 ms are readings sampled from screenshots, not averages.
+- 00:00–00:49 Curly: eyebrow/lip texture distortion under expressions.
+- 00:49–01:17 Ginger: improved frontal match, edges remain visible.
+- 01:24–01:38 Neon visor: lettering mirrored on selfie camera.
+- 01:38–02:06 Face Mesh: face landmarks tracked, but hand still covers foreground incorrectly.
+- 02:06–02:20 Cyber mask: polygon exaggerates geometric intersections when rotating.
+- 02:27–03:23 user-selected older-face portrait: rendering works, but face is rigid and original beard/skin colors remain visibly different.
+
+**Implemented experimentally in v0.6:**
+- Eye-aligned constrained source-to-target mesh, optional expression movement strength, skip inverted triangles and fade at stronger estimated yaw angles.
+- Jawline-following cyber mask and no mirrored text on visor.
+- Dedicated tracking and swap FPS alongside display FPS, balanced/fast/detail quality control, momentary hold-to-see-original button.
+
+**Not solved:** Single-photo 2D mapping cannot synthesize unseen side angles, mouth interiors, realistic light/skin/beard changes, or foreground hand occlusion. Those require generative reconstruction, depth and/or segmentation, and might need a stronger model or optional RTX processor.
+
+## v0.6 actual device validation plan
+1. Compare Curly in frontal view, eyebrow raises and speaking, with Expression movement at 0, 45 and 100 percent.
+2. Compare Ginger in frontal view and extreme yaw; inspect distortion reduction and angle fade.
+3. Check visor has no reversed text and cyber mask stays below the eyes around the jaw.
+4. Hold hand over face: record remaining occlusion artifact (known limitation).
+5. Record DETECT FPS, SWAP FPS and process time for fast/balanced/detail on unchanged lighting/settings.
+6. Compare with long-press Original and ensure the effect returns when released. No real phone validation has yet been performed for v0.6.
