@@ -439,37 +439,56 @@ function updateRow(row,id,patch) {
   if(!row)return;
   if(id==="queue") {
     row.queueStatus=patch.status;
-  } else {
+  }else{
     row.results[id]={...(row.results[id]||{}),...patch};
     const now=performance.now();
-    if(patch.status==="running"&&row.queueWaitMs===null)
+    if(patch.status==="running" && row.queueWaitMs===null)
       row.queueWaitMs=Math.max(0,now-row.finalPerf);
-    if(patch.status==="success"&&patch.text
-      && acceptCaption(row,id,patch.text,now)) {
+    if(patch.status==="error" && id===row.captionProvider && !row.displayText){
+      // A user-enabled alternate engine can take over ONLY after the selected
+      // provider has failed. No unapproved endpoint is contacted.
+      const alternatives=Object.entries(row.results).filter(([pid,info])=>pid!==id &&
+        ["running","success","queued"].includes(info.status));
+      const configured=Object.keys(row.results).some(pid=>pid!==id);
+      if(alternatives.length||configured) {
+        row.captionProvider="fastest";
+        row.fallbackUsed=true;
+        const completed=alternatives.find(([,info])=>info.status==="success"&&info.text);
+        if(completed)acceptCaption(row,completed[0],completed[1].text,now);
+      }
+    }
+    if(patch.status==="success" && patch.text &&
+      acceptCaption(row,id,patch.text,now)){
       if(row.fromSpeech)liveView.latencies.push(row.finalToSubtitleMs);
       if(liveView.latencies.length>60)liveView.latencies.shift();
     }
   }
+  const focused=ledger.focused?.id===row.id;
   if(patch.status!=="running"||id==="queue")renderRows();
-  const latest=rows[rows.length-1]?.id===row.id;
-  if(latest){
-    if(!interimActive)showCaption(row);
-    showComparison(row);
-  }
-  // Only one engine per paragraph is allowed to control the live subtitle.
-  // Late results remain visible in Compare engines, but cannot rewrite it.
-  if(row.displayText&&!row.displayShown&&row.id>=lastSubtitleShownId) {
+  if(rows.at(-1)?.id===row.id)showComparison(row);
+  if(focused && !interimActive)showCaption(row);
+  liveView.drawHistory();
+  if(row.displayText && !row.displayShown){
     row.displayShown=true;
-    lastSubtitleShownId=row.id;
     const provider={cloud:"MyMemory",local:"Chrome",libre:"LibreTranslate"}[row.displayProvider]||row.displayProvider;
     liveView.translated(row,row.displayText,provider,interimActive);
+    if(focused)syncFloating(row);
+  }else if(id==="queue" && patch.status==="completed" && !row.displayText){
+    const firstError=Object.values(row.results).find(v=>v.status==="error");
+    const problem=firstError?.error||"No provider returned a completed translation.";
+    if(focused) {
+      liveView.failed(row,problem);
+      syncFloating(row);
+      showProviderProblem(problem,Boolean(circuit.reason("cloud")));
+    }
+  }else if(id==="queue" && patch.status==="skipped"){
+    liveView.skipped(row);
+    if(focused)syncFloating(row);
+  }else if(focused && !interimActive){
     liveView.showQueue(row);
-  } else if(id==="queue"&&patch.status==="skipped"&&!interimActive
-    &&row.id>=lastSubtitleShownId){
-    liveView.skipped(row);liveView.showQueue(row);
-  } else if(latest&&row.id>=lastSubtitleShownId){
-    liveView.showQueue(row);
+    syncFloating(row);
   }
+  if(patch.status!=="running")saveLocalSoon();
 }
 const queue = new TranslationQueue({onChange:updateRow,maxPending:8});
 function addPhrase(text,source,target,candidates=null,automatic=true,sttMs=null,finalPerf=performance.now()) {
