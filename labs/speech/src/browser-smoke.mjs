@@ -102,6 +102,16 @@ try {
   // Floating UI and paragraph grouping: successive finals are one paragraph until pause.
   await page.locator("#floatingControls #langs").click();
   assert.equal(await page.locator("#floatingControls #panel").getAttribute("hidden"),null);
+  await page.locator("#floatingControls #lines").selectOption("3");
+  await page.locator("#floatingControls #provider").selectOption("fastest");
+  const panelRect=await page.locator("#floatingControls #panel").boundingBox();
+  assert.ok(panelRect&&panelRect.y>=0&&panelRect.y+panelRect.height<=844,
+    "Floating settings should fit mobile viewport.");
+  await page.locator("#floatingControls #apply").click();
+  assert.equal(await page.locator("#captionLines").inputValue(),"3");
+  assert.equal(await page.locator("#captionProvider").inputValue(),"fastest");
+  await page.locator("#captionProvider").selectOption("cloud");
+  await page.locator("#floatingControls #settings").click();
   await page.locator("#floatingControls #close").click();
   await page.locator("#liveSettings summary").click();
   await page.locator("#silenceDuration").selectOption("900");
