@@ -7,7 +7,7 @@ on:
   push:
     branches:
       - main
-      - fix/speech-ledger-focus-provider-429-v05
+      - feat/speech-local-translation-and-media-node-v06
     paths:
       - 'labs/speech/**'
       - '.github/workflows/speech-lab.yml'
