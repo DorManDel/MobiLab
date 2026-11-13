@@ -44,7 +44,7 @@ export class LiveCaptionView {
   setVisibleLines(count){
     const n=[1,2,3].includes(Number(count))?Number(count):2;
     this.root.style.setProperty("--caption-lines",String(n));
-    this.el("liveLineCountLabel").textContent=n+" lines";
+
   }
   early(text,ms){
     this.el("liveTranslation").textContent="≈ "+text;
