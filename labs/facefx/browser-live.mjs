@@ -22,4 +22,31 @@ try {
   }
   console.log('Real MediaPipe PHOTO detector loaded studio-ginger face:',await page.locator('#sourceStatus').textContent());
   console.log('Engine:',await page.locator('#modelStatus').textContent());
+  // Browser-based live pipeline integration: use a synthetic portrait as a
+  // camera stream. No real user's face/video is uploaded to Actions.
+  await page.evaluate(async()=>{
+    const canvas=document.createElement('canvas');canvas.width=640;canvas.height=480;
+    const ctx=canvas.getContext('2d');
+    const photo=new Image();photo.src=new URL('./presets/studio-ginger.webp',location.href).href;
+    await photo.decode();
+    let tick=0;
+    const paint=()=>{ctx.fillStyle='#999';ctx.fillRect(0,0,640,480);
+      const x=130+Math.sin(tick/45)*3;ctx.drawImage(photo,x,45,380,380);
+      tick++;requestAnimationFrame(paint);};
+    paint();
+    Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{getUserMedia:async()=>canvas.captureStream(24)}});
+  });
+  await page.locator('#cameraStart').click();
+  try{
+    await page.waitForFunction(()=>document.querySelector('#faceCount')?.textContent==='1' && Number(document.querySelector('#swapFps')?.textContent)>0,null,{timeout:75000});
+  }catch(error){
+    console.error('Live face count:',await page.locator('#faceCount').textContent());
+    console.error('Live pipeline:',await page.locator('#pipelineStatus').textContent());
+    console.error('Swap FPS:',await page.locator('#swapFps').textContent());
+    console.error('Diagnostics:',(await page.locator('#log').textContent()).slice(0,2500));
+    throw error;
+  }
+  console.log('Real MediaPipe LIVE local swap:',await page.locator('#pipelineStatus').textContent());
+  await page.locator('#cameraStop').click();
+
 }finally { await browser.close(); }
