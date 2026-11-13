@@ -1,1 +1,889 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MobiLab Liquid FX</title><style>body{font-family:system-ui;background:radial-gradient(circle at 50% 20%,#382652,#100d1e 70%);color:#fff;text-align:center;margin:0;padding:20px}button,input{accent-color:#a78bfa}button{background:#302746;color:white;border:1px solid #a78bfa;border-radius:12px;padding:12px;margin:4px}svg{max-width:95vw;max-height:65vh;touch-action:none}p{color:#bcb0d1}#area{max-width:650px;margin:auto}label{display:block;margin:10px}</style><div id="area"><h2>◉ Liquid FX Playground</h2><p>Four interaction experiments · touch and drag</p><div id="modes"><button data-m="magnet">Magnet</button><button data-m="goo">Metaball</button><button data-m="inertia">Inertia</button><button data-m="tabs">Gooey tabs</button></div><svg id="s" viewBox="0 0 400 400"><defs><filter id="g"><feGaussianBlur stdDeviation="9" result="b"/><feColorMatrix in="b" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 22 -9"/></filter></defs><g id="out"></g></svg><label>Elasticity <input id="elastic" type="range" min="1" max="30" value="10"></label><label>Inertia <input id="friction" type="range" min="75" max="99" value="94"></label><button id="count">Center: 2</button><p>Experimental FX layer. Stable touch zones and full component engine remain in the Touch Studio lab.</p><a style="color:#cdb6ff" href="../touch-studio/">Open Touch Studio</a></div><script>(()=>{let mode='magnet',count=2,active=false,px=200,py=200,dx=0,dy=0,v=0,angle=0,old=0,selected=0;const $=x=>document.getElementById(x),s=$('s'),o=$('out'),N='http://www.w3.org/2000/svg';function el(t,a,p=o){let e=document.createElementNS(N,t);for(let k in a)e.setAttribute(k,a[k]);p.append(e);return e}function pos(e){let r=s.getBoundingClientRect();return [(e.clientX-r.left)*400/r.width,(e.clientY-r.top)*400/r.height]}s.onpointerdown=e=>{s.setPointerCapture(e.pointerId);active=true;[px,py]=pos(e);old=Math.atan2(py-200,px-200)};s.onpointermove=e=>{if(!active)return;[px,py]=pos(e);let a=Math.atan2(py-200,px-200),delta=Math.atan2(Math.sin(a-old),Math.cos(a-old));v=delta*55;old=a};s.onpointerup=s.onpointercancel=()=>active=false;document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{mode=b.dataset.m;v=0;angle=0});$('count').onclick=()=>{$('count').textContent='Center: '+(count=count%4+1)};let last=performance.now();function draw(t){let dt=Math.min(.04,(t-last)/1000);last=t;if(!active){px+=(200-px)*dt*4;py+=(200-py)*dt*4}v*=Math.pow(+$('friction').value/100,dt*60);if(mode==='inertia')angle+=v*dt*60;else angle*=.94;dx+=(active?(px-200)*.12:0-dx)*Math.min(1,dt*+$('elastic').value);dy+=(active?(py-200)*.12:0-dy)*Math.min(1,dt*+$('elastic').value);o.replaceChildren();let ring=el('g',{transform:'rotate('+angle*180/Math.PI+' 200 200)'});for(let i=0;i<6;i++){let a=(i*60-90)*Math.PI/180,x=200+135*Math.cos(a),y=200+135*Math.sin(a),d=Math.hypot(px-x,py-y),k=active?Math.max(0,1-d/120):0;el('circle',{cx:x+(px-x)*k*.15,cy:y+(py-y)*k*.15,r:44+k*9,fill:i===selected?'#b48bf0':'#66518d',stroke:'#d6b7ff','stroke-width':2},ring);let tx=el('text',{x,y:y+5,fill:'white','font-size':13,'text-anchor':'middle'},ring);tx.textContent=['Color','Value','Toggle','Macro','Select','Action'][i]}let g=el('g',mode==='goo'||mode==='tabs'?{filter:'url(#g)'}:{});el('circle',{cx:200+dx,cy:200+dy,r:72,fill:'#9b71d8',stroke:'#f5dfff','stroke-width':2},g);if(mode==='goo'&&active)el('circle',{cx:px,cy:py,r:32,fill:'#9b71d8'},g);if(mode==='tabs')for(let i=0;i<count;i++){let a=i*Math.PI*2/count-Math.PI/2;el('circle',{cx:200+42*Math.cos(a),cy:200+42*Math.sin(a),r:29+(active?4:0),fill:['#c54c70','#38ac85','#8e67d6','#568ad5'][i]},g)}for(let i=0;i<count;i++){let a=i*Math.PI*2/count-Math.PI/2;let txt=el('text',{x:200+(count===2?(i?33:-33):43*Math.cos(a)),y:205+(count===2?0:43*Math.sin(a)),fill:'white','text-anchor':'middle','font-size':count===4?11:13,'font-weight':'bold'});txt.textContent=['Back','OK','Preview','More'][i]}requestAnimationFrame(draw)}requestAnimationFrame(draw)})();</script></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#090c17">
+<title>WebForge · FX Arsenal / Interaction Lab</title>
+<style>
+:root{color-scheme:dark;--bg:#0a0c16;--panel:#111522;--panel2:#0e1321;--muted:#8991a7;--text:#eef0ff;--stroke:#252a3d;--accent:#aa8bff;--accent2:#62e3e3;--hot:#e1ccff;--shadow:0 25px 75px #0007}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100dvh;background:var(--bg);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text)}button,input{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}button:focus-visible,input:focus-visible{outline:2px solid #e8caff;outline-offset:3px}svg{display:block}.svg-defs{position:absolute;pointer-events:none;overflow:hidden}.app-shell{max-width:1720px;margin:0 auto;min-height:100dvh}.topbar{height:75px;display:flex;align-items:center;justify-content:space-between;padding:0 29px;border-bottom:1px solid var(--stroke);background:#0c101b}.brand{display:flex;gap:13px;align-items:center}.brand-icon{height:37px;width:37px;border:1px solid #725ce3;border-radius:12px;background:linear-gradient(145deg,#34295e,#171d34);display:flex;align-items:center;justify-content:center;gap:3px;transform:rotate(-8deg)}.brand-icon span{height:17px;width:4px;border-radius:6px;background:#baa7ff;transform:rotate(28deg)}.brand-icon span:nth-child(2){height:25px;background:#fce37d}.brand-text{display:flex;flex-direction:column;gap:1px}.brand-text strong{letter-spacing:1.7px;font-size:15px}.brand-dot,.muted-dot{color:#9c81fa}.brand-text small{color:#7e829f;letter-spacing:2px;font-size:9px;font-weight:800}.topbar-center{font-size:10px;letter-spacing:2.1px;color:#8b91ab;font-weight:700;display:flex;gap:11px;align-items:center}.live-indicator{height:7px;width:7px;border-radius:100%;background:#9fece0;box-shadow:0 0 16px #63e5d9}.topbar-split{color:#4a5268}.topbar-actions{display:flex;gap:15px;align-items:center}.proto-pill{border:1px solid #30354c;border-radius:7px;background:#171c2b;padding:8px 10px;font-size:9px;letter-spacing:1px;color:#aeb4c5;font-weight:800}.proto-pill span{color:#7f6aed;margin-left:6px}.icon-btn{background:transparent;border:1px solid #2e3450;border-radius:50%;height:32px;width:32px;color:#8991b2;font-weight:800}.workspace{display:grid;grid-template-columns:minmax(245px,286px) minmax(430px,1fr) minmax(245px,285px);min-height:calc(100dvh - 75px)}.library-panel{padding:29px 20px 25px;border-right:1px solid var(--stroke);display:flex;flex-direction:column;min-height:760px}.panel-heading,.inspector-top{display:flex;justify-content:space-between;align-items:center}.label-kicker,.option-label{font-size:10px;letter-spacing:2px;color:#9b8bcd;font-weight:850}.count-badge{font-size:10px;border:1px solid #373252;border-radius:7px;padding:4px 7px;background:#211c36;color:#bea7ff;font-weight:700}.library-panel h2,.inspector-panel h2{font-size:21px;letter-spacing:-.6px;margin:11px 0 5px}.panel-note,.inspector-intro{font-size:12px;color:#828ba5;line-height:1.7;margin:2px 0 23px}.search-wrap{border:1px solid #34394e;border-radius:11px;background:#181d2c;display:flex;align-items:center;gap:10px;padding:0 11px;height:44px}.search-wrap svg{width:16px;stroke:#767e99;fill:none;stroke-width:2;flex-shrink:0}.search-wrap input{outline:0!important;background:none;border:none;color:#e8edff;width:100%;min-width:0;font-size:12px}.search-wrap input::placeholder{color:#6e778e}.search-wrap kbd{font-size:11px;border:1px solid #383c52;padding:3px 6px;border-radius:4px;color:#677089}.filter-row{display:flex;gap:5px;margin:15px 0}.filter-chip{padding:7px 10px;background:transparent;border:1px solid transparent;border-radius:7px;color:#858da5;font-size:11px;font-weight:700}.filter-chip.active{background:#28203d;color:#dfd1ff;border-color:#453662}.effect-list{display:flex;flex-direction:column;gap:6px;overflow:auto;max-height:min(630px,calc(100vh - 365px));padding-right:5px;scrollbar-color:#34364d transparent;scrollbar-width:thin}.effect-entry{display:flex;gap:12px;align-items:center;text-align:left;background:transparent;color:inherit;border:1px solid transparent;border-radius:13px;min-height:71px;padding:10px;transition:background .2s,border-color .2s}.effect-entry:hover{background:#1a1e30;border-color:#2f354d}.effect-entry.active{background:linear-gradient(115deg,#332554,#211e34 85%);border-color:#615094;box-shadow:inset 3px 0 #bb9bff}.effect-glyph{flex:0 0 39px;height:39px;display:grid;place-items:center;border-radius:11px;background:#28223b;border:1px solid #3d3554;font-size:20px;color:#c5afff}.effect-entry[data-category="motion"] .effect-glyph{background:#1c3037;border-color:#31525c;color:#8be0e5}.effect-entry[data-category="surface"] .effect-glyph{background:#332c24;border-color:#62513a;color:#f5ce91}.effect-copy strong{font-size:12px;font-weight:700;display:block;margin-bottom:4px}.effect-copy small{font-size:10px;display:block;color:#838ca7}.effect-entry.active .effect-copy small{color:#aba0ce}.library-bottom{margin-top:auto;padding:18px 11px 0;display:flex;align-items:center;gap:10px;border-top:1px solid #292d41}.dot-glow{height:8px;width:8px;border-radius:50%;background:#79d6ad;box-shadow:0 0 15px #79d6ad}.library-bottom strong{display:block;font-size:11px;font-weight:600}.library-bottom small{font-size:10px;color:#828da3}.main-panel{background:radial-gradient(ellipse 60% 40% at 50% 53%,#171b2c33,transparent),#0c101b;padding:34px clamp(18px,3.1vw,49px) 30px;min-width:0}.main-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.section-kicker{font-size:10px;letter-spacing:2.2px;color:#aca0d2;font-weight:800}.sparkle{color:#d5bcff;font-size:15px}.slash{margin:0 8px;color:#4b4761}h1{font-size:clamp(27px,3.2vw,39px);letter-spacing:-1.45px;margin:10px 0 6px;font-weight:750}.main-heading p{margin:0 0 27px;font-size:13px;color:#929bb3;line-height:1.6}.corner-tag{border:1px solid #32374c;border-radius:7px;padding:8px 10px;color:#798499;font-size:9px;letter-spacing:.6px;font-weight:750;white-space:nowrap;margin-top:18px}.corner-tag span{color:#ba9bfd}.preview-shell{height:clamp(390px,54vh,570px);border:1px solid #30364e;border-radius:18px;background:radial-gradient(ellipse at 50% 44%,#30254e 0%,#181c31 42%,#101626 75%);box-shadow:inset 0 1px #ffffff0d,0 27px 85px #0004;display:flex;flex-direction:column;overflow:hidden;position:relative}.preview-shell:before{content:"";position:absolute;inset:0;background-image:linear-gradient(#9b8ad708 1px,transparent 1px),linear-gradient(90deg,#9b8ad708 1px,transparent 1px);background-size:32px 32px;mask-image:linear-gradient(to bottom,transparent,#000 20%,#000 85%,transparent);pointer-events:none}.preview-topline,.preview-bottomline{display:flex;justify-content:space-between;align-items:center;padding:16px 19px;position:relative;z-index:3;font-size:10px;letter-spacing:1.1px;font-weight:750;color:#9498b6}.preview-topline>div,.preview-bottomline>span{display:flex;align-items:center;gap:9px}.preview-topline i,.status-led{display:block;height:6px;width:6px;background:#b7a0ff;border-radius:50%}.stage-gesture{color:#827b9c;font-size:9px}.preview-bottomline{font-size:10px;letter-spacing:0;font-weight:500;color:#8d94aa}.preview-right{letter-spacing:1px;font-size:9px;color:#777f99}.stage{position:relative;z-index:2;flex:1;min-height:0;display:grid;place-items:center;overflow:hidden;touch-action:pan-y}.stage[data-theme="cyan"]{--fx1:#33d6cd;--fx2:#56aef1;--fx3:#c0fff6;--fxglow:#39dddc66}.stage[data-theme="citrus"]{--fx1:#ff9b51;--fx2:#ff568f;--fx3:#ffdf97;--fxglow:#ff9b5166}.stage,.stage[data-theme="violet"]{--fx1:#8b65ff;--fx2:#bb7dff;--fx3:#e4d8ff;--fxglow:#b18eff66}.stage[data-theme="cyan"]{--fx1:#33d6cd;--fx2:#56aef1;--fx3:#c0fff6;--fxglow:#39dddc66}.stage[data-theme="citrus"]{--fx1:#ff9b51;--fx2:#ff568f;--fx3:#ffdf97;--fxglow:#ff9b5166}.stage .fx-center{position:relative;display:grid;place-items:center;width:min(100%,400px);height:min(100%,360px);flex-shrink:0}.lower-row{margin-top:22px;display:flex;gap:14px;align-items:center;justify-content:space-between}.usage-hint{display:flex;gap:13px;align-items:center}.hint-icon{display:grid;place-items:center;width:39px;height:39px;flex:0 0 39px;border:1px solid #4b3a76;background:#241d37;color:#c8b0ff;border-radius:12px}.usage-hint strong{font-size:12px;font-weight:700}.usage-hint p{color:#7e879e;font-size:11px;margin:4px 0 0;line-height:1.5}.outline-btn{border:1px solid #343c53;background:#1b2030;color:#d2d5e9;border-radius:9px;padding:12px 15px;font-size:11px;font-weight:750;white-space:nowrap}.outline-btn:hover{background:#28263c}.series-section{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-top:41px;border-top:1px solid #252c3c;padding-top:23px}.series-section h3{font-size:16px;margin:8px 0}.series-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;max-width:370px}.series-tags span{border:1px solid #2c344a;background:#151a28;font-size:9px;padding:7px 9px;border-radius:6px;color:#969fb9}.inspector-panel{border-left:1px solid var(--stroke);padding:32px 24px 24px;background:#0e121e}.inspector-symbol{color:#7d86a2;font-size:19px}.inspector-panel h2{margin-top:15px}.inspector-intro{margin-bottom:18px}.inspector-divider{height:1px;background:#293041;margin:23px 0}.option-label{display:flex;align-items:center;justify-content:space-between;color:#817c9e;margin:0 0 21px}.option-label span:last-child:not(:first-child){color:#94dfc1}.control{margin:0 0 20px}.control-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;font-size:12px}.control-head label{font-weight:650}.control-head output{background:#26213a;color:#c7afff;padding:5px 8px;border-radius:5px;font-size:10px;font-weight:800}.control input[type=range]{width:100%;accent-color:#aa87ff;cursor:pointer}.theme-row{display:flex;gap:13px}.theme-choice{padding:5px;border:2px solid transparent;background:transparent;border-radius:50%}.theme-choice.selected{border-color:#fff}.theme-choice span{width:31px;height:31px;border-radius:50%;display:block;box-shadow:0 2px 9px #0005}.switch-setting{display:flex;align-items:center;gap:8px;justify-content:space-between;margin:18px 0;cursor:pointer}.switch-setting strong,.switch-setting small{display:block}.switch-setting strong{font-size:12px}.switch-setting small{font-size:10px;color:#7e879f;margin-top:5px}.switch-setting input{position:absolute;opacity:0;width:1px;height:1px}.switch-track{width:37px;height:21px;border-radius:99px;background:#343a50;position:relative;border:1px solid #53546c;transition:background .2s;flex:0 0 37px}.switch-track:after{content:"";position:absolute;left:3px;top:3px;height:13px;width:13px;background:#cbd1e9;border-radius:50%;transition:transform .2s}.switch-setting input:checked+.switch-track{background:#6953c9}.switch-setting input:checked+.switch-track:after{transform:translateX(16px);background:#fff}.switch-setting input:focus-visible+.switch-track{outline:2px solid white;outline-offset:2px}.export-btn,.export-secondary{width:100%;padding:12px 10px;border-radius:9px;font-size:11px;text-align:left;font-weight:700}.export-btn{background:#ad8aff;color:#161024;border:0}.export-btn:hover{background:#c4abff}.export-btn span{float:right;font-size:9px;border:1px solid #2a184a55;padding:3px 5px;border-radius:4px}.export-secondary{margin-top:9px;border:1px solid #3b4056;color:#c5cadd;background:#171b2a}.inspector-footnote{font-size:10px;color:#717a92;line-height:1.6;margin-top:24px}.toast{position:fixed;z-index:50;bottom:25px;left:50%;transform:translate(-50%,22px);padding:12px 18px;background:#e1d2ff;border-radius:12px;color:#1c1930;font-size:12px;font-weight:800;box-shadow:0 20px 75px #0008;opacity:0;pointer-events:none;transition:opacity .23s,transform .23s}.toast.visible{opacity:1;transform:translate(-50%,0)}.debug-cursor{position:absolute;z-index:100;width:35px;height:35px;border:1px dashed #f9e7ff;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);opacity:0;box-shadow:0 0 20px #b69eff55}.stage[data-debug="true"] .debug-cursor{opacity:.8}
+/* Shared demo language */
+.demo-caption{position:absolute;bottom:6px;text-align:center;color:#8e8ba8;font-size:10px;letter-spacing:1.5px;font-weight:750;pointer-events:none;left:0;right:0}.demo-pill{position:absolute;bottom:17px;left:50%;transform:translateX(-50%);padding:7px 13px;border:1px solid #494368;background:#17182dbd;border-radius:999px;color:#a8a7c5;font-size:10px;letter-spacing:1px;white-space:nowrap;pointer-events:none}.fx-click-target{touch-action:none;user-select:none}.fx-click-target:focus-visible{outline:2px solid #fff;outline-offset:5px}.fx-click-target:active{cursor:grabbing}
+/* 01 Gooey radial buttons: filter only shapes; icons remain sharp */
+.goo-demo{width:340px;height:320px;touch-action:none}.goo-shapes,.goo-overlays{position:absolute;inset:0;pointer-events:none}.goo-shapes{filter:url(#fx-goo)}.goo-disc,.goo-bridge{position:absolute;left:50%;top:48%;border-radius:50%;background:linear-gradient(135deg,var(--fx1),var(--fx2));box-shadow:inset 0 1px 13px #ffffff1a}.goo-disc{height:80px;width:80px;margin:-40px;transition:transform .47s cubic-bezier(.2,1.55,.4,1),opacity .2s}.goo-disc.main{width:92px;height:92px;margin:-46px;background:linear-gradient(135deg,#c59bff,var(--fx1))}.goo-disc.sub{height:61px;width:61px;margin:-30.5px;opacity:.9}.goo-bridge{height:56px;width:56px;margin:-28px;opacity:0;transition:opacity .13s,transform .1s}.goo-demo.dragging .goo-bridge{opacity:1}.goo-action{position:absolute;left:50%;top:48%;border:0;background:transparent;color:#fff;display:grid;place-items:center;font-size:24px;margin:-30px;height:60px;width:60px;border-radius:50%;transform:translate(var(--tx,0px),var(--ty,0px));transition:transform .46s cubic-bezier(.19,1.3,.4,1),opacity .2s;pointer-events:auto;font-weight:650}.goo-action.main{height:86px;width:86px;margin:-43px;font-size:31px}.goo-action.main span{transition:transform .38s;display:block}.goo-demo.open .goo-action.main span{transform:rotate(45deg)}.goo-demo.open .goo-disc.sub-1,.goo-demo.open .goo-action.sub-1{--tx:-108px;--ty:-50px}.goo-demo.open .goo-disc.sub-2,.goo-demo.open .goo-action.sub-2{--tx:0px;--ty:-118px}.goo-demo.open .goo-disc.sub-3,.goo-demo.open .goo-action.sub-3{--tx:108px;--ty:-50px}.goo-demo.open .goo-disc.sub,.goo-demo.open .goo-action.sub{transform:translate(var(--tx),var(--ty))}.goo-demo:not(.open) .goo-action.sub{opacity:0;pointer-events:none}.goo-demo:not(.open) .goo-disc.sub{transform:scale(.35)}.goo-demo .goo-disc.sub{transform:translate(var(--tx,0px),var(--ty,0px))}.goo-demo .goo-action.sub{font-size:20px}.goo-action.sub:hover{scale:1.08}.goo-action.main{background:radial-gradient(circle at 34% 22%,#ffffff44,transparent 58%)}
+/* 02 Elastic wheel */
+.wheel-demo{width:340px;height:340px;touch-action:none;cursor:grab}.wheel-demo:active{cursor:grabbing}.wheel-svg{position:absolute;width:100%;height:100%;inset:0;pointer-events:none;overflow:visible}.wheel-shadow{stroke:#7f59ff36;fill:#45346216;stroke-width:33}.wheel-path{fill:#2b225138;stroke:url(#wheel-gradient);stroke-width:13;filter:drop-shadow(0px 0px 13px var(--fxglow));stroke-linejoin:round}.wheel-inner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:176px;width:176px;border-radius:50%;border:1px solid #a68af84f;background:radial-gradient(circle at 30% 20%,#59418e,#261c43 60%,#18142e);box-shadow:0 20px 52px #0007,inset 0 2px 12px #c6a9ff2e;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;pointer-events:none}.wheel-spokes{width:93px;height:93px;border:5px solid #aa97ff94;border-radius:50%;display:grid;place-items:center;position:relative;transition:transform .04s}.wheel-spokes:before,.wheel-spokes:after{content:"";position:absolute;background:#aa97ffb8;border-radius:10px}.wheel-spokes:before{height:6px;width:88px}.wheel-spokes:after{height:88px;width:6px}.wheel-spokes i{height:25px;width:25px;background:#dcd4ff;border:5px solid #7966a7;border-radius:50%;z-index:1}.wheel-value{font-size:12px;color:#cabdf3;font-weight:800;letter-spacing:1px}.wheel-tick{fill:#a79ab2a6}
+/* 03 Magnetic cluster */
+.magnetic-demo{width:360px;height:320px;touch-action:none}.mag-field{position:absolute;inset:0;pointer-events:none;filter:url(#fx-goo)}.mag-blob{position:absolute;border-radius:22px;width:91px;height:91px;top:50%;left:50%;background:linear-gradient(145deg,var(--fx1),var(--fx2));box-shadow:0 8px 38px #8d6cf456;will-change:transform}.mag-button{position:absolute;top:50%;left:50%;width:91px;height:91px;border:0;border-radius:22px;display:grid;place-items:center;color:white;background:none;font-size:32px;will-change:transform;touch-action:none}.mag-button:active{filter:brightness(1.4)}.mag-note{position:absolute;bottom:28px;color:#a7a0bd;font-size:10px;letter-spacing:1px;width:100%;text-align:center;pointer-events:none}
+/* 04 Spotlight, rim highlight */
+.spot-demo{width:380px;max-width:90%;height:287px;touch-action:none}.spot-card{position:absolute;inset:36px 11px 24px;border-radius:28px;background:radial-gradient(ellipse at var(--mx,50%) var(--my,50%),#c6bbff21,transparent 60%),linear-gradient(135deg,#282a4ac9,#161c2ce0);border:1px solid #bfc3e41a;box-shadow:0 26px 85px #0006;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}.spot-card:before{content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;background:radial-gradient(210px circle at var(--mx,50%) var(--my,50%),var(--fx3),#ffffff51 25%,transparent 75%);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}.spot-card:after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(125px at var(--mx,50%) var(--my,50%),#ffffff16,transparent)}.spot-card strong{font-size:25px;letter-spacing:-1px;z-index:1}.spot-card small{color:#9b9eba;letter-spacing:1px;font-size:10px;z-index:1}.spot-icons{display:flex;gap:9px;margin-top:12px;z-index:1}.spot-icons button{border:1px solid #6a679b80;background:#ffffff0b;color:#f5f0ff;width:38px;height:38px;border-radius:12px;font-size:18px}.spot-icons button:active{transform:scale(.9)}
+/* 05 Morph switch */
+.switch-demo{width:360px;height:300px;touch-action:none}.morph-switch{position:absolute;top:48%;left:50%;transform:translate(-50%,-50%);width:251px;height:96px;border-radius:99px;border:1px solid #a388ff5e;background:linear-gradient(90deg,#1d1b40,#28204b);box-shadow:inset 0 8px 22px #0006,0 20px 50px #0005;display:flex;align-items:center;justify-content:space-between;color:#9b8fc8;padding:0 34px;font-size:19px;letter-spacing:1.7px;font-weight:750;touch-action:none;cursor:pointer}.switch-demo .switch-glow{position:absolute;top:48%;left:50%;width:251px;height:96px;border-radius:99px;transform:translate(-50%,-50%);background:radial-gradient(ellipse at var(--px,15%) 50%,var(--fxglow),transparent 60%);pointer-events:none}.morph-switch .switch-thumb{position:absolute;width:111px;height:111px;top:-8px;left:-4px;border-radius:50%;background:linear-gradient(135deg,#fff,#d9caff 80%);box-shadow:0 10px 32px #0007,inset 0 2px 10px #fff;transition:transform .53s cubic-bezier(.16,1.4,.31,1),border-radius .5s;z-index:2;display:grid;place-items:center;color:#6958bc;font-size:18px;transform:translateX(0)}.morph-switch.on .switch-thumb{transform:translateX(148px)}.morph-switch .switch-thumb.stretch{border-radius:45% 50% 50% 45%;scale:1.1 0.88}.morph-switch .switch-label{z-index:1}.morph-switch .switch-label:first-of-type{opacity:.4}.morph-switch.on .switch-label:first-of-type{opacity:1}.morph-switch.on .switch-label:last-of-type{opacity:.45}
+/* 06 Liquid download */
+.download-demo{width:360px;height:290px;display:grid;place-items:center}.liquid-download{position:relative;width:214px;height:68px;background:linear-gradient(110deg,var(--fx1),var(--fx2));color:white;border:0;border-radius:22px;font-size:13px;letter-spacing:1.6px;font-weight:850;box-shadow:0 15px 43px var(--fxglow),inset 0 2px 9px #ffffff25;transition:width .6s cubic-bezier(.18,1.2,.4,1),border-radius .6s,transform .35s;display:flex;justify-content:center;align-items:center;gap:12px}.liquid-download .dl-icon{font-size:21px;font-weight:300}.liquid-download.busy,.liquid-download.done{width:86px;height:86px;border-radius:50%}.liquid-download.busy .dl-label,.liquid-download.done .dl-label,.liquid-download.busy .dl-icon,.liquid-download.done .dl-icon{display:none}.dl-progress{position:absolute;inset:8px;display:none;transform:rotate(-90deg)}.liquid-download.busy .dl-progress{display:block}.dl-progress circle{fill:none;stroke:#ffffff35;stroke-width:5}.dl-progress .progress-value{stroke:white;stroke-linecap:round;stroke-dasharray:188.5;stroke-dashoffset:188.5;transition:stroke-dashoffset .12s linear}.dl-check{position:absolute;display:none;font-size:31px}.liquid-download.done .dl-check{display:block}.dl-note{position:absolute;top:79%;font-size:11px;color:#a8a2bb;letter-spacing:.5px}
+/* 07 Metaballs */
+.meta-demo{height:330px;width:360px;touch-action:none}.meta-filter{position:absolute;inset:0;filter:url(#fx-goo);pointer-events:none}.meta-ball{position:absolute;width:74px;height:74px;margin:-37px;border-radius:50%;background:radial-gradient(circle at 37% 27%,var(--fx3),var(--fx1) 65%,var(--fx2));box-shadow:0 0 28px var(--fxglow);will-change:transform}.meta-ball.one{width:104px;height:104px;margin:-52px}.meta-ball.two{width:66px;height:66px;margin:-33px}.meta-ball.three{width:43px;height:43px;margin:-21.5px}.meta-ball.follower{width:58px;height:58px;margin:-29px;opacity:0}.meta-demo.touched .meta-ball.follower{opacity:1}
+/* 08 Glass */
+.glass-demo{height:330px;width:370px;max-width:93%;touch-action:none}.glass-backdrop{position:absolute;inset:25px 0;border-radius:30px;background:linear-gradient(145deg,#6634b5,#2429a6 49%,#078dba);overflow:hidden;transform:rotate(-5deg) scale(.89)}.glass-backdrop:after{content:"";position:absolute;width:380px;height:380px;border:45px solid #ffffff23;border-radius:50%;left:-85px;top:-160px;box-shadow:90px 140px 0 12px #c466ed66,180px 65px 0 -40px #25ffe06f}.glass-panel{position:absolute;left:50%;top:50%;width:270px;height:155px;transform:translate(-50%,-50%) rotate(var(--tilt,0deg));border-radius:30px;background:linear-gradient(132deg,#ffffff4d,#ffffff0b 45%,#ffffff12);border:1px solid #ffffff80;backdrop-filter:blur(16px) saturate(1.7);-webkit-backdrop-filter:blur(16px) saturate(1.7);box-shadow:inset 2px 2px 4px #ffffff75,inset -3px -6px 12px #2f1a6d61,0 24px 65px #160d5366;display:grid;place-content:center;text-align:center;gap:9px;transition:transform .15s ease-out}.glass-panel:before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at var(--mx,25%) var(--my,20%),#ffffff60,transparent 32%);pointer-events:none}.glass-panel strong{font-size:25px;letter-spacing:-.7px;text-shadow:0 2px 17px #20135a}.glass-panel span{font-size:11px;letter-spacing:1.4px;color:#ffffffb7;font-weight:750}
+/* 09 Dock */
+.dock-demo{width:380px;max-width:95%;height:300px;touch-action:none}.dock-tray{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:110px;border:1px solid #a88aff5c;background:linear-gradient(110deg,#38305a98,#1d1e33a8);border-radius:28px;box-shadow:0 20px 70px #0007, inset 0 1px #fff2;display:flex;align-items:center;justify-content:space-evenly;gap:3px;padding:0 13px;backdrop-filter:blur(20px)}.dock-button{position:relative;width:47px;height:47px;flex:0 0 47px;border:1px solid #ad9bec65;border-radius:15px;background:linear-gradient(140deg,var(--fx1),#413077);color:white;font-size:24px;display:grid;place-items:center;transform:translateY(var(--rise,0px)) scale(var(--scale,1));transition:background .2s;will-change:transform;box-shadow:0 8px 22px #0007}.dock-button:focus-visible{z-index:5}.dock-name{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:1px;color:#a9a3bd;white-space:nowrap}
+/* Reduced motion */
+.stage[data-reduced="true"] *,body.fx-reduced *,body.fx-reduced *:before,body.fx-reduced *:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+/* Responsive */
+@media(max-width:1180px){.workspace{grid-template-columns:232px minmax(385px,1fr)}.inspector-panel{grid-column:1 / -1;border-left:0;border-top:1px solid var(--stroke);padding:24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px 25px}.inspector-top,.inspector-panel h2,.inspector-intro,.inspector-panel>.inspector-divider,.inspector-panel>.option-label{grid-column:1 / -1}.inspector-panel>.inspector-divider{margin:5px 0}.inspector-panel>.option-label{margin:6px 0}.inspector-panel>.control{margin:0}.inspector-panel>.switch-setting{margin:3px 0}.inspector-footnote{grid-column:1 / -1}.export-btn,.export-secondary{align-self:center}.main-panel{padding:29px 27px}.preview-shell{height:500px}.topbar-center{display:none}}
+@media(max-width:730px){.topbar{height:65px;padding:0 17px}.proto-pill{display:none}.workspace{display:flex;flex-direction:column}.library-panel{min-height:0;border-right:0;border-bottom:1px solid var(--stroke);padding:19px 16px 10px;display:block}.library-panel h2{font-size:19px}.panel-note{display:none}.search-wrap{height:39px;margin-top:10px}.filter-row{margin:8px 0 10px}.effect-list{display:flex;flex-direction:row;overflow-x:auto;overflow-y:hidden;max-height:none;gap:7px;padding-bottom:8px;padding-right:0;scroll-snap-type:x mandatory}.effect-entry{flex:0 0 165px;min-height:59px;scroll-snap-align:start;padding:7px}.effect-glyph{width:32px;height:32px;flex-basis:32px;font-size:16px;border-radius:9px}.effect-copy strong{font-size:11px}.effect-copy small{font-size:9px}.library-bottom{display:none}.main-panel{padding:24px 15px}.main-heading p{margin-bottom:18px;font-size:12px}.corner-tag{display:none}.preview-shell{height:min(470px,56dvh);min-height:350px}.preview-topline,.preview-bottomline{padding:12px}.preview-topline{font-size:9px}.preview-right{display:none!important}.lower-row{align-items:flex-start}.usage-hint p{font-size:10px}.outline-btn{padding:10px;font-size:16px}.outline-btn span{display:none}.series-section{margin-top:24px;display:block}.series-tags{justify-content:flex-start}.inspector-panel{padding:20px 17px;display:grid;grid-template-columns:1fr 1fr;gap:13px}.inspector-panel .control{grid-column:1/-1}.theme-row{grid-column:1/-1}.inspector-panel .switch-setting{grid-column:1/-1}.export-btn,.export-secondary{grid-column:1/-1;margin:0}.inspector-footnote{grid-column:1/-1}.stage .fx-center{transform:scale(.83)}.glass-demo{max-width:100%}.spot-demo{max-width:100%}.series-section h3{margin-top:6px}}
+@media(max-width:390px){.stage .fx-center{transform:scale(.73)}.stage-gesture{display:none}.brand-text strong{font-size:13px}.brand-text small{font-size:8px}.preview-shell{height:375px}.preview-topline{padding:10px}}
+
+/* Magnetic buttons are positioned from the local origin, not the center. */
+.mag-blob,.mag-button{top:0;left:0}
+
+/* Wheel goo rim: colored outline filtered independently of the dial labels */
+.wheel-goo{filter:url(#fx-goo);pointer-events:none}.wheel-goo-path{fill:none;stroke:var(--fx1);stroke-width:13;opacity:.75}.wheel-drop{fill:var(--fx2);transition:opacity .16s ease;pointer-events:none}.wheel-demo.dragging .wheel-path{stroke-width:12}
+/* Addon-owned layout sizes must beat the generic .fx-center stage defaults. */
+.stage .goo-demo{width:340px;height:320px}
+.stage .wheel-demo{width:340px;height:340px}
+.stage .magnetic-demo{width:360px;height:320px}
+.stage .spot-demo{width:380px;height:287px}
+.stage .switch-demo{width:360px;height:300px}
+.stage .download-demo{width:360px;height:290px}
+.stage .meta-demo{width:360px;height:330px}
+.stage .glass-demo{width:370px;height:330px}
+.stage .dock-demo{width:380px;height:300px}
+@media(max-width:390px){.stage .fx-center{transform:scale(.73)}}
+@media(min-width:391px) and (max-width:730px){.stage .fx-center{transform:scale(.83)}}
+/* 10 Kinetic stack of cards */
+.stage .stack-demo{width:370px;height:350px;touch-action:none}.stack-inner{position:absolute;inset:0}.stack-card{position:absolute;left:50%;top:40%;width:252px;height:113px;border:1px solid #ffffff55;border-radius:15px;background:linear-gradient(125deg,var(--ca),var(--cb));color:white;box-shadow:0 18px 39px #0308197a,inset 0 1px #ffffff30;display:flex;align-items:center;justify-content:center;padding:14px;touch-action:none;transition:transform .45s cubic-bezier(.16,.97,.33,1.24),opacity .4s;cursor:grab;overflow:hidden}.stack-card:before{content:"";position:absolute;width:160px;height:160px;border:20px solid #ffffff1b;border-radius:50%;top:-88px;right:-55px}.stack-card:active{cursor:grabbing}.stack-card .stack-number{position:absolute;top:10px;left:13px;color:#ffffffac;font-size:9px;letter-spacing:2px}.stack-card .stack-title{font-size:19px;font-weight:900;letter-spacing:4px;text-shadow:0 1px 10px #1a07474f;z-index:1}.stack-card .stack-atom{position:absolute;left:9px;bottom:6px;font-size:34px;opacity:.3}.stack-card .stack-chevron{position:absolute;bottom:10px;right:11px;font-size:17px;opacity:.8}
+/* 11 Gooey search field */
+.stage .search-demo{height:320px;width:370px;max-width:95%;touch-action:pan-y}.search-goo-layer{position:absolute;left:0;right:0;top:33%;height:160px;filter:url(#fx-goo);pointer-events:none}.search-pill-shape{position:absolute;left:50%;top:0;width:74px;height:74px;border-radius:40px;transform:translateX(-50%);background:linear-gradient(125deg,var(--fx1),var(--fx2));transition:width .55s cubic-bezier(.19,1.25,.42,1),height .55s}.search-bubble-shape{position:absolute;left:50%;top:10px;width:49px;height:49px;border-radius:50%;transform:translateX(-50%);background:var(--fx2);opacity:0;transition:top .45s,opacity .22s,width .4s,height .4s}.search-demo.opened .search-pill-shape{width:330px;height:68px}.search-demo.opened .search-bubble-shape{width:270px;height:120px;top:49px;opacity:1;border-radius:26px}.search-surface{position:absolute;left:50%;top:33%;width:330px;height:160px;transform:translateX(-50%)}.search-expand{position:absolute;top:5px;left:calc(50% - 32px);height:64px;width:64px;border:0;background:transparent;font-size:37px;color:white;z-index:5;transition:left .45s;font-weight:400}.search-demo.opened .search-expand{left:3px;font-size:30px}.search-inline-input{opacity:0;pointer-events:none;border:0;background:transparent;color:white;outline:0;width:226px;height:65px;position:absolute;left:62px;top:1px;font-size:14px;transition:opacity .24s;z-index:2}.search-inline-input::placeholder{color:#f1e6ffaf}.search-demo.opened .search-inline-input{opacity:1;pointer-events:auto}.search-close{position:absolute;right:8px;top:12px;width:38px;height:40px;z-index:4;border:0;background:none;color:white;font-size:28px;opacity:0;pointer-events:none}.search-demo.opened .search-close{opacity:1;pointer-events:auto}.search-suggestions{position:absolute;top:73px;left:36px;right:35px;z-index:2;opacity:0;pointer-events:none;display:flex;flex-direction:column;gap:1px;max-height:108px;overflow:auto;scrollbar-width:none;color:#eee5ff;font-size:12px}.search-demo.opened .search-suggestions{opacity:1;pointer-events:auto}.search-suggestion{border:0;background:transparent;color:white;text-align:left;padding:6px 15px;border-radius:7px;font-size:12px}.search-suggestion:hover{background:#ffffff24}
+
+/* Native input clear control would duplicate our custom gooey search close button. */
+.search-inline-input::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
+
+/* WebForge FX Arsenal 0.2 — experiential treatments layered over 0.1 without changing legacy samples. */
+.stage[data-effect="elastic-border"]{background:radial-gradient(circle at 50% 42%,#5969f3,#3d48d6 78%)}
+.stage[data-effect="switch"]{background:#428af1}
+.stage[data-effect="download"]{background:#3eacee}
+.stage[data-effect="metaballs"]{background:#148a9c}
+.stage[data-effect="stack"]{background:radial-gradient(ellipse at 80% 0%,#382574,#201a39 76%)}
+.stage[data-effect="elastic-border"] .debug-cursor,.stage[data-effect="switch"] .debug-cursor{border-color:#ffffffaa}
+.stage[data-effect="elastic-border"] .membrane-demo{width:420px;height:270px;touch-action:none;overflow:visible}
+.membrane-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.membrane-shadow{fill:#1a1c70;stroke:#21146a;stroke-width:10;opacity:.28;filter:blur(9px);transform:translateY(8px)}
+.membrane-fill{fill:url(#membraneFill);stroke:#ffffff;stroke-width:1;filter:drop-shadow(0 12px 22px #18177366)}
+.membrane-highlight{fill:none;stroke:url(#membraneRim);stroke-width:4;stroke-opacity:.82;filter:drop-shadow(0 0 9px #c7c6ff)}
+.membrane-icons{position:absolute;inset:0;pointer-events:none}
+.membrane-icon{position:absolute;transform:translate(-50%,-50%);height:54px;width:52px;border:0;color:#22222c;background:transparent;border-radius:16px;font-size:29px;font-weight:500;pointer-events:auto;display:grid;place-items:center;touch-action:none;transition:background .16s,color .2s}
+.membrane-icon:hover{background:#5555e51b;color:#5354ba}.membrane-icon:active,.membrane-icon.pulse{background:#6467ee2c;color:#6855d5}
+.membrane-icon.pulse span{animation:membrane-pop .42s cubic-bezier(.16,1.6,.4,1)}
+@keyframes membrane-pop{0%{transform:scale(1)}44%{transform:scale(1.4) rotate(-9deg)}100%{transform:scale(1)}}
+.membrane-touch-orb{fill:#f7f7ff;opacity:0;filter:drop-shadow(0 0 9px #fff9);transition:opacity .15s}
+.membrane-instruction{position:absolute;left:0;right:0;bottom:12px;text-align:center;font-size:9px;letter-spacing:2px;color:#fff9;font-weight:800;pointer-events:none}
+.membrane-halo{position:absolute;inset:57px 15px 64px;background:#e6d5ff44;filter:blur(35px);border-radius:45px}
+/* The liquid is a continuous surface; icons remain outside the filter for legibility. */
+.stage .goo-v2{width:340px;height:320px}.goo-v2 .goo-v2-membrane{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.goo-v2-neck{fill:var(--fx1);opacity:0}.goo-v2-drop{fill:var(--fx2);opacity:0}
+.goo-v2 .goo-disc{box-shadow:inset 0 0 18px #ffffff44}.goo-v2 .goo-disc.main{background:radial-gradient(circle at 35% 20%,#f5e4ff,#b68dff 40%,var(--fx1) 84%)}
+.goo-v2 .goo-action.main{background:radial-gradient(circle at 35% 20%,#ffffff33,transparent 55%);box-shadow:inset 0 1px #ffffff60,0 2px 16px #0002}
+.goo-v2-tip{position:absolute;top:12px;left:0;right:0;text-align:center;color:#c5b8eb;font-size:10px;letter-spacing:1.3px;pointer-events:none;opacity:.7}
+.goo-v2-pop .goo-disc.main{animation:goo-pop .32s ease-out}
+@keyframes goo-pop{50%{scale:1.22}}
+/* Wheel carries two independent edges: actual deforming path and specular highlight. */
+.wheel-v2 .wheel-liquid-neck{fill:var(--fx1);opacity:0}.wheel-v2 .wheel-orbit{stroke:#b9a6fc44;stroke-width:1.25;stroke-dasharray:2 8}
+.wheel-v2 .wheel-rim-light{stroke:#f6ebff;stroke-width:2;stroke-opacity:.76;fill:none;pointer-events:none;filter:drop-shadow(0 0 5px #d7b6ff)}
+.wheel-v2 .wheel-goo-path{stroke-width:17;opacity:.9}.wheel-v2 .wheel-path{stroke-width:15;fill:#25194377}
+.wheel-v2 .wheel-drop{fill:var(--fx2);filter:drop-shadow(0 0 8px var(--fxglow))}
+.wheel-v2 .wheel-inner{box-shadow:0 0 0 2px #dac1ff35,inset 0 0 35px #b38cff21,0 8px 25px #0006}
+.wheel-v2 .wheel-v2-note{position:absolute;left:0;right:0;top:-9px;color:#c9aafe;font-weight:750;letter-spacing:1.6px;font-size:9px;text-align:center;pointer-events:none}
+.wheel-v2.dragging .wheel-rim-light{stroke:#fff;stroke-opacity:1;stroke-width:3}
+/* Magnetic field merges with the finger's own liquid proxy. */
+.magnetic-v2 .mag-follower{position:absolute;top:0;left:0;width:44px;height:44px;border-radius:50%;background:var(--fx1);box-shadow:0 0 20px var(--fxglow);opacity:0;pointer-events:none}
+.magnetic-v2 .mag-blob{background:radial-gradient(circle at 28% 22%,var(--fx3),var(--fx1) 45%,var(--fx2) 92%);border-radius:29px;box-shadow:0 0 30px var(--fxglow)}
+.magnetic-v2 .mag-button{color:#fff;font-size:32px;text-shadow:0 2px 8px #34226999}
+.magnetic-v2 .mag-button.mag-pop{animation:mag-pulse .38s ease-out}
+@keyframes mag-pulse{50%{filter:brightness(1.65)}}
+.magnetic-v2 .mag-v2-tip{position:absolute;top:35px;left:0;right:0;text-align:center;color:#adacd8;font-size:10px;letter-spacing:1.5px;pointer-events:none}
+/* Slider thumb is steered by the pointer, not by a one-shot CSS transition. */
+.switch-v2 .morph-switch{background:#285eaf;color:#8bb2ee;border:0;box-shadow:inset 0 5px 18px #1a4875a6,0 16px 44px #15356835;}
+.switch-v2 .morph-switch .switch-thumb{transition:none;will-change:transform;background:#fff;box-shadow:0 7px 11px #1b468842,0 13px 29px #092c6b23;color:#428af1;font-size:28px;font-weight:450;}
+.switch-v2 .morph-switch .switch-label{color:#8ebcf3;font-size:26px;font-weight:400}
+.switch-v2 .switch-glow{background:none}.switch-v2-help{position:absolute;top:75%;text-align:center;color:#e3f2ffaf;font-size:11px;letter-spacing:1.8px;font-weight:700}
+.switch-v2 .demo-caption{color:#eff8ffbb}
+/* Other samples: stronger depth, real press response and legibility. */
+.spot-card{transform:perspective(750px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .16s ease-out}
+.spot-card:before{background:radial-gradient(155px circle at var(--mx,50%) var(--my,50%),#fff, var(--fx3) 19%,#f6c4ff8a 33%,transparent 76%)}
+.spot-icons button{transition:transform .23s cubic-bezier(.2,1.7,.4,1),box-shadow .23s}.spot-icons button:hover{transform:translateY(-5px) scale(1.12);box-shadow:0 0 18px var(--fxglow)}
+.glass-demo{perspective:850px}.glass-panel{will-change:transform;transition:transform .12s linear;transform:translate(-50%,-50%) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scale(var(--scale,1))}
+.glass-panel:after{content:"";inset:3px;position:absolute;pointer-events:none;border-radius:inherit;border:1.5px solid #fff9;box-shadow:inset 6px 6px 8px #ffffff38,inset -7px -8px 13px #170a5450;mask-image:linear-gradient(135deg,#fff,transparent 45%,#fff 95%)}
+.liquid-download{will-change:width,height,border-radius,transform}.liquid-download.busy{animation:download-squish .55s cubic-bezier(.2,1.2,.3,1)}
+.liquid-download.done{animation:download-success .6s cubic-bezier(.19,1.3,.36,1)}
+@keyframes download-squish{25%{transform:translate(-50%,-50%) scaleX(1.08) scaleY(.88)}70%{transform:translate(-50%,-50%) scaleX(.88) scaleY(1.06)}}
+@keyframes download-success{30%{transform:translate(-50%,-50%) scale(1.25)}65%{transform:translate(-50%,-50%) scale(.94)}}
+.meta-demo .meta-ball{background:radial-gradient(circle at 40% 22%,#fff, var(--fx3) 26%,var(--fx1) 70%,var(--fx2));filter:drop-shadow(0 0 11px #ffffff45)}
+.dock-tray{border-color:#e4daff71;box-shadow:0 30px 80px #0008,inset 0 2px 1px #fff4}
+.stack-card{filter:saturate(1.2);box-shadow:0 18px 39px #0308198e,inset 0 1px #fff7}
+.search-pill-shape,.search-bubble-shape{background:linear-gradient(125deg,#c899ff,var(--fx1) 54%,var(--fx2));box-shadow:0 0 28px var(--fxglow)}
+.search-demo.opened .search-suggestion{animation:search-pop .35s cubic-bezier(.2,1.5,.3,1) both}.search-demo.opened .search-suggestion:nth-child(2){animation-delay:.07s}.search-demo.opened .search-suggestion:nth-child(3){animation-delay:.13s}.search-demo.opened .search-suggestion:nth-child(4){animation-delay:.2s}
+@keyframes search-pop{from{opacity:0;transform:translateY(-11px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+.preview-shell.immersive{position:fixed;z-index:1000;inset:15px;height:auto;border-radius:21px;box-shadow:0 0 0 100vmax #03030dec,0 30px 90px #0009}
+.preview-shell.immersive .stage .fx-center{transform:scale(1.06)}
+.preview-shell .preview-topline .stage-gesture{margin-left:auto}
+.immersive-btn{height:30px;width:32px;flex:0 0 auto;margin-left:12px;border:1px solid #77769a6c;border-radius:8px;color:#e9e1ff;background:#ffffff15;font-size:17px;display:grid;place-items:center}
+.immersive .immersive-btn{background:#e4d4ff;color:#2e1d56}
+@media(max-width:730px){
+ .stage .membrane-demo{transform:scale(.79)}
+ .preview-shell.immersive{inset:8px;border-radius:16px}
+ .preview-shell.immersive .stage .fx-center{transform:scale(.86)}
+ .preview-shell.immersive .stage .membrane-demo{transform:scale(.82)}
+ .membrane-instruction{font-size:8px}
+ .wheel-v2 .wheel-v2-note{top:8px}
+ .stage[data-effect="elastic-border"] .membrane-demo{width:420px}
+}
+@media(prefers-reduced-motion:reduce){.membrane-icon.pulse span,.liquid-download.busy,.liquid-download.done,.search-demo.opened .search-suggestion{animation:none!important}}
+.stage[data-reduced="true"] .membrane-icon.pulse span,.stage[data-reduced="true"] .liquid-download.busy,.stage[data-reduced="true"] .liquid-download.done,.stage[data-reduced="true"] .search-demo.opened .search-suggestion{animation:none!important}
+/* Download reference: quiet blue canvas, compact dark square, high-contrast arrow.
+   The morph is controlled by state, the circular progress is simulated. */
+.stage .download-v2{width:360px;height:290px}
+.download-v2 .liquid-download{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);height:152px;width:152px;border-radius:12px;background:#183e58;color:#fff;box-shadow:0 12px 24px #10384b33,inset 0 1px #ffffff12;display:grid;place-items:center;transition:width .6s cubic-bezier(.16,1.2,.3,1),height .6s cubic-bezier(.16,1.2,.3,1),border-radius .6s,background .45s}
+.download-v2 .liquid-download.busy,.download-v2 .liquid-download.done{width:94px;height:94px;border-radius:50%;background:#1a4a67}
+.download-v2 .dl-arrow{width:84px;height:95px;transition:transform .42s,opacity .25s;transform-origin:50% 50%}
+.download-v2 .liquid-download.busy .dl-arrow,.download-v2 .liquid-download.done .dl-arrow{opacity:0;transform:translateY(30px) scale(.35)}
+.download-v2 .dl-progress{width:70px;height:70px;inset:12px}
+.download-v2 .dl-check{font-size:47px;font-weight:300}
+.download-v2 .dl-note{position:absolute;top:85%;color:#edfaffbb;letter-spacing:1.2px;font-size:9px;text-align:center;left:0;right:0}
+.download-v2 .dl-v2-subtitle{position:absolute;top:75%;left:0;right:0;text-align:center;color:#e9f8ff;font-size:12px;letter-spacing:2px;font-weight:750}
+.download-v2 .download-glow{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:185px;height:180px;border-radius:50%;background:#ffffff4b;filter:blur(35px);opacity:.3;pointer-events:none}
+.download-v2 .dl-splash{position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;opacity:0;pointer-events:none}
+.download-v2 .dl-splash.s1{top:5px;left:5px;--sx:-54px;--sy:-45px}.download-v2 .dl-splash.s2{top:5px;right:5px;--sx:54px;--sy:-45px}.download-v2 .dl-splash.s3{bottom:5px;left:5px;--sx:-56px;--sy:46px}.download-v2 .dl-splash.s4{bottom:5px;right:5px;--sx:56px;--sy:46px}
+.download-v2 .liquid-download.done .dl-splash{animation:dl-splash .66s cubic-bezier(.12,.6,.2,1) both}
+@keyframes dl-splash{0%{opacity:1;transform:translate(0,0) scale(.15)}45%{opacity:1;transform:translate(var(--sx),var(--sy)) scale(.95)}100%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(.1)}}
+.stage[data-effect="metaballs"] .meta-ball{background:#fff;box-shadow:0 0 16px #ffffff31;filter:none}
+@media (prefers-reduced-motion:reduce){.download-v2 .liquid-download.done .dl-splash{animation:none}}
+.stage[data-reduced="true"] .download-v2 .liquid-download.done .dl-splash{animation:none}
+
+.stage{user-select:none;-webkit-user-select:none}
+.stage input,.stage [contenteditable]{user-select:text;-webkit-user-select:text}
+.glass-v2 .glass-pattern{position:absolute;inset:0;color:#fff4;font-size:125px;font-weight:900;letter-spacing:-20px;display:flex;align-items:center;justify-content:center;gap:20px;transform:rotate(18deg);user-select:none}
+.glass-v2 .glass-pattern span{font-size:85px;color:#68d6e9a1}
+.glass-v2 .glass-panel{transform-style:preserve-3d;background:linear-gradient(132deg,#fff8 0%,#ffffff23 27%,#ffffff08 60%,#ffffff18 100%)}
+.glass-v2 .glass-edge-sheen{position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:linear-gradient(70deg,transparent 15%,#ffffff3d 27%,transparent 38%,transparent 75%,#fff4 95%);mix-blend-mode:screen}
+.spot-card .spot-glint{position:absolute;inset:0;background:radial-gradient(circle 160px at var(--mx,50%) var(--my,50%),#ffffff0c,transparent);pointer-events:none;border-radius:inherit}
+.spot-icons button.spot-active{animation:spot-bounce .35s cubic-bezier(.13,1.4,.4,1)}
+@keyframes spot-bounce{50%{transform:translateY(-10px) scale(1.2)}}
+
+/* WebForge v0.3 — Optical Liquid Glass generator inside the FX Arsenal. */
+.stage[data-effect="glass"]{padding:0;isolation:isolate;background:#142b2e;touch-action:pan-y}
+.stage[data-effect="glass"] .lg-demo{position:relative;width:100%;height:100%;min-height:100%;overflow:hidden;isolation:isolate;}
+.lg-scene{position:absolute;inset:0;overflow:hidden;background:#15332c}
+.lg-scene-svg{height:100%;width:100%;object-fit:cover}
+.lg-preview-track{position:absolute;inset:0;display:grid;place-items:center;padding:42px 16px 36px;pointer-events:none}
+.lg-object{position:relative;display:block;width:min(420px,calc(100% - 14px));height:auto;aspect-ratio:3/2;max-height:calc(100% - 2px);border:1px solid rgba(255,255,255,.34);border-radius:var(--lg-radius,40px);background:rgba(255,255,255,var(--lg-frost,.12));-webkit-backdrop-filter:blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);backdrop-filter:blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);box-shadow:inset 0 0 0 1px #ffffff27,inset 1.5px 1.5px 0 #ffffffb5,inset 0 0 12px #ffffff36,0 8px 32px #0004;overflow:hidden;pointer-events:auto;touch-action:pan-y;transition:background .14s,border-radius .16s;}
+.lg-object:before{content:"";position:absolute;inset:1px;border-radius:inherit;pointer-events:none;background:linear-gradient(147deg,#ffffff8c 0%,#ffffff22 16%,transparent 34%,transparent 65%,#ffffff32 100%);mix-blend-mode:screen;opacity:.48}
+.lg-object:after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 2px 2px 2px #ffffffad,inset -3px -3px 9px #ffffff3f,inset -9px -8px 28px #19273426;}
+.lg-bezel{position:absolute;inset:2px;border-radius:inherit;box-shadow:inset 0 0 var(--lg-bezel,14px) #ffffff3f;pointer-events:none;}
+.lg-object-label{position:absolute;left:21px;bottom:17px;right:20px;display:flex;justify-content:space-between;gap:8px;color:#fff;opacity:.92;text-shadow:0 1px 9px #0008;font-size:9px;font-weight:850;letter-spacing:2.2px;pointer-events:none}
+.lg-object-label span{font-size:8px;letter-spacing:1.1px}
+.lg-caption{position:absolute;top:12px;left:13px;z-index:2;display:flex;align-items:center;gap:8px;border:1px solid #ffffff3c;border-radius:99px;padding:7px 11px;color:#fff;background:#081b1f75;backdrop-filter:blur(6px);font-size:9px;letter-spacing:.35px;box-shadow:0 4px 12px #0002}
+.lg-live-dot{height:6px;width:6px;border-radius:50%;background:#a8ffdb;box-shadow:0 0 13px #a8ffdb}
+.lg-scenes{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;justify-content:center;gap:8px;z-index:4;padding:6px 10px;border:1px solid #ffffff3a;background:#071924b8;backdrop-filter:blur(9px);border-radius:99px;box-shadow:0 4px 14px #0004}
+.lg-scenes button{padding:2px;border:2px solid transparent;background:transparent;border-radius:50%;width:29px;height:29px;display:grid;place-items:center}
+.lg-scenes button span{width:21px;height:21px;display:block;border-radius:50%;background:linear-gradient(135deg,var(--swatch),var(--swatch2));border:1px solid #ffffff74}
+.lg-scenes button[aria-pressed="true"]{border-color:white;box-shadow:0 0 0 1px #000a}
+.lg-filter-mount{position:absolute;height:0;width:0;overflow:hidden;pointer-events:none}
+.lg-filter-mount svg{position:absolute;width:0;height:0}
+.inspector-panel.glass-inspector{display:block}
+.inspector-panel.glass-inspector>.inspector-divider,.inspector-panel.glass-inspector>.option-label,.inspector-panel.glass-inspector>.control,.inspector-panel.glass-inspector>.theme-row,.inspector-panel.glass-inspector>.switch-setting,.inspector-panel.glass-inspector>.export-btn,.inspector-panel.glass-inspector>.export-secondary{display:none!important}
+#glass-inspector-controls{display:none}
+.inspector-panel.glass-inspector #glass-inspector-controls{display:block}
+.lg-inspect-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:17px 0 14px}
+.lg-inspect-title strong{font-size:10px;letter-spacing:1.3px;color:#bca3ff}
+.lg-small-button{font-size:11px;border:1px solid #38394e;border-radius:7px;color:#d4d6ef;background:#1c2334;padding:7px 9px;font-weight:650}
+.lg-control{margin:0 0 17px}
+.lg-control label{display:flex;align-items:center;justify-content:space-between;color:#e0e3f6;font-size:11px;font-weight:730;margin-bottom:9px;gap:9px}
+.lg-control output{background:#26233e;padding:4px 6px;border-radius:5px;color:#d8c2ff;font-size:10px;font-weight:800;min-width:40px;text-align:right}
+.lg-control input[type=range]{width:100%;height:20px;accent-color:#a98aff;cursor:pointer}
+.lg-control small{display:block;color:#838ea9;font-size:10px;line-height:1.4;margin-top:4px}
+.lg-inspector-note{background:#141e2e;border:1px solid #2a3951;border-radius:10px;padding:12px;color:#a6b3c8;font-size:10px;line-height:1.55;margin-top:13px}
+.lg-inspector-note strong{color:#cfdaeb}
+.lg-code-row{display:flex;align-items:center;justify-content:space-between;margin:18px 0 9px}
+.lg-code-row strong{font-size:10px;letter-spacing:1.8px;color:#aaa2c6}
+.lg-code-block{border:1px solid #2f3a4f;background:#090e18;border-radius:10px;margin:0 0 13px;overflow:hidden}
+.lg-code-block header{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-bottom:1px solid #252a40;color:#aeb4ca;font-size:11px;font-weight:700}
+.lg-code-block button{background:#3a2b58;color:#eadcff;border:1px solid #66518b;border-radius:6px;font-size:10px;padding:5px 8px}
+.lg-code-block pre{font-size:9px;line-height:1.55;max-height:112px;overflow:auto;white-space:pre;tab-size:2;padding:10px 11px;margin:0;color:#9dd8da;scrollbar-color:#4c4166 transparent}
+.lg-download-demo{width:100%;background:#a889ff;color:#16112b;font-size:11px;font-weight:850;border:0;border-radius:8px;padding:11px 10px}
+.lg-inspect-fine{color:#818ea8;font-size:10px;line-height:1.6;margin-top:12px}
+@media(max-width:1180px){.inspector-panel.glass-inspector{display:block!important}.inspector-panel.glass-inspector #glass-inspector-controls{max-width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 30px}.lg-inspect-title,.lg-inspector-note,.lg-code-row,.lg-code-block,.lg-download-demo,.lg-inspect-fine{grid-column:1/-1}}
+@media(max-width:600px){.inspector-panel.glass-inspector #glass-inspector-controls{display:block}.lg-preview-track{padding:36px 13px 34px}.lg-object-label{font-size:7px;letter-spacing:1px;left:15px;bottom:13px}.lg-object-label span{font-size:7px}.lg-scenes{bottom:7px}.lg-caption{font-size:8px;left:7px;top:7px}.lg-scenes button{width:27px;height:27px}.lg-scenes button span{width:20px;height:20px}}
+/* Give the 420 × 280 reference lens enough breathing room; scene choices live outside it. */
+.preview-shell:has(.stage[data-effect="glass"]){height:clamp(505px,60vh,625px)}
+.stage[data-effect="glass"] .lg-scenes{top:11px;right:12px;bottom:auto;left:auto;transform:none}
+@media(max-width:730px){
+ .preview-shell:has(.stage[data-effect="glass"]){height:500px}
+ .stage[data-effect="glass"] .lg-scenes{top:auto;right:auto;bottom:10px;left:50%;transform:translateX(-50%)}
+}
+
+.mobilab-home{display:inline-flex;align-items:center;padding:8px 10px;border-radius:9px;border:1px solid #373b50;background:#181b2b;color:#ddd8ff;font-size:11px;text-decoration:none;white-space:nowrap}.mobilab-home:hover,.mobilab-home:focus-visible{background:#29243e;color:#fff;outline:2px solid #9e84f5;outline-offset:2px}.legacy-link{color:#b6a6ef;text-decoration:underline;text-underline-offset:2px}
+</style>
+</head>
+<body>
+<svg aria-hidden="true" width="0" height="0" class="svg-defs">
+  <defs>
+    <filter id="fx-goo" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur"></feGaussianBlur>
+      <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -10" result="goo"></feColorMatrix>
+    </filter>
+    <linearGradient id="wheel-gradient" x1="0%" y1="5%" x2="95%" y2="95%">
+      <stop offset="0%" stop-color="#a8a0ff"/><stop offset="48%" stop-color="#8a6dff"/><stop offset="100%" stop-color="#55dbf9"/>
+    </linearGradient>
+  </defs>
+</svg>
+<div class="app-shell">
+  <header class="topbar">
+    <div class="brand"><div class="brand-icon"><span></span><span></span><span></span></div><div class="brand-text"><strong>WEBFORGE<span class="brand-dot">.</span></strong><small>FX ARSENAL / LAB 003</small></div></div>
+    <div class="topbar-center"><span class="live-indicator"></span> INTERACTION SYSTEMS <span class="topbar-split">/</span> PLAYGROUND</div>
+    <div class="topbar-actions"><a class="mobilab-home" href="../../" title="Return to MobiLab overview">← MobiLab</a><span class="proto-pill">OPTICAL LENS <span>v0.3</span></span><button class="icon-btn" id="shortcuts" aria-label="Show instructions" title="Instructions">?</button></div>
+  </header>
+  <div class="workspace">
+    <aside class="library-panel">
+      <div class="panel-heading"><span class="label-kicker">YOUR ARSENAL</span><span class="count-badge" id="result-count">09</span></div>
+      <h2>Effect library<span class="muted-dot">.</span></h2>
+      <p class="panel-note">Independent, touch-ready experiments.<br>Pick a mechanic to try it live.</p>
+      <label class="search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 5 5"/></svg><input id="fx-search" type="search" autocomplete="off" placeholder="Search mechanics…" aria-label="Search effects"><kbd>/</kbd></label>
+      <div class="filter-row" role="group" aria-label="Filter effect categories"><button class="filter-chip active" data-filter="all">All</button><button class="filter-chip" data-filter="liquid">Liquid</button><button class="filter-chip" data-filter="motion">Motion</button><button class="filter-chip" data-filter="surface">Surface</button></div>
+      <nav class="effect-list" id="effect-list" aria-label="Effect demos"></nav>
+      <div class="library-bottom"><span class="dot-glow"></span><div><strong>Plugin architecture</strong><small>Isolated demos · no external packages<br><a class="legacy-link" href="legacy.html">Original 4-mode playground ↗</a></small></div></div>
+    </aside>
+    <main class="main-panel">
+      <div class="main-heading"><div><div class="section-kicker"><span class="sparkle">✳</span> LIVE PREVIEW <span class="slash">/</span> <span id="preview-number">01</span></div><h1 id="preview-title">Gooey Fusion</h1><p id="preview-description">Touch, pull, and release to fuse liquid surfaces.</p></div><div class="corner-tag">RENDER: <span id="tech-label">SVG / CSS</span></div></div>
+      <section class="preview-shell" aria-label="Interactive demo">
+        <div class="preview-topline"><div><i></i> INTERACTIVE STAGE</div><span class="stage-gesture" id="gesture-label">TAP · DRAG · RELEASE</span><button id="immersive-toggle" class="immersive-btn" type="button" title="Expand preview" aria-label="Expand preview" aria-pressed="false">⤢</button></div>
+        <div class="stage" id="fx-stage" tabindex="-1" aria-label="Demo stage"></div>
+        <div class="preview-bottomline"><span><span class="status-led"></span><span id="feedback" role="status" aria-live="polite">Ready — try touching the preview.</span></span><span class="preview-right">POINTER & TOUCH · <span id="fps">—</span></span></div>
+      </section>
+      <div class="lower-row"><div class="usage-hint"><div class="hint-icon">✦</div><div><strong id="hint-title">Interact with the center button</strong><p id="hint-copy">Tap to expand, then drag near the orbit to pull an elastic droplet.</p></div></div><button id="reset-demo" class="outline-btn">↻ <span>Reset demo</span></button></div>
+      <section class="series-section"><div><span class="label-kicker">DESIGNED FOR REUSE</span><h3>One engine. Many interactions.</h3></div><div class="series-tags"><span>01 / Addon registry</span><span>02 / Independent cleanup</span><span>03 / Preset controls</span><span>04 / Touch first</span></div></section>
+    </main>
+    <aside class="inspector-panel">
+      <div class="inspector-top"><span class="label-kicker">LIVE CONTROLS</span><span class="inspector-symbol">⚙</span></div>
+      <h2>Inspector</h2><p class="inspector-intro">Tune the feel, then export a preset.</p>
+      <div id="glass-inspector-controls" aria-label="Liquid glass CSS generator controls">
+        <div class="lg-inspect-title"><strong>OPTICAL GLASS SETTINGS</strong><button class="lg-small-button" id="lg-reset" type="button">↻ Reset</button></div>
+        <div class="lg-control"><label for="lg-radius">Border Radius <output id="lg-radius-value">40px</output></label><input id="lg-radius" data-lg="radius" type="range" min="0" max="96" step="1" value="40"></div>
+        <div class="lg-control"><label for="lg-frost">Frost <output id="lg-frost-value">12%</output></label><input id="lg-frost" data-lg="frost" type="range" min="0" max="100" step="1" value="12"></div>
+        <div class="lg-control"><label for="lg-blur">Blur <output id="lg-blur-value">2px</output></label><input id="lg-blur" data-lg="blur" type="range" min="0" max="24" step="1" value="2"></div>
+        <div class="lg-inspector-note"><strong>Optical lens / browser support</strong><br>SVG backdrop displacement renders in supported Chromium browsers such as Chrome and Edge. Firefox and Safari receive frosted-glass fallback. The two sliders below adjust the lens geometry.</div>
+        <div class="lg-control"><label for="lg-refraction">Refraction <output id="lg-refraction-value">144</output></label><input id="lg-refraction" data-lg="refraction" type="range" min="0" max="280" step="1" value="144"><small>RGB displacement amount — stronger = more edge bending.</small></div>
+        <div class="lg-control"><label for="lg-bezel">Bezel Depth <output id="lg-bezel-value">14px</output></label><input id="lg-bezel" data-lg="bezel" type="range" min="1" max="55" step="1" value="14"><small>Controls the rounded inner lens ring and its soft transition.</small></div>
+        <div class="lg-code-row"><strong>GENERATED CODE</strong><span class="label-kicker" id="lg-dimensions">420 × 280</span></div>
+        <div class="lg-code-block"><header><span>CSS</span><button type="button" id="lg-copy-css">Copy CSS</button></header><pre id="lg-css-output" tabindex="0"></pre></div>
+        <div class="lg-code-block"><header><span>SVG FILTER</span><button type="button" id="lg-copy-svg">Copy SVG</button></header><pre id="lg-svg-output" tabindex="0"></pre></div>
+        <button class="lg-download-demo" id="lg-download-demo" type="button">↓ Download standalone example</button>
+        <p class="lg-inspect-fine">The SVG filter is generated for the panel's actual pixel dimensions. Its export must be resized if used on a different component. Scene thumbnails change the background, not the exported glass material.</p>
+      </div>
+      <div class="inspector-divider"></div>
+      <div class="option-label"><span>01 / FEEL</span><span>LIVE</span></div>
+      <div class="control"><div class="control-head"><label for="intensity">Intensity</label><output id="intensity-output" for="intensity">72%</output></div><input id="intensity" type="range" min="0" max="100" value="72"></div>
+      <div class="control"><div class="control-head"><label for="spring">Elasticity</label><output id="spring-output" for="spring">65%</output></div><input id="spring" type="range" min="0" max="100" value="65"></div>
+      <div class="control"><div class="control-head"><label for="speed">Motion speed</label><output id="speed-output" for="speed">60%</output></div><input id="speed" type="range" min="10" max="100" value="60"></div>
+      <div class="inspector-divider"></div>
+      <div class="option-label"><span>02 / APPEARANCE</span></div>
+      <div class="theme-row" role="group" aria-label="Color theme"><button data-theme="violet" class="theme-choice selected" aria-label="Violet theme" aria-pressed="true"><span style="background:linear-gradient(140deg,#9b7cff,#6852ff)"></span></button><button data-theme="cyan" class="theme-choice" aria-label="Cyan theme" aria-pressed="false"><span style="background:linear-gradient(140deg,#9ef9ec,#289bd7)"></span></button><button data-theme="citrus" class="theme-choice" aria-label="Citrus theme" aria-pressed="false"><span style="background:linear-gradient(140deg,#ffcd5e,#ff7a72)"></span></button></div>
+      <div class="inspector-divider"></div>
+      <div class="option-label"><span>03 / QUALITY</span></div>
+      <label class="switch-setting"><span><strong>Reduced motion</strong><small>Static / low-motion fallback</small></span><input id="reduce-motion" type="checkbox" role="switch"><span class="switch-track"></span></label>
+      <label class="switch-setting"><span><strong>Show debug ring</strong><small>Pointer tracking overlay</small></span><input id="debug-ring" type="checkbox" role="switch"><span class="switch-track"></span></label>
+      <div class="inspector-divider"></div>
+      <div class="option-label"><span>04 / PRESET</span></div>
+      <button class="export-btn" id="copy-preset">↗ &nbsp; Copy addon preset <span>JSON</span></button>
+      <button class="export-secondary" id="download-preset">↓ &nbsp; Save preset file</button>
+      <p class="inspector-footnote">Preview code is original experiments inspired by your references. Still prototypes, not source-code replicas.</p>
+    </aside>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+/* WebForge FX Arsenal · vanilla JS addon contract. No external dependencies. */
+(function (global) {
+  const addons = new Map();
+  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+  const point = (e, el) => { const r=el.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top, w:r.width, h:r.height}; };
+  function listen(el, event, handler, options, cleanup) { el.addEventListener(event, handler, options); cleanup.push(()=>el.removeEventListener(event,handler,options)); }
+  const FX = {
+    addons, clamp, point, listen,
+    register(addon) {
+      if (!addon?.id || typeof addon.mount !== 'function' || addons.has(addon.id)) throw new Error('Invalid/duplicate addon: '+addon?.id);
+      addons.set(addon.id, addon);
+    },
+    engine(stage) {
+      let active = null, id = null;
+      return {
+        get id(){return id;},
+        mount(nextId, opts) {
+          active?.destroy?.(); stage.replaceChildren();
+          id=nextId;
+          const addon=addons.get(nextId); if (!addon) throw new Error('No addon '+nextId);
+          active=addon.mount(stage, opts||{});
+          return active;
+        },
+        update(opts) { active?.update?.(opts); },
+        destroy() { active?.destroy?.(); active=null; id=null; stage.replaceChildren(); }
+      };
+    },
+    toast(message) {
+      const el=document.getElementById('toast'); if (!el) return;
+      el.textContent=message; el.classList.add('visible'); clearTimeout(FX._toastTimer);
+      FX._toastTimer=setTimeout(()=>el.classList.remove('visible'),2500);
+    }
+  };
+  global.FXLab=FX;
+})(window);
+
+(function(FX){
+'use strict';
+FX.register({
+ id:'gooey',name:'Gooey Fusion',icon:'◉',category:'liquid',tech:'SVG METABALL / SPRING',gesture:'TAP · PULL · RELEASE',
+ short:'Viscous neck + elastic breakup',description:'An actual animated liquid bridge connects the button and your finger, then thins, breaks and springs home.',
+ hint:'Open the menu, then pull liquid from the center',hintCopy:'Drag slowly to stretch the neck. Flick past the rim to tear it loose; release to watch it snap back.',
+ mount(host,opts){
+  let config=opts,raf=0,holding=false,pid=null,visible=false,open=false;
+  const clean=[],center={x:170,y:153.6},s={x:170,y:153.6,vx:0,vy:0},target={x:170,y:153.6};
+  host.innerHTML=`<div class="fx-center goo-demo goo-v2"><div class="goo-shapes">
+    <div class="goo-disc sub sub-1"></div><div class="goo-disc sub sub-2"></div><div class="goo-disc sub sub-3"></div><div class="goo-disc main"></div>
+    <svg class="goo-v2-membrane" viewBox="0 0 340 320" aria-hidden="true"><path class="goo-v2-neck"></path><circle class="goo-v2-drop" r="24" cx="170" cy="153.6"></circle></svg>
+    </div><div class="goo-overlays"><button type="button" aria-label="Open liquid menu" aria-expanded="false" class="goo-action main fx-click-target"><span>+</span></button>
+    <button type="button" class="goo-action sub sub-1" aria-label="Edit action">✎</button><button type="button" class="goo-action sub sub-2" aria-label="Star action">★</button><button type="button" class="goo-action sub sub-3" aria-label="Lightning action">ϟ</button></div>
+    <div class="goo-v2-tip">PULL THE SURFACE • WATCH IT STRETCH</div><div class="demo-caption">SURFACE TENSION · SPRING PHYSICS</div></div>`;
+  const root=host.querySelector('.goo-demo'),path=root.querySelector('.goo-v2-neck'),drop=root.querySelector('.goo-v2-drop'),main=root.querySelector('.goo-action.main');
+  function point(e){const r=root.getBoundingClientRect();return {x:(e.clientX-r.left)*340/r.width,y:(e.clientY-r.top)*320/r.height};}
+  const clamp=FX.clamp;
+  function draw(){
+   const dx=s.x-center.x,dy=s.y-center.y,d=Math.hypot(dx,dy)||.001,nx=-dy/d,ny=dx/d;
+   // A tapering connector is visible through the breakup distance; overpull tears it away.
+   const reach=clamp((d-23)/160,0,1),b=clamp((d-45)/120,0,1),r1=clamp(41-d*.11,13,41),r2=clamp(24-d*.035,12,24);
+   const x1=center.x+dx/d*(r1*.34),y1=center.y+dy/d*(r1*.34);
+   const x2=s.x-dx/d*(r2*.16),y2=s.y-dy/d*(r2*.16);
+   const w1=r1*(.8-b*.53),w2=r2*(.9-b*.64);
+   const a={x:x1+nx*w1,y:y1+ny*w1},h={x:x2+nx*w2,y:y2+ny*w2},h2={x:x2-nx*w2,y:y2-ny*w2},a2={x:x1-nx*w1,y:y1-ny*w1};
+   const bend=d*.34;
+   path.setAttribute('d',`M${a.x} ${a.y} C${a.x+dx/d*bend} ${a.y+dy/d*bend} ${h.x-dx/d*bend} ${h.y-dy/d*bend} ${h.x} ${h.y} A${r2} ${r2} 0 0 1 ${h2.x} ${h2.y} C${h2.x-dx/d*bend} ${h2.y-dy/d*bend} ${a2.x+dx/d*bend} ${a2.y+dy/d*bend} ${a2.x} ${a2.y} Z`);
+   path.style.opacity=String(visible&&d<174&&!config.reduced ? clamp((174-d)/35,0,1):0);
+   drop.style.opacity=String(visible&&!config.reduced ? (d>173?.9:1):0);
+   drop.setAttribute('cx',s.x.toFixed(2));drop.setAttribute('cy',s.y.toFixed(2));drop.setAttribute('r',(r2+Math.min(7,Math.hypot(s.vx,s.vy)*.18)).toFixed(2));
+   root.style.setProperty('--goo-pull',String(clamp(d/190,0,1)));
+  }
+  function frame(){
+   const k=(.1+(config.spring??65)*.0015)*(.7+(config.speed??60)*.005),damp=.72+(100-(config.speed??60))*.0008;
+   s.vx+=(target.x-s.x)*k;s.vy+=(target.y-s.y)*k;s.vx*=damp;s.vy*=damp;s.x+=s.vx;s.y+=s.vy;
+   draw();const near=Math.hypot(target.x-s.x,target.y-s.y)+Math.hypot(s.vx,s.vy);
+   if(holding||near>.17){raf=requestAnimationFrame(frame);}else{raf=0;}
+  }
+  function animate(){if(!raf)raf=requestAnimationFrame(frame);}
+  FX.listen(main,'click',()=>{open=!open;root.classList.toggle('open',open);main.setAttribute('aria-expanded',String(open));root.classList.add('goo-v2-pop');setTimeout(()=>root.classList.remove('goo-v2-pop'),340);},false,clean);
+  root.querySelectorAll('.goo-action.sub').forEach(b=>FX.listen(b,'click',()=>FX.toast(b.getAttribute('aria-label')),false,clean));
+  FX.listen(root,'pointerdown',e=>{if(config.reduced)return;holding=true;pid=e.pointerId;visible=true;const p=point(e);target.x=clamp(p.x,0,340);target.y=clamp(p.y,0,320);if(!e.target.closest('button'))root.setPointerCapture?.(pid);animate();},false,clean);
+  FX.listen(root,'pointermove',e=>{if(config.reduced ||(holding&&e.pointerId!==pid))return;if(holding||e.pointerType==='mouse'){visible=true;const p=point(e);target.x=clamp(p.x,0,340);target.y=clamp(p.y,0,320);animate();}},false,clean);
+  function settle(e){if(holding&&e?.pointerId!==pid)return;holding=false;pid=null;visible=false;target.x=center.x;target.y=center.y;animate();}
+  FX.listen(root,'pointerup',settle,false,clean);FX.listen(root,'pointercancel',settle,false,clean);FX.listen(root,'pointerleave',()=>{if(!holding)settle();},false,clean);
+  draw();return{update(n){config=n;if(n.reduced)settle();},destroy(){cancelAnimationFrame(raf);clean.forEach(f=>f());}};
+ }
+});
+})(window.FXLab);
+
+(function(FX){
+'use strict';
+FX.register({
+ id:'elastic-border',name:'Elastic Liquid Border',icon:'▧',category:'liquid',tech:'SVG MESH / SPRINGS',gesture:'PRESS · PUSH · FLICK',
+ short:'The entire toolbar is a living membrane',description:'Touch the toolbar and its actual outline bends, follows your finger, ripples with velocity, and reforms under spring tension.',
+ hint:'Touch anywhere along the bar — especially its edge',hintCopy:'Drag slowly to make a deep dent. Flick across the buttons to send a wave through the rim; tap an icon to see the rebound.',
+ mount(host,opts){
+  const clean=[];let config=opts,raf=0,down=false,pointerId=null,pressTime=0,hovering=false;
+  const ptr={x:-999,y:-999,vx:0,vy:0,lastX:0,lastY:0};
+  const x=30,y=83,w=360,h=100,r=35;
+  // 160 path samples form the same interpolated shape for the rest and active states.
+  const base=[];
+  const put=(px,py,nx,ny)=>base.push({x:px,y:py,nx,ny});
+  const line=(x1,y1,x2,y2,nx,ny,n)=>{for(let i=0;i<n;i++){const t=i/n;put(x1+(x2-x1)*t,y1+(y2-y1)*t,nx,ny);}};
+  const arc=(cx,cy,a,b,n)=>{for(let i=0;i<n;i++){let angle=a+(b-a)*i/n;put(cx+r*Math.cos(angle),cy+r*Math.sin(angle),Math.cos(angle),Math.sin(angle));}};
+  line(x+r,y,x+w-r,y,0,-1,19);arc(x+w-r,y+r,-Math.PI/2,0,21);
+  line(x+w,y+r,x+w,y+h-r,1,0,9);arc(x+w-r,y+h-r,0,Math.PI/2,21);
+  line(x+w-r,y+h,x+r,y+h,0,1,19);arc(x+r,y+h-r,Math.PI/2,Math.PI,21);
+  line(x,y+h-r,x,y+r,-1,0,9);arc(x+r,y+r,Math.PI,3*Math.PI/2,21);
+  const mesh=base.map(()=>({d:0,v:0}));
+  const labels=[['⚙','Settings'],['◈','Focus'],['◐','Contrast'],['☼','Light'],['△','Shapes'],['◎','Color']];
+  host.innerHTML=`<div class="fx-center membrane-demo">
+    <div class="membrane-halo"></div><svg class="membrane-svg" viewBox="0 0 420 270" aria-hidden="true"><defs><linearGradient id="membraneFill" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffffff"/><stop offset="52%" stop-color="#e8e8ff"/><stop offset="100%" stop-color="#bed1ff"/></linearGradient><linearGradient id="membraneRim" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffffff"/><stop offset="50%" stop-color="#a8a3ff"/><stop offset="100%" stop-color="#70e9ff"/></linearGradient></defs>
+      <path class="membrane-shadow"></path><path class="membrane-fill"></path><path class="membrane-highlight"></path><circle class="membrane-touch-orb" r="18" cx="210" cy="130"/></svg>
+    <div class="membrane-icons"></div><div class="membrane-instruction">RUBBER SURFACE · VELOCITY-REACTIVE BOUNDARY</div></div>`;
+  const root=host.querySelector('.membrane-demo'),shadow=root.querySelector('.membrane-shadow'),fill=root.querySelector('.membrane-fill'),highlight=root.querySelector('.membrane-highlight'),orb=root.querySelector('.membrane-touch-orb'),iconBox=root.querySelector('.membrane-icons');
+  const items=labels.map(([glyph,label],i)=>{const b=document.createElement('button');b.type='button';b.className='membrane-icon fx-click-target';b.innerHTML=`<span aria-hidden="true">${glyph}</span>`;b.setAttribute('aria-label',label);b.title=label;b.style.left=`${x+48+i*(w-96)/5}px`;b.style.top=`${y+h/2}px`;iconBox.appendChild(b);FX.listen(b,'click',()=>{b.classList.remove('pulse');void b.offsetWidth;b.classList.add('pulse');FX.toast(label);setTimeout(()=>b.classList.remove('pulse'),500);},false,clean);return {el:b,x:x+48+i*(w-96)/5,y:y+h/2,dx:0,dy:0,vx:0,vy:0};});
+  function local(e){const rect=root.getBoundingClientRect();return {x:(e.clientX-rect.left)*420/rect.width,y:(e.clientY-rect.top)*270/rect.height};}
+  function getPath(points){const mids=points.map((p,i)=>{const q=points[(i+1)%points.length];return{x:(p.x+q.x)/2,y:(p.y+q.y)/2};});let d=`M${mids[mids.length-1].x.toFixed(2)} ${mids[mids.length-1].y.toFixed(2)}`;points.forEach((p,i)=>{d+=` Q${p.x.toFixed(2)} ${p.y.toFixed(2)} ${mids[i].x.toFixed(2)} ${mids[i].y.toFixed(2)}`;});return d+' Z';}
+  function render(){const p=base.map((pt,i)=>({x:pt.x+pt.nx*mesh[i].d,y:pt.y+pt.ny*mesh[i].d}));const path=getPath(p);[shadow,fill,highlight].forEach(el=>el.setAttribute('d',path));const v=Math.hypot(ptr.vx,ptr.vy);root.style.setProperty('--membrane-hit',String(FX.clamp(v/60,0,1)));orb.setAttribute('cx',String(ptr.x));orb.setAttribute('cy',String(ptr.y));orb.setAttribute('r',String(10+Math.min(v*.2,15)));orb.style.opacity=down&&!config.reduced?'0.9':'0';}
+  function frame(){const k=(.06+(config.spring??65)*.00175)*(.65+(config.speed??60)*.006),damp=.69+(config.spring??65)*.0017,force=(config.intensity??72)/100;
+   let motion=false;mesh.forEach((s,i)=>{const p=base[i];const dx=ptr.x-p.x,dy=ptr.y-p.y,dd=Math.hypot(dx,dy);const falloff=Math.exp(-dd*dd/(2*80*80));const pull=FX.clamp(dx*p.nx+dy*p.ny,-42,42);let desired=(hovering?pull*falloff*force*(down?.92:.36):0);
+     if(config.reduced)desired=0;
+     s.v+=(desired-s.d)*k;s.v*=damp;s.d+=s.v;
+     if(Math.abs(s.v)+Math.abs(s.d-desired)>.09)motion=true;});
+   items.forEach(s=>{const dx=ptr.x-s.x,dy=ptr.y-s.y,dd=Math.hypot(dx,dy);const f=hovering?Math.exp(-dd*dd/(2*80*80)):0;
+     const force=down?0.22:0.1;const tx=config.reduced?0:dx*f*force,ty=config.reduced?0:dy*f*force;
+     s.vx+=(tx-s.dx)*.15;s.vy+=(ty-s.dy)*.15;s.vx*=.7;s.vy*=.7;s.dx+=s.vx;s.dy+=s.vy;
+     s.el.style.transform=`translate(-50%,-50%) translate(${s.dx.toFixed(2)}px,${s.dy.toFixed(2)}px) scale(${(1+f*.13).toFixed(3)})`;
+     if(Math.abs(s.vx)+Math.abs(s.vy)>.08)motion=true;});
+   ptr.vx*=.74;ptr.vy*=.74;render();
+   if(motion||down){raf=requestAnimationFrame(frame);}else{raf=0;}
+  }
+  function tick(){if(!raf)raf=requestAnimationFrame(frame);}
+  function move(e){if(down&&e.pointerId!==pointerId)return;const p=local(e);const dt=Math.max(5,performance.now()-pressTime);ptr.vx=(p.x-ptr.x)/(dt/16.7);ptr.vy=(p.y-ptr.y)/(dt/16.7);ptr.x=p.x;ptr.y=p.y;pressTime=performance.now();hovering=true;root.classList.toggle('active',down);tick();}
+  function begin(e){if(e.button!==0)return;down=true;pointerId=e.pointerId;move(e);if(!e.target.closest('button'))root.setPointerCapture?.(pointerId);tick();}
+  function end(e){if(down&&e&&e.pointerId!==pointerId)return;down=false;pointerId=null;root.classList.remove('active');hovering=e?.type==='pointerup'&&e.pointerType==='mouse';tick();}
+  FX.listen(root,'pointerdown',begin,false,clean);FX.listen(root,'pointermove',move,false,clean);FX.listen(root,'pointerup',end,false,clean);FX.listen(window,'pointerup',end,false,clean);FX.listen(root,'pointercancel',()=>{hovering=false;end();},false,clean);FX.listen(window,'pointercancel',()=>{hovering=false;down=false;pointerId=null;tick();},false,clean);FX.listen(root,'pointerleave',()=>{if(!down){hovering=false;tick();}},false,clean);
+  render();return{update(n){config=n;tick();},destroy(){cancelAnimationFrame(raf);clean.forEach(fn=>fn());}};
+ }
+});
+})(window.FXLab);
+
+(function(FX){
+'use strict';
+FX.register({
+ id:'wheel',name:'Elastic Wheel',icon:'◎',category:'motion',tech:'SVG RIM / VELOCITY SPRINGS',gesture:'GRAB · ROTATE · FLICK',
+ short:'Living rim + momentum-sensitive waves',description:'A steering wheel with a genuinely deforming circular boundary, viscous touch lobe and momentum-driven overshoot.',
+ hint:'Grab the rim and turn it quickly',hintCopy:'Pull the wheel slowly to stretch its edge. Flick rapidly for stronger wobble, then release to observe inertia.',
+ mount(host,opts){
+  let config=opts,holding=false,pointerId=null,angle=0,target=0,v=0,press=0,origin=0,hitTheta=-Math.PI/2,amp=0,ampTarget=0,lastAngle=0,mouseRadius=124,wave=0,waveVel=0,raf=0,last=performance.now(),handX=170,handY=45;
+  const clean=[];
+  host.innerHTML=`<div class="fx-center wheel-demo wheel-v2" role="slider" tabindex="0" aria-label="Steering wheel angle" aria-valuemin="-135" aria-valuemax="135" aria-valuenow="0">
+   <svg class="wheel-svg" viewBox="0 0 340 340" aria-hidden="true"><circle cx="170" cy="170" r="124" fill="none" class="wheel-shadow"></circle><circle cx="170" cy="170" r="144" fill="none" class="wheel-orbit"></circle><g class="wheel-goo"><path class="wheel-goo-path"></path><path class="wheel-liquid-neck"></path><circle class="wheel-drop" cx="170" cy="45" r="17" opacity="0"></circle></g><path class="wheel-path"></path><path class="wheel-rim-light"></path><g class="wheel-ticks"></g></svg>
+   <div class="wheel-inner"><div class="wheel-spokes"><i></i></div><div class="wheel-value">0°</div></div><div class="wheel-v2-note">TOUCH THE EDGE · DRAG FAST TO DISTORT</div><div class="demo-caption">INERTIA · SOFT-BODY RIM · SURFACE TENSION</div></div>`;
+  const root=host.querySelector('.wheel-demo'),rim=root.querySelector('.wheel-path'),goo=root.querySelector('.wheel-goo-path'),light=root.querySelector('.wheel-rim-light'),neck=root.querySelector('.wheel-liquid-neck'),drop=root.querySelector('.wheel-drop'),spokes=root.querySelector('.wheel-spokes'),label=root.querySelector('.wheel-value'),ticks=root.querySelector('.wheel-ticks');
+  for(let k=0;k<40;k++){let a=k*Math.PI*2/40;const l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',(170+151*Math.cos(a)).toFixed(2));l.setAttribute('y1',(170+151*Math.sin(a)).toFixed(2));l.setAttribute('x2',(170+(k%5===0?161:154)*Math.cos(a)).toFixed(2));l.setAttribute('y2',(170+(k%5===0?161:154)*Math.sin(a)).toFixed(2));l.setAttribute('stroke','#b5a6ef');l.setAttribute('stroke-opacity',k%5===0?'.8':'.21');l.setAttribute('stroke-width',k%5===0?'2':'1');ticks.appendChild(l);}
+  const norm=a=>Math.atan2(Math.sin(a),Math.cos(a));
+  function where(e){const r=root.getBoundingClientRect(),x=(e.clientX-r.left)*340/r.width-170,y=(e.clientY-r.top)*340/r.height-170;return {theta:Math.atan2(y,x),radius:Math.hypot(x,y),x:x+170,y:y+170};}
+  function makePath(points){const mids=points.map((p,i)=>({x:(p.x+points[(i+1)%points.length].x)/2,y:(p.y+points[(i+1)%points.length].y)/2}));let d=`M${mids[mids.length-1].x.toFixed(2)} ${mids[mids.length-1].y.toFixed(2)}`;points.forEach((p,i)=>{d+=` Q${p.x.toFixed(2)} ${p.y.toFixed(2)} ${mids[i].x.toFixed(2)} ${mids[i].y.toFixed(2)}`;});return d+' Z';}
+  function render(){
+   const points=[];for(let i=0;i<100;i++){const a=i*Math.PI*2/100,delta=norm(a-hitTheta);const near=Math.exp(-Math.pow(delta/.36,2));const ripple=Math.sin(delta*7-wave)*Math.exp(-Math.abs(delta)*2.7)*Math.abs(waveVel)*.55;
+    const radius=124+amp*near+ripple*(config.reduced?0:1);
+    points.push({x:170+radius*Math.cos(a),y:170+radius*Math.sin(a)});}
+   const d=makePath(points);rim.setAttribute('d',d);goo.setAttribute('d',d);light.setAttribute('d',d);
+   spokes.style.transform=`rotate(${angle.toFixed(2)}deg)`;label.textContent=`${Math.round(angle)}°`;root.setAttribute('aria-valuenow',String(Math.round(angle)));
+   const r=FX.clamp(mouseRadius,55,170),rr=124+amp,delta=r-rr;
+   const ax=170+Math.cos(hitTheta)*(rr+4),ay=170+Math.sin(hitTheta)*(rr+4),bx=170+Math.cos(hitTheta)*r,by=170+Math.sin(hitTheta)*r;
+   const nx=-Math.sin(hitTheta),ny=Math.cos(hitTheta),w1=18,w2=14;
+   neck.setAttribute('d',`M${ax+nx*w1} ${ay+ny*w1} C${ax+nx*w1+Math.cos(hitTheta)*18} ${ay+ny*w1+Math.sin(hitTheta)*18} ${bx+nx*w2-Math.cos(hitTheta)*13} ${by+ny*w2-Math.sin(hitTheta)*13} ${bx+nx*w2} ${by+ny*w2} Q${bx+Math.cos(hitTheta)*16} ${by+Math.sin(hitTheta)*16} ${bx-nx*w2} ${by-ny*w2} C${bx-nx*w2-Math.cos(hitTheta)*13} ${by-ny*w2-Math.sin(hitTheta)*13} ${ax-nx*w1+Math.cos(hitTheta)*18} ${ay-ny*w1+Math.sin(hitTheta)*18} ${ax-nx*w1} ${ay-ny*w1} Z`);
+   drop.setAttribute('cx',bx.toFixed(2));drop.setAttribute('cy',by.toFixed(2));drop.setAttribute('r',String(13+Math.min(8,Math.abs(v)*.6)));
+   neck.style.opacity=holding&&!config.reduced&&Math.abs(delta)>8?String(FX.clamp((85-Math.abs(delta))/30,0,1)):'0';drop.setAttribute('opacity',holding&&!config.reduced?'1':'0');
+   root.style.setProperty('--wheel-surge',String(FX.clamp(Math.abs(v)/15,0,1)));
+  }
+  function frame(t){const dt=Math.min(2.2,(t-last)/16.667||1);last=t;const spring=(.045+(config.spring??65)*.0015)*(.7+(config.speed??60)*.005);const damp=.66+(config.spring??65)*.0025;
+   v+=(target-angle)*spring*dt;v*=Math.pow(damp,dt);angle+=v*dt;
+   amp+=(ampTarget-amp)*(.09+(config.spring??65)*.002)*dt;
+   waveVel+=(ampTarget-amp)*.03*dt;waveVel*=Math.pow(.87,dt);wave+=.21*dt;
+   render();if(holding||Math.abs(target-angle)>.16||Math.abs(v)>.07||Math.abs(ampTarget-amp)>.14||Math.abs(waveVel)>.2){raf=requestAnimationFrame(frame);}else{angle=target;amp=ampTarget;waveVel=0;render();raf=0;}}
+  function start(){if(!raf){last=performance.now();raf=requestAnimationFrame(frame);}}
+  function down(e){if(e.button!==0)return;const p=where(e);holding=true;pointerId=e.pointerId;root.setPointerCapture?.(pointerId);press=p.theta;origin=target;lastAngle=press;hitTheta=press;mouseRadius=p.radius;ampTarget=config.reduced?0:14+13*(config.intensity??72)/100;root.classList.add('dragging');start();}
+  function move(e){if(!holding||e.pointerId!==pointerId)return;const p=where(e);let delta=norm(p.theta-press)*180/Math.PI,angular=norm(p.theta-lastAngle);lastAngle=p.theta;target=FX.clamp(origin+delta,-135,135);hitTheta=p.theta;mouseRadius=p.radius;ampTarget=config.reduced?0:(18+16*(config.intensity??72)/100+Math.min(15,Math.abs(angular)*75));waveVel+=Math.min(13,Math.abs(angular)*30);start();}
+  function end(e){if(!holding||e.pointerId!==pointerId)return;holding=false;pointerId=null;root.classList.remove('dragging');ampTarget=0;target=0;start();}
+  FX.listen(root,'pointerdown',down,false,clean);FX.listen(root,'pointermove',move,false,clean);FX.listen(root,'pointerup',end,false,clean);FX.listen(root,'pointercancel',end,false,clean);
+  FX.listen(root,'keydown',e=>{if(!['ArrowLeft','ArrowRight','Home'].includes(e.key))return;e.preventDefault();target=e.key==='Home'?0:FX.clamp(target+(e.key==='ArrowRight'?15:-15),-135,135);hitTheta=(target-90)*Math.PI/180;ampTarget=0;start();},false,clean);
+  render();return{update(n){config=n;if(n.reduced){ampTarget=0;waveVel=0;render();}},destroy(){cancelAnimationFrame(raf);clean.forEach(f=>f());}};
+ }
+});
+})(window.FXLab);
+
+(function(FX){
+'use strict';
+FX.register({
+ id:'magnetic',name:'Magnetic Buttons',icon:'✺',category:'motion',tech:'SPRING FIELD / SVG GOO',gesture:'HOVER · PUSH · RELEASE',
+ short:'Shared elastic field & sticky blobs',description:'A responsive magnetic field pulls multiple buttons and creates temporary liquid connections between their surfaces.',
+ hint:'Drag slowly between the buttons, then flick away',hintCopy:'Watch the neighboring surfaces lean toward your finger, bridge with a droplet, and snap apart on release.',
+ mount(host,opts){
+  const clean=[];let config=opts,raf=0,pointer={x:-1000,y:-1000},active=false,pressed=false,id=null;
+  const positions=[{x:72,y:142,icon:'✎',label:'Edit'},{x:180,y:142,icon:'★',label:'Favorite'},{x:288,y:142,icon:'✧',label:'Effects'}];
+  host.innerHTML=`<div class="fx-center magnetic-demo magnetic-v2"><div class="mag-field"><div class="mag-follower"></div></div><div class="mag-actions"></div><div class="mag-v2-tip">PULL BETWEEN THE ICONS · FIND THE CONNECTION</div><div class="mag-note">SPRING ATTRACTION · GOOEY COALESCENCE</div></div>`;
+  const root=host.querySelector('.magnetic-demo'),bg=root.querySelector('.mag-field'),front=root.querySelector('.mag-actions'),follower=root.querySelector('.mag-follower');
+  const states=positions.map((p)=>{const back=document.createElement('div'),button=document.createElement('button');back.className='mag-blob';button.className='mag-button fx-click-target';button.type='button';button.textContent=p.icon;button.setAttribute('aria-label',p.label);bg.appendChild(back);front.appendChild(button);FX.listen(button,'click',()=>{button.classList.remove('mag-pop');void button.offsetWidth;button.classList.add('mag-pop');FX.toast(p.label);},false,clean);return {p,back,button,x:0,y:0,vx:0,vy:0,scale:1};});
+  function local(e){const r=root.getBoundingClientRect();return{x:(e.clientX-r.left)*360/r.width,y:(e.clientY-r.top)*320/r.height};}
+  function frame(){const intensity=(config.intensity??72)/100,stiff=(.1+(config.spring??65)*.0018)*(.7+(config.speed??60)*.005);let moving=false;
+   states.forEach(s=>{const dx=pointer.x-(s.p.x+s.x),dy=pointer.y-(s.p.y+s.y),dist=Math.hypot(dx,dy);const field=active?Math.exp(-(dist*dist)/(2*110*110)):0;
+    let tx=config.reduced?0:dx*.49*field*intensity,ty=config.reduced?0:dy*.49*field*intensity;
+    s.vx+=(tx-s.x)*stiff;s.vy+=(ty-s.y)*stiff;s.vx*=.72;s.vy*=.72;s.x+=s.vx;s.y+=s.vy;
+    const vel=Math.hypot(s.vx,s.vy);const stretch=config.reduced?1:1+Math.min(.29,vel*.023),scale=1+.10*field*intensity;
+    const skew=Math.atan2(s.vy,s.vx)*180/Math.PI;
+    const transform=`translate(${(s.p.x+s.x).toFixed(2)}px,${(s.p.y+s.y).toFixed(2)}px) translate(-50%,-50%) rotate(${(vel>.5?skew*.02:0).toFixed(2)}deg) scale(${(scale*stretch).toFixed(3)},${(scale/stretch).toFixed(3)})`;
+    s.back.style.transform=transform;s.button.style.transform=transform;
+    if(vel>.1||Math.abs(tx-s.x)+Math.abs(ty-s.y)>.09)moving=true;
+   });
+   follower.style.transform=`translate(${pointer.x.toFixed(1)}px,${pointer.y.toFixed(1)}px) translate(-50%,-50%) scale(${pressed?1.4:1})`;
+   follower.style.opacity=active&&!config.reduced?'1':'0';
+   if(moving||pressed)raf=requestAnimationFrame(frame);else raf=0;
+  }
+  function tick(){if(!raf)raf=requestAnimationFrame(frame);}
+  function move(e){if(pressed&&e.pointerId!==id)return;pointer=local(e);active=true;tick();}
+  function leave(){active=false;pressed=false;pointer={x:-1000,y:-1000};tick();}
+  FX.listen(root,'pointermove',move,false,clean);
+  FX.listen(root,'pointerdown',e=>{pressed=true;id=e.pointerId;move(e);if(!e.target.closest('button'))root.setPointerCapture?.(id);},false,clean);
+  FX.listen(root,'pointerup',()=>{pressed=false;id=null;if(!window.matchMedia('(hover: hover)').matches)leave();},false,clean);
+  FX.listen(root,'pointerleave',()=>{if(!pressed)leave();},false,clean);FX.listen(root,'pointercancel',leave,false,clean);
+  states.forEach(s=>{const t=`translate(${s.p.x}px,${s.p.y}px) translate(-50%,-50%)`;s.back.style.transform=t;s.button.style.transform=t;});
+  return{update(n){config=n;if(n.reduced)leave();},destroy(){cancelAnimationFrame(raf);clean.forEach(f=>f());}};
+ }
+});
+})(window.FXLab);
+
+(function(FX){
+'use strict';
+FX.register({
+ id:'spotlight',name:'Spotlight Border',icon:'◈',category:'surface',tech:'CSS RIM LIGHT / TILT',gesture:'TRACE · PRESS · RELEASE',
+ short:'Grazing light skims the rim',description:'A cursor-aware soft light illuminates the exact edge you approach, with subtle card tilt and magnetic micro-press feedback.',
+ hint:'Trace the edges — then tap an icon',hintCopy:'As your finger slides near the rim the specular highlight follows it; the whole card leans gently toward the pointer.',
+ mount(host,opts){
+  const clean=[];let config=opts,raf=0,x=0,y=0,tx=0,ty=0,active=false;
+  host.innerHTML=`<div class="fx-center spot-demo"><div class="spot-card"><small>INTERACTIVE SURFACES</small><strong>Light follows touch.</strong><div class="spot-icons"><button aria-label="Glow" title="Glow">✧</button><button aria-label="Lens" title="Lens">◉</button><button aria-label="Favorite" title="Favorite">♡</button></div><div class="spot-glint"></div></div></div>`;
+  const root=host.querySelector('.spot-demo'),card=root.querySelector('.spot-card');
+  function frame(){x+=(tx-x)*(.14+(config.spring??65)*.0011)*(.7+(config.speed??60)*.005);y+=(ty-y)*(.14+(config.spring??65)*.0011)*(.7+(config.speed??60)*.005);
+   card.style.setProperty('--rx',`${(-y*3.2).toFixed(2)}deg`);card.style.setProperty('--ry',`${(x*3.2).toFixed(2)}deg`);
+   card.style.setProperty('--mx',`${(50+x*40).toFixed(1)}%`);card.style.setProperty('--my',`${(50+y*40).toFixed(1)}%`);
+   if(active||Math.abs(x-tx)+Math.abs(y-ty)>.005)raf=requestAnimationFrame(frame);else raf=0;}
+  function tick(){if(!raf)raf=requestAnimationFrame(frame);}
+  function pos(e){const p=FX.point(e,card);tx=FX.clamp((p.x/p.w-.5)*2,-1,1);ty=FX.clamp((p.y/p.h-.5)*2,-1,1);active=true;tick();}
+  function end(){active=false;tx=0;ty=0;tick();}
+  FX.listen(card,'pointermove',pos,false,clean);FX.listen(card,'pointerdown',pos,false,clean);FX.listen(card,'pointerleave',end,false,clean);
+  card.querySelectorAll('button').forEach(b=>FX.listen(b,'click',()=>{b.classList.remove('spot-active');void b.offsetWidth;b.classList.add('spot-active');FX.toast(b.getAttribute('aria-label'));setTimeout(()=>b.classList.remove('spot-active'),350);},false,clean));
+  return{update(n){config=n;card.style.filter=`saturate(${.9+(n.intensity??72)/135})`;if(n.reduced)end();},destroy(){cancelAnimationFrame(raf);clean.forEach(f=>f());}};
+ }
+});
+})(window.FXLab);
+
+(function(FX){
+'use strict';
+FX.register({
+ id:'switch',name:'Elastic Toggle',icon:'◑',category:'motion',tech:'CONTINUOUS DRAG / SPRING',gesture:'TAP · DRAG · FLING',
+ short:'Continuous rubber thumb deformation',description:'A soft toggle thumb follows the finger continuously, stretches with velocity and rebounds into AM or PM.',
+ hint:'Drag the white thumb slowly from AM to PM',hintCopy:'The knob follows your finger, squashes as it accelerates and springs into position when released. Tap to toggle.',
+ mount(host,opts){
+  const clean=[];let config=opts,on=false,held=false,pid=null,startX=0,startValue=0,value=0,desired=0,v=0,raf=0,lastMove=0,swiped=false;
+  host.innerHTML=`<div class="fx-center switch-demo switch-v2"><div class="switch-glow"></div><button type="button" class="morph-switch fx-click-target" role="switch" aria-label="PM mode" aria-checked="false"><span class="switch-label">AM</span><span class="switch-label">PM</span><span aria-hidden="true" class="switch-thumb">AM</span></button><div class="switch-v2-help">DRAG TO SCRUB THE STATE</div><div class="demo-caption">SQUASH · STRETCH · RELEASE</div></div>`;
+  const root=host.querySelector('.switch-demo'),btn=root.querySelector('.morph-switch'),thumb=root.querySelector('.switch-thumb');
+  function render(){const distortion=held?Math.min(.34,Math.abs(v)*.022):Math.min(.27,Math.abs(v)*.018);thumb.style.transform=`translateX(${value.toFixed(2)}px) scale(${(1+distortion).toFixed(3)},${(1-distortion*.5).toFixed(3)})`;thumb.textContent=on?'PM':'AM';btn.setAttribute('aria-checked',String(on));btn.classList.toggle('on',on);root.querySelector('.switch-glow').style.setProperty('--px',`${(16+value/148*68).toFixed(2)}%`);}
+  function frame(){const k=(.12+(config.spring??65)*.0018)*(.7+(config.speed??60)*.005),damp=.68+(config.spring??65)*.0015;
+   v+=(desired-value)*k;v*=damp;value+=v;value=FX.clamp(value,-10,158);render();if(held||Math.abs(v)>.04||Math.abs(desired-value)>.08)raf=requestAnimationFrame(frame);else{value=desired;v=0;render();raf=0;}}
+  function tick(){if(!raf)raf=requestAnimationFrame(frame);}
+  function settle(next){on=next;desired=on?148:0;tick();}
+  FX.listen(btn,'pointerdown',e=>{if(e.button!==0)return;held=true;pid=e.pointerId;startX=e.clientX;startValue=value;swiped=false;lastMove=performance.now();btn.setPointerCapture?.(pid);root.classList.add('dragging');tick();},false,clean);
+  FX.listen(btn,'pointermove',e=>{if(!held||e.pointerId!==pid)return;const delta=(e.clientX-startX)*251/btn.getBoundingClientRect().width;if(Math.abs(delta)>6)swiped=true;desired=FX.clamp(startValue+delta,0,148);const dt=Math.max(5,performance.now()-lastMove);v=FX.clamp((desired-value)*16/dt,-13,13);lastMove=performance.now();on=desired>74;tick();},false,clean);
+  function finish(e){if(!held||e.pointerId!==pid)return;held=false;pid=null;root.classList.remove('dragging');const next=desired>74;if(swiped){settle(next);btn.dataset.swiped='true';setTimeout(()=>delete btn.dataset.swiped,0);}else{desired=on?148:0;tick();}}
+  FX.listen(btn,'pointerup',finish,false,clean);FX.listen(btn,'pointercancel',()=>{held=false;pid=null;root.classList.remove('dragging');settle(on);},false,clean);
+  FX.listen(btn,'click',()=>{if(!btn.dataset.swiped)settle(!on);},false,clean);
+  render();return{update(n){config=n;if(n.reduced){v=0;value=desired;render();}},destroy(){cancelAnimationFrame(raf);clean.forEach(f=>f());}};
+ }
+});
+})(window.FXLab);
+
+(function(FX){
+'use strict';
+FX.register({
+ id:'download',name:'Liquid Download',icon:'↓',category:'motion',tech:'MORPH / SVG PROGRESS',gesture:'TAP · MORPH · COMPLETE',
+ short:'Square → droplet → progress → success',description:'A dark download tile compresses into a liquid progress bead, completes with a splash, then springs back.',
+ hint:'Tap the square download button',hintCopy:'Watch the square buckle, collapse into a progress drop, and release a small liquid celebration. This is a simulation.',
+ mount(host,opts){
+  const clean=[];let config=opts,raf=0,begin=0,progress=0,state='ready';
+  host.innerHTML=`<div class="fx-center download-demo download-v2"><div class="download-glow"></div><button type="button" class="liquid-download fx-click-target" aria-label="Start simulated download">
+   <svg class="dl-arrow" viewBox="0 0 78 92" aria-hidden="true"><path d="M22 4h34a6 6 0 0 1 6 6v32h12a4 4 0 0 1 3 7L43 86a5 5 0 0 1-7 0L1 49a4 4 0 0 1 3-7h12V10a6 6 0 0 1 6-6Z" fill="currentColor"/></svg>
+   <svg class="dl-progress" viewBox="0 0 70 70" aria-hidden="true"><circle cx="35" cy="35" r="30"></circle><circle class="progress-value" cx="35" cy="35" r="30"></circle></svg>
+   <span class="dl-check" aria-hidden="true">✓</span><i class="dl-splash s1"></i><i class="dl-splash s2"></i><i class="dl-splash s3"></i><i class="dl-splash s4"></i></button>
+   <span class="dl-v2-subtitle" role="status">TAP TO MORPH</span><div class="dl-note">VISUAL SIMULATION · NO FILE DOWNLOADED</div></div>`;
+  const btn=host.querySelector('.liquid-download'),arc=btn.querySelector('.progress-value'),status=host.querySelector('.dl-v2-subtitle');
+  function render(){arc.style.strokeDashoffset=String(188.5*(1-progress));}
+  function frame(t){if(state!=='busy'){raf=0;return;}const duration=config.reduced?240:Math.max(950,3200-(config.speed??60)*21);progress=FX.clamp((t-begin)/duration,0,1);render();if(progress<1){raf=requestAnimationFrame(frame);}else{state='done';btn.classList.remove('busy');btn.classList.add('done');btn.setAttribute('aria-label','Simulation complete. Click to reset');status.textContent='COMPLETE · TAP TO REPLAY';raf=0;}}
+  function reset(){cancelAnimationFrame(raf);raf=0;progress=0;state='ready';btn.classList.remove('busy','done');btn.setAttribute('aria-label','Start simulated download');status.textContent='TAP TO MORPH';render();}
+  function click(){if(state==='busy')return;if(state==='done'){reset();return;}progress=0;state='busy';btn.classList.add('busy');btn.setAttribute('aria-label','Simulated download in progress');status.textContent='SIMULATING DOWNLOAD';begin=performance.now();raf=requestAnimationFrame(frame);}
+  FX.listen(btn,'click',click,false,clean);render();return{update(n){config=n;},destroy(){cancelAnimationFrame(raf);clean.forEach(f=>f());}};
+ }
+});
+})(window.FXLab);
+
+(function(FX){
+  FX.register({
+    id:'metaballs',name:'Metaball Playground',icon:'●',category:'liquid',tech:'SVG GAUSSIAN / ALPHA',gesture:'TOUCH · DRAG · FUSE',
+    short:'Fluid droplets converge',description:'Soft circles fuse through an SVG alpha-threshold filter without an expensive fragment shader.',
+    hint:'Drag your finger between the floating blobs',hintCopy:'One follower droplet responds to touch, merging into neighboring blobs as it passes.',
+    mount(host,opts){
+      const clean=[];let config=opts,tracking=false,raf=0,start=performance.now(),x=180,y=165;
+      host.innerHTML=`<div class="fx-center meta-demo"><div class="meta-filter"><div class="meta-ball one"></div><div class="meta-ball two"></div><div class="meta-ball three"></div><div class="meta-ball follower"></div></div><div class="demo-caption">LIQUID FIELD · SVG FILTER</div></div>`;
+      const root=host.querySelector('.meta-demo');const balls=Array.from(root.querySelectorAll('.meta-ball'));
+      function draw(time){const t=config.reduced?0:(time-start)/1000*Math.max(.25,(config.speed??60)/70);
+        const coords=[[145+Math.cos(t*.82)*32,161+Math.sin(t*.95)*26],[234+Math.sin(t*.68)*33,167+Math.cos(t*.91)*42],[191+Math.sin(t*1.3)*38,96+Math.cos(t*.82)*20],[x,y]];
+        balls.forEach((b,i)=>{b.style.transform=`translate(${coords[i][0]}px,${coords[i][1]}px)`;});
+        if(!config.reduced)raf=requestAnimationFrame(draw);else raf=0;
+      }
+      function move(e){const p=FX.point(e,root);x=FX.clamp(p.x,30,p.w-30);y=FX.clamp(p.y,30,p.h-30);root.classList.add('touched');}
+      function down(e){tracking=true;root.setPointerCapture?.(e.pointerId);move(e);}
+      function up(){tracking=false;root.classList.remove('touched');}
+      FX.listen(root,'pointerdown',down,false,clean);FX.listen(root,'pointermove',(e)=>{if(tracking||e.pointerType==='mouse')move(e);},false,clean);FX.listen(root,'pointerup',up,false,clean);FX.listen(root,'pointercancel',up,false,clean);FX.listen(root,'pointerleave',()=>{if(!tracking)up();},false,clean);
+      raf=requestAnimationFrame(draw);
+      return {update(n){const wasReduced=config.reduced;config=n;if(n.reduced){start=performance.now();}else if(wasReduced&&!raf){raf=requestAnimationFrame(draw);}},destroy(){cancelAnimationFrame(raf);clean.forEach(f=>f());}};
+    }
+  });
+})(window.FXLab);
+
+/* WebForge liquid glass: Hire Digital-inspired adjustable SVG backdrop lens. */
+(function(FX){
+'use strict';
+const NS='http://www.w3.org/2000/svg';
+const DEFAULTS={radius:40,frost:12,blur:2,refraction:144,bezel:14,scene:0};
+const SCENES=[
+ {name:'Botanical',base:'#18362e',accent:'#ff7899'},
+ {name:'Spectrum',base:'#29214c',accent:'#d878ff'},
+ {name:'Type study',base:'#10282d',accent:'#ffda79'},
+ {name:'Sunset',base:'#e3657a',accent:'#ffc369'},
+ {name:'Chromatic',base:'#18385c',accent:'#56f6e6'},
+ {name:'Geometry',base:'#171829',accent:'#b7adff'}
+];
+function clampNum(value,min,max,fallback){const n=Number(value);return Number.isFinite(n)?Math.min(max,Math.max(min,n)):fallback;}
+function normalise(v){v=v||{};return {radius:clampNum(v.radius,0,96,40),frost:clampNum(v.frost,0,100,12),blur:clampNum(v.blur,0,24,2),refraction:clampNum(v.refraction,0,280,144),bezel:clampNum(v.bezel,1,55,14),scene:clampNum(v.scene,0,SCENES.length-1,0)|0};}
+const r=(v)=>Math.round(v*10)/10;
+function makeMapSVG(w,h,opts){
+ const radius=Math.min(opts.radius,Math.min(w,h)/2);
+ const bezel=Math.min(opts.bezel,Math.min(w,h)/3);
+ const inset=Math.max(1,bezel);
+ const iw=Math.max(1,w-2*inset),ih=Math.max(1,h-2*inset);
+ const ir=Math.max(0,radius-inset);
+ // Same two-channel screen-composited lens field used in the provided generator,
+ // recomputed whenever the glass dimensions or bezel geometry change.
+ return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="lgY" x1="0" x2="0" y1="3%" y2="97%"><stop offset="0" stop-color="#0f0"/><stop offset="1" stop-color="#000"/></linearGradient><linearGradient id="lgX" x1="2%" x2="98%" y1="0" y2="0"><stop offset="0" stop-color="#f00"/><stop offset="1" stop-color="#000"/></linearGradient></defs><rect width="${w}" height="${h}" fill="#808080"/><g filter="blur(2px)"><rect width="${w}" height="${h}" fill="#000080"/><rect width="${w}" height="${h}" fill="url(#lgY)" style="mix-blend-mode:screen"/><rect width="${w}" height="${h}" fill="url(#lgX)" style="mix-blend-mode:screen"/><rect x="${inset}" y="${inset}" width="${iw}" height="${ih}" rx="${ir}" ry="${ir}" fill="#808080" filter="blur(${r(bezel)}px)"/></g></svg>`;
+}
+function makeFilter(w,h,opts,id){
+ const href='data:image/svg+xml;utf8,'+encodeURIComponent(makeMapSVG(w,h,opts));
+ const disp=[opts.refraction,Math.max(0,opts.refraction-2),Math.max(0,opts.refraction-4)];
+ return `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="${id}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feImage x="0" y="0" width="${w}" height="${h}" href="${href}" result="displacementMap"/><feDisplacementMap in="SourceGraphic" in2="displacementMap" scale="${disp[0]}" xChannelSelector="R" yChannelSelector="G"/><feColorMatrix type="matrix" result="displacedR" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"/><feDisplacementMap in="SourceGraphic" in2="displacementMap" scale="${disp[1]}" xChannelSelector="R" yChannelSelector="G"/><feColorMatrix type="matrix" result="displacedG" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"/><feDisplacementMap in="SourceGraphic" in2="displacementMap" scale="${disp[2]}" xChannelSelector="R" yChannelSelector="G"/><feColorMatrix type="matrix" result="displacedB" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"/><feBlend in="displacedR" in2="displacedG" mode="screen" result="rg"/><feBlend in="rg" in2="displacedB" mode="screen"/></filter></svg>`;
+}
+function makeCSS(w,h,o,id){
+ return `/* WebForge optical Liquid Glass. SVG below must be in the DOM. */\n.liquid-glass {\n  width: ${w}px;\n  height: ${h}px;\n  border-radius: ${o.radius}px;\n  background: rgba(255,255,255,${r(o.frost/100)});\n  /* Fallback first: browsers without SVG backdrop filters show frosted glass. */\n  -webkit-backdrop-filter: blur(${Math.max(6,o.blur+6)}px) saturate(1.8) brightness(1.15) contrast(1.05);\n  backdrop-filter: blur(1px) url(#${id}) blur(${o.blur}px) saturate(1.5) brightness(1.1);\n  box-shadow:\n    inset 0 0 0 1px rgba(255,255,255,.15),\n    inset 1.5px 1.5px 0 rgba(255,255,255,.5),\n    inset 0 0 12px rgba(255,255,255,.2),\n    0 8px 32px rgba(0,0,0,.2);\n}\n/* Safari/Firefox fallback: frost, blur, and highlights only. */\n@supports not (backdrop-filter: url('#${id}')) {\n .liquid-glass { backdrop-filter: blur(${Math.max(6,o.blur+6)}px) saturate(1.8) brightness(1.15); }\n}`;
+}
+function scenery(i){
+ const scene=SCENES[i]||SCENES[0];
+ const base=`<defs><linearGradient id="b" x1="0" x2="1" y1="0" y2="1"><stop stop-color="${scene.base}"/><stop offset=".52" stop-color="${scene.accent}"/><stop offset="1" stop-color="#161937"/></linearGradient><linearGradient id="petal" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#ffc2ca"/><stop offset=".5" stop-color="#ff5a81"/><stop offset="1" stop-color="#6a164d"/></linearGradient><linearGradient id="leaf" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#7cf9a6"/><stop offset=".55" stop-color="#167961"/><stop offset="1" stop-color="#0c3b39"/></linearGradient><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#fff" stroke-opacity=".18"/></pattern></defs>`;
+ let shapes='';
+ if(i===0){
+  shapes=`<rect width="900" height="520" fill="#052e2a"/>`;
+  for(let j=0;j<11;j++){const x=62+j*91,y=(j%3)*110-30;shapes+=`<path d="M${x} 560 Q${x-130} ${y+185} ${x+30} ${y-140} Q${x+130} ${y+230} ${x} 560" fill="url(#leaf)" stroke="#a7ffe8" stroke-opacity=".17" stroke-width="4"/>`;}
+  for(let j=0;j<9;j++){const angle=j*40;shapes+=`<ellipse cx="505" cy="235" rx="74" ry="193" fill="url(#petal)" stroke="#ffd2dd" stroke-opacity=".24" stroke-width="5" transform="rotate(${angle},505,235)"/>`;}
+  shapes+=`<circle cx="505" cy="235" r="39" fill="#ffc976"/><circle cx="505" cy="235" r="22" fill="#ee6b68"/>`;
+ } else if(i===1){
+  shapes=`<rect width="900" height="520" fill="#2e1354"/>`;
+  for(let j=0;j<20;j++){const x=(j*61)%970-50;shapes+=`<path d="M${x} -80 Q${x+260} 185 ${x-60} 590" fill="none" stroke="hsl(${(j*23+150)%360},100%,70%)" stroke-width="${18+(j%4)*9}" stroke-opacity=".72"/>`;}
+ } else if(i===2){
+  shapes=`<rect width="900" height="520" fill="#0e2730"/><rect width="900" height="520" fill="url(#grid)"/><text x="-25" y="230" font-family="Arial,sans-serif" font-weight="900" font-size="215" fill="#fff" opacity=".75">GLASS</text><text x="80" y="475" font-family="Arial,sans-serif" font-weight="900" font-size="187" fill="#e5dd85" opacity=".9">REFRACT</text>`;
+ } else if(i===3){
+  shapes=`<rect width="900" height="520" fill="url(#b)"/><circle cx="670" cy="200" r="140" fill="#ffe9c3" opacity=".88"/><path d="M0 400 Q180 315 310 390 T610 385 T900 360 L900 520 H0" fill="#ec5579"/><path d="M0 450 Q300 380 515 450 T900 395 L900 520 H0" fill="#763280"/><path d="M0 495 Q400 405 630 480 T900 440 L900 520 H0" fill="#29234e"/>`;
+ } else if(i===4){
+  shapes=`<rect width="900" height="520" fill="#171a41"/>`;
+  for(let j=0;j<14;j++){const x=90+(j*113)%850,y=70+(j*151)%480;shapes+=`<circle cx="${x}" cy="${y}" r="${55+(j%4)*30}" fill="hsl(${j*37},90%,66%)" opacity=".66"/>`;}
+  shapes+=`<path d="M-30 460 Q260 -170 620 440 T980 100" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="21"/>`;
+ } else {
+  shapes=`<rect width="900" height="520" fill="#15172b"/><rect width="900" height="520" fill="url(#grid)"/>`;
+  for(let j=0;j<8;j++){shapes+=`<rect x="${j*132-10}" y="${j%2*60+55}" width="190" height="190" rx="${j%3*30}" fill="none" stroke="${j%2?'#ffe5a1':'#90e8ff'}" stroke-width="${5+j%3*4}" transform="rotate(${j*17},${j*132+85},195)"/>`;}
+ }
+ const line=i===2?'':`<text x="58" y="${i===0?390:320}" font-family="Arial, sans-serif" font-size="93" font-weight="800" letter-spacing="-5" fill="#fff" opacity=".76">Liquid</text><text x="58" y="${i===0?472:407}" font-family="Arial, sans-serif" font-size="113" font-weight="800" letter-spacing="-5" fill="#fff" opacity=".74">Glass</text>`;
+ return `<svg class="lg-scene-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${base}${shapes}${line}</svg>`;
+}
+FX.register({
+ id:'glass',name:'Liquid Glass — Optical Lens',icon:'◇',category:'surface',tech:'SVG DISPLACEMENT / BACKDROP',gesture:'LENS · REFRACT · CHANGE SCENE',
+ short:'True SVG RGB displacement + refraction controls',
+ description:'Chromium optical lens using SVG displacement, RGB edge separation, frost and dynamic bezel depth. Live CSS + SVG exports; frosted fallback elsewhere.',
+ hint:'Adjust the five glass controls in the inspector',
+ hintCopy:'Change the background to see bending through the rounded bezel. Refraction and bezel depth affect the SVG lens on supported Chromium; frost and blur work as fallbacks.',
+ mount(host,opts){
+  let config=opts, state=normalise(opts.glass||DEFAULTS),disposed=false,raf=0,width=420,height=280;
+  const id='wf-lg-filter';
+  host.innerHTML=`<div class="lg-demo"><div class="lg-scene" aria-label="Glass preview background">${scenery(state.scene)}</div><div class="lg-caption"><span class="lg-live-dot"></span><span class="lg-tech-status">Checking SVG lens…</span></div><div class="lg-preview-track"><div class="lg-object" aria-label="Live liquid glass panel"><div class="lg-bezel" aria-hidden="true"></div><div class="lg-object-label">OPTICAL LENS <span>WEBFORGE / 003</span></div></div></div><div class="lg-scenes" role="group" aria-label="Choose preview background">${SCENES.map((s,i)=>`<button type="button" data-scene="${i}" title="${s.name}" aria-label="${s.name}" aria-pressed="${i===state.scene}"><span style="--swatch:${s.base};--swatch2:${s.accent}"></span></button>`).join('')}</div><div class="lg-filter-mount" aria-hidden="true"></div></div>`;
+  const root=host.querySelector('.lg-demo'),lens=root.querySelector('.lg-object'),scene=root.querySelector('.lg-scene'),filterMount=root.querySelector('.lg-filter-mount'),status=root.querySelector('.lg-tech-status');
+  const listeners=[];
+  function listen(el,type,fn){el.addEventListener(type,fn);listeners.push(()=>el.removeEventListener(type,fn));}
+  function size(){const box=lens.getBoundingClientRect();width=Math.round(box.width)||420;height=Math.round(box.height)||280;}
+  function generate(){
+    if(disposed)return;size();
+    // Keep the generated map dimensions aligned with the actually rendered panel.
+    filterMount.innerHTML=makeFilter(width,height,state,id);
+    lens.style.borderRadius=`${state.radius}px`;
+    lens.style.background=`rgba(255,255,255,${state.frost/100})`;
+    lens.style.setProperty('--lg-radius',`${state.radius}px`);
+    lens.style.setProperty('--lg-frost',`${state.frost/100}`);
+    lens.style.setProperty('--lg-blur',`${state.blur}px`);
+    lens.style.setProperty('--lg-bezel',`${state.bezel}px`);
+    const fallback=`blur(${Math.max(6,state.blur+6)}px) saturate(1.8) brightness(1.15) contrast(1.05)`;
+    const primary=`blur(1px) url(#${id}) blur(${state.blur}px) saturate(1.5) brightness(1.1)`;
+    // Inline unprefixed overrides prefixed fallback in Chromium; other engines keep frost.
+    lens.style.webkitBackdropFilter=fallback;
+    lens.style.backdropFilter=primary;
+    status.textContent=CSS.supports('backdrop-filter',`url(#${id})`)?'SVG lens requested · Chromium recommended':'Frosted glass fallback';
+  }
+  function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;generate();});}
+  const observer=new ResizeObserver(schedule);observer.observe(lens);
+  function changeScene(index){state.scene=index;scene.innerHTML=scenery(index);root.querySelectorAll('[data-scene]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.scene)===index)));if(FX.glassSceneChanged)FX.glassSceneChanged(index);}
+  root.querySelectorAll('[data-scene]').forEach(btn=>listen(btn,'click',()=>changeScene(Number(btn.dataset.scene))));
+  FX.glassAPI={
+    getState:()=>({...state}),
+    export:()=>{size();return {css:makeCSS(width,height,state,id),svg:makeFilter(width,height,state,id),size:{width,height},state:{...state}};},
+    reset:()=>{state={...DEFAULTS};changeScene(0);schedule();}
+  };
+  generate();
+  return {update(next){config=next;const updated=normalise(next.glass||state),previous=state;state=updated;if(previous.scene!==state.scene)changeScene(state.scene);schedule();},destroy(){disposed=true;observer.disconnect();cancelAnimationFrame(raf);listeners.forEach(fn=>fn());if(FX.glassAPI?.getState)delete FX.glassAPI;}};
+ }
+});
+FX.liquidGlassDefaults={...DEFAULTS};FX.liquidGlassScenes=SCENES.map(x=>x.name);
+})(window.FXLab);
+
+(function(FX){
+  FX.register({
+    id:'dock',name:'Fluid Icon Dock',icon:'▥',category:'motion',tech:'JS SPRING / CSS',gesture:'MOVE · MAGNIFY · TAP',
+    short:'Magnify on proximity',description:'A touch-friendly icon dock uses a falloff curve for responsive magnification without reflow.',
+    hint:'Move horizontally across the dock icons',hintCopy:'Nearby icons rise and grow. Try clicking an icon or sweeping a finger across the dock.',
+    mount(host,opts){
+      const clean=[];let config=opts,raf=0,targetX=-10000;const icons=[['⚙','Settings'],['◉','Lens'],['☼','Light'],['△','Forms'],['✎','Edit'],['✦','Stars']];
+      host.innerHTML=`<div class="fx-center dock-demo"><div class="dock-tray"></div><div class="dock-name">MAGNIFY · PROXIMITY</div></div>`;
+      const root=host.querySelector('.dock-demo'),tray=root.querySelector('.dock-tray');
+      const items=icons.map(([glyph,label])=>{const button=document.createElement('button');button.type='button';button.className='dock-button fx-click-target';button.setAttribute('aria-label',label);button.textContent=glyph;tray.appendChild(button);FX.listen(button,'click',()=>FX.toast(label+' selected'),false,clean);return {el:button,current:1,velocity:0,label};});
+      function frame(){let moving=false;const tr=tray.getBoundingClientRect();items.forEach(s=>{const nativeX=tr.left+tr.width*(items.indexOf(s)+.5)/items.length;const d=Math.abs(targetX-nativeX);const field=Math.exp(-Math.pow(d/95,2));const desired=config.reduced?1:1+field*.6*(config.intensity??72)/100;
+        s.velocity+=(desired-s.current)*(.06+(config.spring??65)*.0017);s.velocity*=.74;s.current+=s.velocity;
+        s.el.style.setProperty('--scale',s.current.toFixed(3));s.el.style.setProperty('--rise',`${((-s.current+1)*27).toFixed(2)}px`);
+        if(Math.abs(desired-s.current)+Math.abs(s.velocity)>.006)moving=true;
+      });if(moving)raf=requestAnimationFrame(frame);else raf=0;}
+      function move(e){targetX=e.clientX;if(!raf)raf=requestAnimationFrame(frame);}function leave(){targetX=-10000;if(!raf)raf=requestAnimationFrame(frame);}
+      FX.listen(root,'pointermove',move,false,clean);FX.listen(root,'pointerdown',move,false,clean);FX.listen(root,'pointerleave',leave,false,clean);FX.listen(root,'pointerup',leave,false,clean);
+      return {update(n){config=n;if(n.reduced)leave();},destroy(){cancelAnimationFrame(raf);clean.forEach(f=>f());}};
+    }
+  });
+})(window.FXLab);
+
+(function(FX){
+  FX.register({
+    id:'stack',name:'Kinetic Card Stack',icon:'▤',category:'motion',tech:'CSS 3D / POINTER',gesture:'DRAG · FLICK · ADVANCE',
+    short:'Reordering elastic cards',description:'Overlapping cards shift as a single layered object, then rearrange smoothly on tap or swipe.',
+    hint:'Swipe the top card or tap it to cycle',hintCopy:'The front card springs away and the other cards reorganize to become the new focus.',
+    mount(host,opts){
+      let config=opts,active=0,startX=0,startY=0,pressed=false,moved=false,originPointer=null;const clean=[];
+      const data=[['HIGHLIGHTS','#6d67fb','#29a2db','◈'],['SCIENCE','#ed4783','#9e50ff','⚛'],['GAMING','#ffbd38','#fa5b72','✦'],['MOVIES','#f6d0a6','#e47a95','◉']];
+      host.innerHTML=`<div class="fx-center stack-demo"><div class="stack-inner"></div><div class="demo-caption">GESTURE · SHARED LAYOUT · DEPTH</div></div>`;
+      const root=host.querySelector('.stack-demo'),frame=root.querySelector('.stack-inner');
+      const cards=data.map((entry,k)=>{const b=document.createElement('button');b.type='button';b.className='stack-card fx-click-target';b.innerHTML=`<span class="stack-number"></span><span class="stack-title"></span><span class="stack-atom"></span><span class="stack-chevron">↗</span>`;b.style.setProperty('--ca',entry[1]);b.style.setProperty('--cb',entry[2]);b.querySelector('.stack-number').textContent=String(k+1).padStart(2,'0');b.querySelector('.stack-title').textContent=entry[0];b.querySelector('.stack-atom').textContent=entry[3];b.setAttribute('aria-label',`Card ${entry[0]}; activate to move to next card`);frame.appendChild(b);return b;});
+      let cooldown=false,cooldownTimer=0;
+      function render(dragY=0){cards.forEach((card,k)=>{const depth=(k-active+cards.length)%cards.length;const dx=(depth%2?16:-16)*depth;const y=depth*43;const shift=depth===0?dragY:0;const scale=1-depth*.042;
+        card.style.zIndex=String(10-depth);card.style.opacity=String(1-depth*.12);card.style.transform=`translate(-50%,-50%) translate(${dx}px,${y+shift}px) rotate(${(depth-1)*2.5+(depth===0?dragY*.04:0)}deg) scale(${scale})`;});}
+      function next(){if(cooldown)return;cooldown=true;active=(active+1)%cards.length;render();cooldownTimer=setTimeout(()=>cooldown=false,360);FX.toast(data[active][0]+' in focus');}
+      cards.forEach((card,k)=>{
+        FX.listen(card,'pointerdown',e=>{if(k!==active)return;pressed=true;moved=false;startX=e.clientX;startY=e.clientY;originPointer=e.pointerId;card.setPointerCapture?.(e.pointerId);},false,clean);
+        FX.listen(card,'pointermove',e=>{if(!pressed||k!==active||originPointer!==e.pointerId)return;const drag=e.clientY-startY;if(Math.abs(drag)>8||Math.abs(e.clientX-startX)>8)moved=true;render(FX.clamp(drag,-105,110));},false,clean);
+        FX.listen(card,'pointerup',e=>{if(!pressed||originPointer!==e.pointerId)return;const delta=e.clientY-startY;pressed=false;originPointer=null;if(moved){if(Math.abs(delta)>27||Math.abs(e.clientX-startX)>35)next();else render();}},false,clean);
+        FX.listen(card,'pointercancel',()=>{pressed=false;originPointer=null;render();},false,clean);
+        FX.listen(card,'click',()=>{if(k!==active)return;if(moved){moved=false;return;}next();},false,clean);
+      });
+      render();return {update(n){config=n;},destroy(){clearTimeout(cooldownTimer);clean.forEach(f=>f());}};
+    }
+  });
+})(window.FXLab);
+
+(function(FX){
+  FX.register({
+    id:'search',name:'Gooey Search',icon:'⌕',category:'liquid',tech:'SVG GOO / CSS',gesture:'TAP · TYPE · CLOSE',
+    short:'Search expands from droplet',description:'A compact search button liquefies into a wide field and expands suggestions from a nearby blob.',
+    hint:'Tap the search icon, then start typing',hintCopy:'The droplet stretches into a field. Try “wheel”, “glass”, or “liquid”.',
+    mount(host,opts){
+      const clean=[];let config=opts,open=false,focusTimer=0;
+      host.innerHTML=`<div class="fx-center search-demo"><div class="search-goo-layer"><div class="search-pill-shape"></div><div class="search-bubble-shape"></div></div><div class="search-surface"><button type="button" class="search-expand fx-click-target" aria-label="Expand search" aria-expanded="false">⌕</button><input aria-label="Search FX Arsenal" type="search" class="search-inline-input" placeholder="Search effects..." autocomplete="off" tabindex="-1"><button type="button" class="search-close" aria-label="Close search">×</button><div class="search-suggestions" aria-live="polite"></div></div><div class="demo-caption">STATE TRANSITION · SVG LIQUID FIELD</div></div>`;
+      const root=host.querySelector('.search-demo'),expand=root.querySelector('.search-expand'),field=root.querySelector('.search-inline-input'),close=root.querySelector('.search-close'),list=root.querySelector('.search-suggestions');
+      const presets=['Gooey Fusion','Elastic Wheel','Liquid Glass','Magnetic Buttons','Kinetic Card Stack','Spotlight Border'];
+      function show(){let value=field.value.trim().toLowerCase(),matches=presets.filter(x=>x.toLowerCase().includes(value)).slice(0,4);list.replaceChildren();
+        matches.forEach((label)=>{const b=document.createElement('button');b.className='search-suggestion';b.textContent=label;b.addEventListener('click',()=>{field.value=label;FX.toast('Found: '+label);});list.appendChild(b);});if(!matches.length)list.textContent='No demo suggestions';}
+      function set(next){open=next;root.classList.toggle('opened',open);expand.setAttribute('aria-expanded',String(open));field.tabIndex=open?0:-1;close.tabIndex=open?0:-1;if(open){show();clearTimeout(focusTimer);focusTimer=setTimeout(()=>{if(root.isConnected)field.focus();},160);}else{field.value='';field.blur();}}
+      FX.listen(expand,'click',()=>set(!open),false,clean);FX.listen(close,'click',()=>set(false),false,clean);FX.listen(field,'input',show,false,clean);FX.listen(root,'keydown',e=>{if(e.key==='Escape')set(false);},false,clean);
+      return {update(n){config=n;},destroy(){clearTimeout(focusTimer);clean.forEach(f=>f());}};
+    }
+  });
+})(window.FXLab);
+
+(function(FX){
+  'use strict';
+  const $=id=>document.getElementById(id);
+  const stage=$('fx-stage'),engine=FX.engine(stage);
+  const order=['elastic-border','gooey','wheel','magnetic','spotlight','switch','download','metaballs','glass','dock','stack','search'];
+  const addons=order.map(id=>FX.addons.get(id)).filter(Boolean);
+  const defaults={intensity:72,spring:65,speed:60,theme:'violet',reduced:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false,debug:false};
+  let glassCfg={...FX.liquidGlassDefaults};try{glassCfg={...glassCfg,...JSON.parse(localStorage.getItem('fx-arsenal-glass-v3')||'{}')};}catch{}
+  let cfg={...defaults};try{cfg={...cfg,...JSON.parse(localStorage.getItem('fx-arsenal-v2-settings')||'{}')};}catch{}
+  let current='elastic-border',query='',category='all',lastTimestamp=0,lastFpsDisplay=0,frameTimes=[],fpsRaf=0;
+  function save(){try{localStorage.setItem('fx-arsenal-v2-settings',JSON.stringify(cfg));}catch{}}
+  function saveGlass(){try{localStorage.setItem('fx-arsenal-glass-v3',JSON.stringify(glassCfg));}catch{}}
+  const units={radius:'px',frost:'%',blur:'px',refraction:'',bezel:'px'};
+  function renderGlassCfg(){document.querySelectorAll('[data-lg]').forEach(input=>{const key=input.dataset.lg;input.value=glassCfg[key];$(input.id+'-value').textContent=glassCfg[key]+units[key];});}
+  function codeGlass(){if(current!=='glass'||!FX.glassAPI)return;const exp=FX.glassAPI.export();$('lg-dimensions').textContent=exp.size.width+' × '+exp.size.height;$('lg-css-output').textContent=exp.css;$('lg-svg-output').textContent=exp.svg;}
+  function updateGlass(){renderGlassCfg();saveGlass();engine.update({...cfg,glass:{...glassCfg}});requestAnimationFrame(codeGlass);}
+  FX.glassSceneChanged=(index)=>{glassCfg.scene=index;saveGlass();};
+  document.querySelectorAll('[data-lg]').forEach(input=>input.addEventListener('input',()=>{glassCfg[input.dataset.lg]=Number(input.value);updateGlass();}));
+  $('lg-reset').addEventListener('click',()=>{glassCfg={...FX.liquidGlassDefaults};updateGlass();FX.toast('Glass settings reset');});
+  async function copyText(value,success){try{await navigator.clipboard.writeText(value);FX.toast(success);return;}catch{}
+    const a=document.createElement('textarea');a.value=value;a.style.position='fixed';a.style.left='-9999px';document.body.append(a);a.select();let ok=false;try{ok=document.execCommand('copy');}catch{}a.remove();FX.toast(ok?success:'Clipboard unavailable — download the example');}
+  $('lg-copy-css').addEventListener('click',()=>{if(FX.glassAPI)copyText(FX.glassAPI.export().css,'Glass CSS copied');});
+  $('lg-copy-svg').addEventListener('click',()=>{if(FX.glassAPI)copyText(FX.glassAPI.export().svg,'Glass SVG copied');});
+  $('lg-download-demo').addEventListener('click',()=>{if(!FX.glassAPI)return;const exp=FX.glassAPI.export(),scene=$('fx-stage').querySelector('.lg-scene')?.innerHTML||'';
+    const doc='<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WebForge Optical Glass Export</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1822;font-family:system-ui}.scene{position:fixed;inset:0}.scene svg{width:100%;height:100%;object-fit:cover}.liquid-glass{position:relative;overflow:hidden;max-width:calc(100vw - 30px);max-height:calc(100vh - 30px);aspect-ratio:3/2;display:grid;place-items:center;color:white;font-size:21px;text-shadow:0 2px 6px #0008;}'+exp.css+'</style>'+exp.svg+'<div class="scene">'+scene+'</div><div class="liquid-glass">Liquid Glass · WebForge</div></html>';
+    const url=URL.createObjectURL(new Blob([doc],{type:'text/html'}));const a=document.createElement('a');a.href=url;a.download='WebForge-Liquid-Glass.html';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);FX.toast('Standalone glass example saved');
+  });
+  function list(){const visible=addons.filter(a=>(category==='all'||a.category===category)&&`${a.name} ${a.short} ${a.description} ${a.tech}`.toLowerCase().includes(query));
+    const container=$('effect-list');container.replaceChildren();
+    visible.forEach((a)=>{const btn=document.createElement('button');btn.className=`effect-entry ${current===a.id?'active':''}`;btn.dataset.category=a.category;btn.setAttribute('aria-current',String(current===a.id));btn.innerHTML=`<span class="effect-glyph" aria-hidden="true"></span><span class="effect-copy"><strong></strong><small></small></span>`;btn.querySelector('.effect-glyph').textContent=a.icon;btn.querySelector('strong').textContent=a.name;btn.querySelector('small').textContent=a.short;btn.addEventListener('click',()=>select(a.id));container.appendChild(btn);});
+    if(!visible.length){const empty=document.createElement('p');empty.className='panel-note';empty.textContent='No effects match this filter.';container.appendChild(empty);}
+    $('result-count').textContent=String(visible.length).padStart(2,'0');
+  }
+  function renderCfg(){stage.dataset.theme=cfg.theme;stage.dataset.reduced=String(cfg.reduced);stage.dataset.debug=String(cfg.debug);
+    ['intensity','spring','speed'].forEach(key=>{$(key).value=cfg[key];$(key+'-output').textContent=cfg[key]+'%';});
+    $('reduce-motion').checked=cfg.reduced;$('debug-ring').checked=cfg.debug;
+    document.querySelectorAll('.theme-choice').forEach(b=>{let selected=b.dataset.theme===cfg.theme;b.classList.toggle('selected',selected);b.setAttribute('aria-pressed',String(selected));});
+  }
+  function select(id){current=id;let a=FX.addons.get(id);if(!a)return;stage.dataset.effect=id;
+    $('preview-title').textContent=a.name;$('preview-description').textContent=a.description;$('preview-number').textContent=String(addons.indexOf(a)+1).padStart(2,'0');$('tech-label').textContent=a.tech;$('gesture-label').textContent=a.gesture;$('hint-title').textContent=a.hint;$('hint-copy').textContent=a.hintCopy;
+    $('feedback').textContent='Ready — interact with the preview.';
+    engine.mount(id,{...cfg,glass:{...glassCfg}});addDebug();renderCfg();list();
+    const glassActive=id==='glass';document.querySelector('.inspector-panel').classList.toggle('glass-inspector',glassActive);document.querySelector('.inspector-intro').textContent=glassActive?'Match the generator: tune the lens and export CSS / SVG.':'Tune the feel, then export a preset.';if(glassActive){renderGlassCfg();requestAnimationFrame(codeGlass);}
+    try{history.replaceState(null,'','#'+id);}catch{}
+  }
+  function addDebug(){const dot=document.createElement('div');dot.className='debug-cursor';dot.setAttribute('aria-hidden','true');stage.appendChild(dot);}
+  stage.addEventListener('pointermove',e=>{const p=FX.point(e,stage);const dot=stage.querySelector('.debug-cursor');if(dot){dot.style.left=p.x+'px';dot.style.top=p.y+'px';}});
+  function update(){renderCfg();save();engine.update({...cfg,glass:{...glassCfg}});}
+  ['intensity','spring','speed'].forEach(key=>{$(key).addEventListener('input',e=>{cfg[key]=Number(e.target.value);update();});});
+  $('reduce-motion').addEventListener('change',e=>{cfg.reduced=e.target.checked;update();if(cfg.reduced)select(current);});
+  $('debug-ring').addEventListener('change',e=>{cfg.debug=e.target.checked;update();});
+  document.querySelectorAll('.theme-choice').forEach(b=>b.addEventListener('click',()=>{cfg.theme=b.dataset.theme;update();}));
+  $('fx-search').addEventListener('input',e=>{query=e.target.value.trim().toLowerCase();list();});
+  document.querySelectorAll('.filter-chip').forEach(b=>b.addEventListener('click',()=>{category=b.dataset.filter;document.querySelectorAll('.filter-chip').forEach(x=>x.classList.toggle('active',x===b));list();}));
+  $('reset-demo').addEventListener('click',()=>{select(current);FX.toast('Interaction reset');});
+  $('immersive-toggle').addEventListener('click',()=>{const shell=document.querySelector('.preview-shell');const active=shell.classList.toggle('immersive');$('immersive-toggle').setAttribute('aria-pressed',String(active));$('immersive-toggle').setAttribute('aria-label',active?'Close expanded preview':'Expand preview');$('immersive-toggle').textContent=active?'×':'⤢';});
+  $('shortcuts').addEventListener('click',()=>FX.toast('Choose an FX → try touch / drag → adjust the inspector. Press / to search.'));
+  document.addEventListener('keydown',e=>{if(e.key==='/'&&e.target.tagName!=='INPUT'){e.preventDefault();$('fx-search').focus();}if(e.key==='Escape'&&document.querySelector('.preview-shell').classList.contains('immersive')){$('immersive-toggle').click();}if(e.key==='Escape'&&e.target===$('fx-search')){$('fx-search').value='';query='';list();$('fx-search').blur();}});
+  function exportObj(){const a=FX.addons.get(current);return {engine:'webforge-fx-arsenal',schemaVersion:1,addon:a.id,label:a.name,parameters:a.id==='glass'?{...glassCfg}:{intensity:cfg.intensity,spring:cfg.spring,speed:cfg.speed,theme:cfg.theme,reducedMotion:cfg.reduced},notes:'Visual demo preset, not production integration code.'};}
+  $('copy-preset').addEventListener('click',async()=>{const text=JSON.stringify(exportObj(),null,2);try{await navigator.clipboard.writeText(text);FX.toast('Preset copied to clipboard');}catch{const area=document.createElement('textarea');area.value=text;document.body.append(area);area.select();const copied=document.execCommand('copy');area.remove();FX.toast(copied?'Preset copied':'Clipboard unavailable — use Save preset');}});
+  $('download-preset').addEventListener('click',()=>{const blob=new Blob([JSON.stringify(exportObj(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`fx-${current}-preset.json`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);FX.toast('Preset saved');});
+  function fpsTick(t){if(lastTimestamp){const dt=t-lastTimestamp;if(dt>0&&dt<1000){frameTimes.push(dt);if(frameTimes.length>45)frameTimes.shift();if(frameTimes.length>=15&&t-lastFpsDisplay>500){const mean=frameTimes.reduce((a,b)=>a+b,0)/frameTimes.length;$('fps').textContent=Math.round(1000/mean)+' FPS';lastFpsDisplay=t;}}}lastTimestamp=t;fpsRaf=requestAnimationFrame(fpsTick);}
+  fpsRaf=requestAnimationFrame(fpsTick);
+  const anchor=location.hash.slice(1);select(FX.addons.has(anchor)?anchor:'glass');
+  window.addEventListener('hashchange',()=>{const id=location.hash.slice(1);if(FX.addons.has(id)&&id!==current)select(id);});
+  window.addEventListener('pagehide',()=>{cancelAnimationFrame(fpsRaf);engine.destroy();});
+})(window.FXLab);
+
+</script>
+</body>
+</html>

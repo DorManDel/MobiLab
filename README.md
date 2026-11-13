@@ -4,6 +4,8 @@ A mobile-first collection of experimental web mechanics and hardware exploration
 
 ## Experiments
 
+- **Liquid FX · WebForge FX Arsenal v0.3** — 12 touch-ready interaction experiments including optical SVG-displacement Liquid Glass (Border Radius, Frost, Blur, Refraction, Bezel Depth), preset export, CSS/SVG copy, six scene previews and a standalone glass demo. [Open FX Playground](./labs/liquid-fx/) · [Previous 4-mode lab](./labs/liquid-fx/legacy.html) · [Lab notes](./labs/liquid-fx/README.md).
+
 - **FaceFX Lab (v0.3 mobile-first)** — on-device local Photo Swap (2D face texture transfer), MediaPipe/Canvas filters and an optional private Python WebRTC + RTX processor with comparison telemetry. [Open lab](./labs/facefx/) · [PC server setup](./facefx-server/) · see [FaceFX notes](./labs/facefx/README.md).
 
 - **Haptic Studio** — 21 timing patterns, accessible swipe/arrow/tap dial, six button-group presets, custom two-pulse designer, browser storage and JSON export.
