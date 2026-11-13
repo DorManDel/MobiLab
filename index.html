@@ -40,6 +40,7 @@
       <a class="tab blink-tab-link" data-lab-id="speech" href="./labs/speech/" aria-label="Open Speech and Translate Lab experiment">♫ <span>Speech &amp; Translate</span></a>
       <a class="tab blink-tab-link" data-lab-id="facefx" href="./labs/facefx/" aria-label="Open FaceFX Lab dual-engine comparison">◫ <span>FaceFX Lab</span></a>
       <a class="tab blink-tab-link" data-lab-id="liquid" href="./labs/liquid-fx/" aria-label="Open Liquid FX Lab">◉ <span>Liquid FX</span></a>
+      <a class="tab blink-tab-link" data-lab-id="settings" href="./labs/settings/" aria-label="Open Settings Layout Lab">⚙ <span>Settings Dock</span></a>
       <a class="tab blink-tab-link" data-lab-id="touch" href="./labs/touch-studio/" aria-label="Open Touch and Gesture Studio">◌ <span>Touch &amp; Gesture</span></a>
       <button class="tab" type="button" data-tab="infinity" aria-selected="false">◇ <span>Infinity Board</span><small class="tab-soon">SOON</small></button>
       <button class="tab" type="button" data-tab="ideas" aria-selected="false">✧ <span>Idea Board</span></button>
@@ -57,7 +58,7 @@
           </div>
           <div class="hero-decoration" aria-hidden="true"><div class="orbit orbit-a"></div><div class="orbit orbit-b"></div><div class="hero-core">M</div></div>
         </div>
-        <div class="section-heading"><div><div class="eyebrow">EXPERIMENT INDEX</div><h2>Choose your lab</h2></div><span class="count" id="labCount">DISCOVER EXPERIMENTS</span></div>
+        <div class="section-heading" id="catalogAnchor"><div><div class="eyebrow">EXPERIMENT INDEX</div><h2>Choose your lab</h2></div><span class="count" id="labCount">DISCOVER EXPERIMENTS</span></div>
         <div class="catalog-toolbar" aria-label="Discover and sort labs">
           <div class="catalog-field"><label for="labSort">Sort by</label>
             <select id="labSort">
@@ -77,6 +78,7 @@
               <option value="ideas">Ideas & upcoming</option>
             </select>
           </div>
+          <button type="button" id="densityToggle" class="btn btn-secondary btn-small density-toggle" aria-pressed="true" aria-label="Switch between compact and spacious cards">☷ Compact</button>
           <button type="button" id="clearCatalog" class="btn btn-ghost btn-small" hidden>Clear filters</button>
           <p class="catalog-help">Search any module · use <kbd>/</kbd> to jump to search</p>
         </div>
@@ -112,6 +114,10 @@
           </a>
           <a class="lab-card blink-lab-card" data-lab-id="liquid" data-category="creative" data-updated="2026-11-13" data-keywords="liquid glass gooey metaball magnetic orbit interaction" href="./labs/liquid-fx/" aria-label="Open Liquid FX Lab"><span class="card-top"><span class="lab-icon purple">◉</span><span class="index">10 / EXPERIMENT</span></span><strong>Liquid FX Lab</strong><span>Magnetic glass, metaball merging, inertial orbit and gooey center controls.</span><span class="card-foot">Explore liquid FX <b>↗</b></span></a>
           <a class="lab-card blink-lab-card" data-lab-id="touch" data-category="creative" data-updated="2026-11-13" data-keywords="gesture radial menu color controls touch settings" href="./labs/touch-studio/" aria-label="Open Touch and Gesture Studio"><span class="card-top"><span class="lab-icon purple">◌</span><span class="index">09 / PROTOTYPE</span></span><strong>Touch &amp; Gesture Studio</strong><span>Calibrate per-wedge touch zones, local-axis value gestures, radial navigation and live RGBA/Gray controls.</span><span class="card-foot">Open touch lab <b>↗</b></span></a>
+          <a class="lab-card blink-lab-card" data-lab-id="settings" data-category="tools" data-updated="2026-11-13" data-keywords="settings layout floating dock edge panel resize corner top side bottom custom position accessibility portfolio" href="./labs/settings/" aria-label="Open Settings Layout Lab with five dock modes">
+            <span class="card-top"><span class="lab-icon yellow">⚙</span><span class="index">11 / LAB PREVIEW</span></span>
+            <strong>Settings Dock Lab</strong><span>Test five dock layouts, drag and resize your custom panel, lock, save and compare your settings configurations.</span><span class="card-foot">Open Settings Dock <b>↗</b></span>
+          </a>
           <button type="button" class="lab-card" data-lab-id="ideas" data-category="ideas" data-updated="2026-11-10" data-keywords="backlog notes experiment planning" data-open="ideas" data-haptic-group="navigation">
             <span class="card-top"><span class="lab-icon green">✧</span><span class="index">06 / OPEN</span></span>
             <strong>Idea Board</strong><span>Collect questions and weird experiments to build next.</span><span class="card-foot">Add an idea <b>↗</b></span>
@@ -324,6 +330,12 @@
         </div>
       </section>
     </main>
+    <nav class="mobile-bottom-nav" aria-label="Quick mobile navigation">
+      <button type="button" id="mobileHome" class="mobile-nav-item is-active" aria-current="page"><span aria-hidden="true">⌂</span><small>Home</small></button>
+      <button type="button" id="mobileExplore" class="mobile-nav-item"><span aria-hidden="true">▦</span><small>Explore</small></button>
+      <button type="button" id="mobileRecent" class="mobile-nav-item"><span aria-hidden="true">◷</span><small>Recent</small></button>
+      <a class="mobile-nav-item" data-lab-id="settings" href="./labs/settings/" aria-label="Open Settings Dock Lab"><span aria-hidden="true">⚙</span><small>Settings</small></a>
+    </nav>
     <footer><span>MOBILAB / BUILD • TEST • LEARN</span><span>Experimental by design · <a href="https://github.com/DorManDel/MobiLab" target="_blank" rel="noopener noreferrer">Source on GitHub ↗</a></span></footer>
   </div>
   <div id="toast" class="toast" aria-live="polite" role="status"></div>
