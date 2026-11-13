@@ -29,17 +29,21 @@
       <button class="tab" type="button" data-tab="haptics" aria-selected="false">〰 <span>Haptic Studio</span></button>
       <button class="tab" type="button" data-tab="camera" aria-selected="false">◎ <span>Camera Lab</span></button>
       <button class="tab" type="button" data-tab="motion" aria-selected="false">⌁ <span>VibroMotion</span></button>
-      <a class="tab blink-tab-link" href="./labs/blink/" aria-label="Open Blink Lab experiment">◉ <span>Blink Lab</span></a>
-      <a class="tab blink-tab-link" href="./labs/wslx/" aria-label="Open WSLX Terminal Lab experiment">⌘ <span>WSLX Lab</span></a>
-      <a class="tab blink-tab-link" href="./labs/speech/" aria-label="Open Speech and Translate Lab experiment">♫ <span>Speech &amp; Translate</span></a>
-      <a class="tab blink-tab-link" href="./labs/facefx/" aria-label="Open FaceFX Lab dual-engine comparison">◫ <span>FaceFX Lab</span></a>
-      <button class="tab" type="button" data-tab="ideas" aria-selected="false">✧ <span>Idea Board</span></button>
+      <a class="tab" href="./labs/ui/" aria-label="Open reusable UI mechanics workbench">◈ <span>UI</span></a>
+      <a class="tab" href="./labs/settings/" aria-label="Open Settings Mechanism workbench">⚙ <span>Settings Mechanism</span></a>
+      <details class="nav-more"><summary class="tab">＋ <span>More labs</span></summary>
+        <div class="nav-more-menu">
+          <a href="./labs/blink/">Blink Lab</a><a href="./labs/wslx/">WSLX Lab</a>
+          <a href="./labs/speech/">Speech &amp; Translate</a><a href="./labs/facefx/">FaceFX Lab</a>
+          <button class="tab" type="button" data-tab="ideas" aria-selected="false">✧ Idea Board</button>
+        </div>
+      </details>
     </nav>
 
     <main>
       <section id="home" class="panel is-active" data-panel="home" aria-labelledby="home-title">
         <div class="hero">
-          <div class="eyebrow"><span class="eyebrow-line"></span> WELCOME TO MOBILAB / VERSION 0.1</div>
+          <div class="eyebrow"><span class="eyebrow-line"></span> WELCOME TO MOBILAB / MODULAR PREVIEW</div>
           <h1 id="home-title">Small experiments.<br><span>Big discoveries.</span></h1>
           <p>One playground. Endless weird ideas. Test real hardware, explore browser mechanics, and keep each experiment isolated and reusable.</p>
           <div class="hero-actions">
@@ -48,41 +52,59 @@
           </div>
           <div class="hero-decoration" aria-hidden="true"><div class="orbit orbit-a"></div><div class="orbit orbit-b"></div><div class="hero-core">M</div></div>
         </div>
-        <div class="section-heading"><div><div class="eyebrow">EXPERIMENT INDEX</div><h2>Choose your lab</h2></div><span class="count">07 LABS + IDEA BOARD</span></div>
-        <div class="lab-cards">
-          <button type="button" class="lab-card" data-open="haptics" data-haptic-group="navigation">
+        <div class="section-heading"><div><div class="eyebrow">EXPERIMENT INDEX</div><h2>Choose your lab</h2></div><span class="count" id="labCount">LAB INDEX</span></div>
+        <div class="lab-index-controls">
+          <input id="labSearch" type="search" placeholder="Search labs or mechanics…" aria-label="Search experiments">
+          <div id="labCategories" class="lab-categories" role="group" aria-label="Filter labs">
+            <button class="btn btn-secondary is-selected" type="button" data-lab-filter="all">All</button>
+            <button class="btn btn-secondary" type="button" data-lab-filter="hardware">Hardware</button>
+            <button class="btn btn-secondary" type="button" data-lab-filter="interface">UI &amp; Utilities</button>
+            <button class="btn btn-secondary" type="button" data-lab-filter="media">AI &amp; Media</button>
+          </div>
+        </div>
+        <div class="lab-cards" id="labCards">
+          <button type="button" class="lab-card" data-lab-category="hardware" data-open="haptics" data-haptic-group="navigation">
             <span class="card-top"><span class="lab-icon purple">〰</span><span class="index">01 / ACTIVE</span></span>
             <strong>Haptic Studio</strong><span>Design and compare button feedback for different UI groups.</span><span class="card-foot">Try the engine <b>↗</b></span>
           </button>
-          <button type="button" class="lab-card" data-open="camera" data-haptic-group="navigation">
+          <button type="button" class="lab-card" data-lab-category="hardware" data-open="camera" data-haptic-group="navigation">
             <span class="card-top"><span class="lab-icon yellow">◎</span><span class="index">02 / BETA</span></span>
             <strong>Camera Lab</strong><span>Test live camera preview, snapshots and relative orientation.</span><span class="card-foot">Explore sensors <b>↗</b></span>
           </button>
-          <button type="button" class="lab-card" data-open="motion" data-haptic-group="navigation">
+          <button type="button" class="lab-card" data-lab-category="hardware" data-open="motion" data-haptic-group="navigation">
             <span class="card-top"><span class="lab-icon yellow">⌁</span><span class="index">03 / PROTOTYPE</span></span>
             <strong>VibroMotion</strong><span>Run safe timed vibration experiments with orientation and motion telemetry.</span><span class="card-foot">Open motion bench <b>↗</b></span>
           </button>
-          <a class="lab-card blink-lab-card" href="./labs/blink/" aria-label="Open Blink Lab touch-first portrait calibration">
+          <a class="lab-card blink-lab-card" data-lab-category="interface" href="./labs/blink/" aria-label="Open Blink Lab touch-first portrait calibration">
             <span class="card-top"><span class="lab-icon purple">◉</span><span class="index">04 / PROTOTYPE</span></span>
             <strong>Blink Lab</strong><span>Calibrate eyelid anchors on a portrait, preview blinking and test responsive photo motion on phone or PC.</span><span class="card-foot">Open Blink Lab <b>↗</b></span>
           </a>
-          <a class="lab-card blink-lab-card" href="./labs/wslx/" aria-label="Open interactive WSLX terminal simulator">
+          <a class="lab-card blink-lab-card" data-lab-category="interface" href="./labs/wslx/" aria-label="Open interactive WSLX terminal simulator">
             <span class="card-top"><span class="lab-icon purple">⌘</span><span class="index">05 / PROTOTYPE</span></span>
             <strong>WSLX Terminal Lab</strong><span>Explore the Ubuntu/WSLX CLI, live command/path autocomplete, mobile Tab button and editable File Explorer.</span><span class="card-foot">Open terminal lab <b>↗</b></span>
           </a>
-          <a class="lab-card blink-lab-card" href="./labs/speech/" aria-label="Open Speech and Translate Lab">
+          <a class="lab-card blink-lab-card" data-lab-category="media" href="./labs/speech/" aria-label="Open Speech and Translate Lab">
             <span class="card-top"><span class="lab-icon yellow">♫</span><span class="index">07 / POC</span></span>
             <strong>Speech &amp; Translate Lab</strong><span>Live microphone transcription, real translation, subtitles, spoken playback and a word-error-rate benchmark.</span><span class="card-foot">Open language lab <b>↗</b></span>
           </a>
-          <a class="lab-card blink-lab-card" href="./labs/facefx/" aria-label="Open FaceFX Lab">
+          <a class="lab-card blink-lab-card" data-lab-category="media" href="./labs/facefx/" aria-label="Open FaceFX Lab">
             <span class="card-top"><span class="lab-icon purple">◫</span><span class="index">08 / PREVIEW</span></span>
             <strong>FaceFX Lab</strong><span>Compare real phone face tracking with private NVIDIA GPU processing.</span><span class="card-foot">Open FaceFX Lab <b>↗</b></span>
           </a>
-          <button type="button" class="lab-card" data-open="ideas" data-haptic-group="navigation">
+          <button type="button" class="lab-card" data-lab-category="interface" data-open="ideas" data-haptic-group="navigation">
             <span class="card-top"><span class="lab-icon green">✧</span><span class="index">06 / OPEN</span></span>
             <strong>Idea Board</strong><span>Collect questions and weird experiments to build next.</span><span class="card-foot">Add an idea <b>↗</b></span>
           </button>
+          <a class="lab-card" data-lab-category="interface" href="./labs/ui/">
+            <span class="card-top"><span class="lab-icon purple">◈</span><span class="index">UI / WORKBENCH</span></span>
+            <strong>UI Mechanics</strong><span>Test a fixed six-slot swipe dial and export the reusable engine.</span><span class="card-foot">Open UI workbench <b>↗</b></span>
+          </a>
+          <a class="lab-card" data-lab-category="interface" href="./labs/settings/">
+            <span class="card-top"><span class="lab-icon yellow">⚙</span><span class="index">SETTINGS / WORKBENCH</span></span>
+            <strong>Settings Mechanism</strong><span>Compare layouts, control tabs, and export a stand-alone configuration module.</span><span class="card-foot">Open settings workbench <b>↗</b></span>
+          </a>
         </div>
+        <p class="hint" id="labEmpty" hidden>No matching labs. Try another search or category.</p>
         <p class="inline-note">Core labs run on your device without a database or accounts. Speech &amp; Translate Lab uses optional browser speech services and an external translation API when you activate them. Settings stay in your browser unless exported.</p>
       </section>
 
@@ -116,16 +138,34 @@
             <p class="inline-note">The dial controls rhythm and timing, not motor amplitude. The same pattern may feel different across phones.</p>
           </div>
           <div class="glass-card">
-            <div class="card-head"><div><div class="eyebrow">PATTERN DESIGNER</div><h2>Make your own</h2></div><span class="micro-tag">CUSTOM</span></div>
-            <div class="slider-field"><label for="pulseA">First pulse <output id="pulseAValue">25 ms</output></label><input id="pulseA" type="range" min="0" max="160" step="5" value="25"></div>
-            <div class="slider-field"><label for="gap">Pause <output id="gapValue">45 ms</output></label><input id="gap" type="range" min="0" max="200" step="5" value="45"></div>
-            <div class="slider-field"><label for="pulseB">Second pulse <output id="pulseBValue">35 ms</output></label><input id="pulseB" type="range" min="0" max="160" step="5" value="35"></div>
-            <div class="waveform waveform-small" id="customWaveform" aria-label="Custom vibration pattern visualization"></div>
+            <div class="card-head"><div><div class="eyebrow">TIMELINE PATTERN DESIGNER</div><h2>Build any rhythm</h2></div><span class="micro-tag">NAMED / REUSABLE</span></div>
+            <label for="savedPatterns">Load a saved pattern</label>
+            <select id="savedPatterns"><option value="">New pattern</option></select>
+            <label for="patternName">Pattern name</label>
+            <input id="patternName" type="text" maxlength="60" placeholder="e.g. Mission success" value="My rhythm">
+            <label for="segmentLimitSeconds">Segment slider limit (seconds, 1–120)</label>
+            <input id="segmentLimitSeconds" type="number" min="1" max="120" step="1" value="10">
+            <p class="hint">Every segment has an editable duration slider (0 to the chosen limit), precise milliseconds, reorder and remove controls.</p>
+            <div class="pattern-creator-actions">
+              <button type="button" class="btn btn-secondary" id="addPulse">+ Vibrate</button>
+              <button type="button" class="btn btn-secondary" id="addPause">+ Delay</button>
+              <button type="button" class="btn btn-ghost" id="clearPattern">Clear</button>
+              <span id="patternStepCount" class="micro-tag">0 / 32 segments</span>
+            </div>
+            <div id="patternSegments" class="pattern-segments" aria-label="Editable vibration timeline"></div>
+            <p id="patternTotal" class="hint">0s total</p>
+            <div class="waveform waveform-small" id="customWaveform" aria-label="Custom vibration timeline"></div>
+            <p class="hint" id="patternRuntimeNote">Web mode controls timing, not strength.</p>
             <div class="actions-row">
               <button type="button" class="btn btn-secondary" id="testCustom">▶ Preview</button>
-              <button type="button" class="btn btn-primary" id="saveCustom">Save custom</button>
+              <button type="button" class="btn btn-primary" id="saveCustom">Save pattern</button>
+              <button type="button" class="btn btn-ghost" id="deletePattern">Delete</button>
             </div>
-            <p class="hint">Save the pattern, then assign “Custom” to any button group below.</p>
+            <div class="toolbar">
+              <button type="button" class="btn btn-secondary" id="exportPatternModule">↓ Export JS module</button>
+              <button type="button" class="btn btn-secondary" id="exportPatternJSON">↓ Export pattern JSON</button>
+            </div>
+            <p class="hint">Saved rhythms appear in the main dial and button group selectors. A separate 15s guard applies when playing.</p>
           </div>
         </div>
         <div class="section-heading spaced"><div><div class="eyebrow">GROUP CONFIGURATION</div><h2>Button categories</h2></div><span class="count">SAVED LOCALLY</span></div>
@@ -193,8 +233,8 @@
             </div>
             <div id="motionTrainControls" hidden>
               <p class="hint">Pulse train: changing ON/OFF time and duty cycle can change the perceived or observed result, but cannot directly set motor amplitude.</p>
-              <div class="slider-field"><label for="motionPulseOn">Motor ON <output id="motionPulseOnValue">100 ms</output></label><input id="motionPulseOn" type="range" min="5" max="250" step="5" value="100"></div>
-              <div class="slider-field"><label for="motionPulseOff">Motor OFF <output id="motionPulseOffValue">45 ms</output></label><input id="motionPulseOff" type="range" min="5" max="250" step="5" value="45"></div>
+              <div class="slider-field"><label for="motionPulseOn">Motor ON <output id="motionPulseOnValue">100 ms</output></label><input id="motionPulseOn" type="range" min="5" max="10000" step="25" value="100"></div>
+              <div class="slider-field"><label for="motionPulseOff">Motor OFF <output id="motionPulseOffValue">45 ms</output></label><input id="motionPulseOff" type="range" min="5" max="10000" step="25" value="45"></div>
               <div class="slider-field"><label for="motionPulseCount">Pulse count <output id="motionPulseCountValue">4</output></label><input id="motionPulseCount" type="range" min="1" max="5" step="1" value="4"></div>
               <p class="hint" id="motionDuty">ON duty: 75% · total 535 ms</p>
             </div>
@@ -219,6 +259,11 @@
               <div><strong id="motionPeak">—</strong><span>PEAK IN TRIAL m/s²</span></div>
             </div>
             <canvas id="motionChart" width="720" height="168" aria-label="Recent relative yaw signal plot"></canvas>
+            <div class="divider-mini"></div>
+            <div class="eyebrow">TRIAL TIMELINE · SENSOR VALUES VS REQUESTED MOTOR TIMING</div>
+            <canvas id="motionTraceChart" width="720" height="200" aria-label="Relative angular change and acceleration during latest trial"></canvas>
+            <p class="hint" id="motionTraceMeta">Run a measured trial to record timestamped samples. Colored bands represent requested ON intervals, not measured actuator output.</p>
+            <button type="button" id="motionTraceExport" class="btn btn-secondary">↓ Export last trace CSV</button>
             <p class="hint">The chart shows sensor orientation, not travel distance. Vibration itself can cause noisy readings without the phone changing position.</p>
             <div class="divider-mini"></div>
             <div class="eyebrow">OPTIONAL CEILING / SKY CAPTURE</div>
