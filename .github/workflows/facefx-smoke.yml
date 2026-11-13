@@ -6,6 +6,11 @@ on:
       - 'labs/facefx/**'
       - 'facefx-server/**'
       - '.github/workflows/facefx-smoke.yml'
+  pull_request:
+    paths:
+      - 'labs/facefx/**'
+      - 'facefx-server/**'
+      - '.github/workflows/facefx-smoke.yml'
   workflow_dispatch:
 jobs:
   smoke:
