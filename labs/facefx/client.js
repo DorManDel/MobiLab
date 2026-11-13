@@ -142,7 +142,10 @@ function pipelineStatus(message,ok=false){
   if(phase===state.pipelinePhase)return;
   state.pipelinePhase=phase;
   el.textContent=phase;
-  el.classList.toggle('is-ok',Boolean(ok));
+  // Drawing triangles proves a renderer ran, not that identity replacement worked.
+  const rendered=phase==='2D OVERLAY DRAWN';
+  el.classList.toggle('is-ok',Boolean(ok) && !rendered);
+  el.classList.toggle('is-rendered',rendered);
 }
 function mapEdges(ctx,points,edges,w,h,color,lineWidth){
   if(!edges?.length)return;
