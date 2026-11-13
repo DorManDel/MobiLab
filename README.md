@@ -14,6 +14,18 @@ A mobile-first collection of experimental web mechanics and hardware exploration
 - **Speech & Translate Lab (beta 0.6)** — canonical source log with opt-in local save/JSON export, Previous/Next/Live focus, last 1–3 subtitle lines, floating translated text above mobile microphone, HTTP 429 quota circuit breaker and opted-in provider fallback, provider comparison scoreboard, paragraph grouping, TTS and latency diagnostics. See [labs/speech/](./labs/speech/) and [latency protocol](./labs/speech/LIVE_LATENCY.md). New: optional local LibreTranslate on PC (no provider daily quota), independent file-upload Whisper node with timestamps and reusable API; [self-host setup](./services/speech-node/README.md). No system audio capture or independent STT ensemble yet; browser STT/provider text may leave the device when those engines are enabled.
 - **Idea Board** — locally saved experiment ideas.
 
+## Module discovery & Infinity Board preview (feature branch)
+
+The overview now includes a **sitewide module launcher/search** (searchable names, descriptions and keywords), category filter, and five sort modes: **Recommended**, **Most opened**, **Recently opened**, **Recently updated**, and **Name A–Z**. The search input stays in the header on every tab; press `/` to focus it, `Enter` to open the top match and `Escape` to clear it. On mobile, search and filters wrap without horizontal scrolling.
+
+Opening a lab through the MobiLab menu/card is counted locally in `localStorage` under `mobilab.catalog.activity.v1`; no analytics server, login, or cross-device syncing. A browser/device with no visits shows the author-defined order. Categories and sort mode are saved in `mobilab.catalog.preferences.v1`. Relevance combines matching title/keywords/description with local usage and recency when no query is entered. External pages visited via an independently pasted direct URL are **not** counted by the launcher.
+
+**Recently updated** reads the `data-updated="YYYY-MM-DD"` field on each overview card. Initial dates are based on relevant MobiLab commit history through 2026-11-13. When a lab is changed, maintain this field in the same PR; the site does not query GitHub for live update times. Cards tagged `data-lab-id`, `data-category` and `data-keywords` are indexed automatically—no separate hardcoded search list is required.
+
+**Infinity Board** currently has a dedicated tab, card and static visual concept with an **UNDER CONSTRUCTION** banner. It is *not* connected to any prototype or a running infinite canvas yet; no prior version was imported without review. This is distinct from the working browser-local Idea Board.
+
+Run discovery checks locally with `node --test tests/lab-catalog.test.mjs` (Node 20+). The lightweight UI uses no external packages and leaves all other lab engines unchanged.
+
 ## Run
 
 Open **index.html** from the published GitHub Pages site for camera and motion sensor permissions.
