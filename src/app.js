@@ -111,7 +111,10 @@ function setupCatalog() {
   }
   updateCatalog = render;
   search.addEventListener("input", () => {
-    if (search.value.trim() && currentTab !== "home") navigate("home");
+    if (search.value.trim() && currentTab !== "home") {
+      navigate("home");
+      requestAnimationFrame(() => $("catalogAnchor").scrollIntoView({ behavior: "auto", block: "start" }));
+    }
     render();
   });
   search.addEventListener("keydown", (event) => {
@@ -148,6 +151,51 @@ function setupCatalog() {
     }
   });
   render();
+}
+
+function setupMobileNavigation() {
+  const home = $("mobileHome"), explore = $("mobileExplore"), recent = $("mobileRecent");
+  const density = $("densityToggle"), cards = $("labCards"), sort = $("labSort"), category = $("labCategory"), search = $("labSearch");
+  const buttons = [home, explore, recent];
+  const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const selectNav = (target) => {
+    buttons.forEach(button => {
+      const active = button === target;
+      button.classList.toggle("is-active", active);
+      if (active) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+    });
+  };
+  const toCatalog = (recentOnly = false) => {
+    if (recentOnly) {
+      search.value = "";
+      category.value = "all";
+      sort.value = "recently-opened";
+      category.dispatchEvent(new Event("change"));
+    }
+    navigate("home");
+    selectNav(recentOnly ? recent : explore);
+    requestAnimationFrame(() => $("catalogAnchor").scrollIntoView({
+      behavior: reducedMotion() ? "auto" : "smooth", block: "start"
+    }));
+  };
+  home.addEventListener("click", () => { navigate("home"); selectNav(home); });
+  explore.addEventListener("click", () => toCatalog(false));
+  recent.addEventListener("click", () => toCatalog(true));
+  const key = "mobilab.catalog.density.v1";
+  let compact = true;
+  try { const saved = localStorage.getItem(key); if (saved === "cards") compact = false; } catch { /* Storage optional. */ }
+  const applyDensity = () => {
+    cards.classList.toggle("is-compact", compact);
+    density.textContent = compact ? "☷ Compact" : "▦ Cards";
+    density.setAttribute("aria-pressed", String(compact));
+  };
+  density.addEventListener("click", () => {
+    compact = !compact;
+    try { localStorage.setItem(key, compact ? "compact" : "cards"); } catch { /* Storage optional. */ }
+    applyDensity();
+  });
+  applyDensity();
 }
 
 function download(filename, content, mime = "application/json") {
@@ -469,5 +517,6 @@ setupHaptics();
 setupCamera();
 setupIdeas();
 setupCatalog();
+setupMobileNavigation();
 motionBench = setupVibroMotion({ haptics, notify, isActive: () => currentTab === "motion" });
 navigate(location.hash.slice(1) || "home", !location.hash);
