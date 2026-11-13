@@ -25,14 +25,15 @@ try{
   assert.equal(await page.locator('[data-preset]').count(),3,'three preset buttons');
   assert.equal(await page.locator('#viewerGrid').getAttribute('data-view'),'mobile');
   await page.locator('[data-preset="studio-curly"]').click();
-  await page.waitForFunction(()=>document.querySelector('#sourceStatus')?.textContent?.startsWith('Ready:'),{timeout:15000});
+  await page.waitForFunction(()=>document.querySelector('#sourceStatus')?.textContent?.startsWith('SOURCE VERIFIED'),{timeout:15000});
   const ready=await page.locator('#sourceStatus').textContent();
   assert.match(ready,/triangles/);
   assert.equal(await page.locator('#sourcePreview').isVisible(),true,'photo preview');
   assert.equal(await page.locator('[data-preset="studio-curly"]').getAttribute('aria-pressed'),'true');
   assert.equal(await page.locator('#remoteState').textContent(),'OFFLINE','RTX remains unused');
+  assert.equal(await page.locator('#pipelineStatus').count(),1,'real-time pipeline health stage');
   await page.locator('#sourcePhoto').setInputFiles(path.resolve('labs/facefx/presets/studio-bangs.webp'));
-  await page.waitForFunction(()=>document.querySelector('#sourceStatus')?.textContent?.startsWith('Ready:'));
+  await page.waitForFunction(()=>document.querySelector('#sourceStatus')?.textContent?.startsWith('SOURCE VERIFIED'));
   assert.equal(await page.locator('[data-preset="studio-curly"]').getAttribute('aria-pressed'),'false');
   await page.locator('#clearSource').click();
   assert.equal(await page.locator('#sourcePreview').isVisible(),false,'remove source');
