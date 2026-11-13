@@ -1,5 +1,6 @@
-// FaceFX Lab v0.2 — mobile local effects + optional encrypted PC WebRTC bridge.
-// Local processing: real MediaPipe landmarks / Canvas overlays. NOT local AI identity swapping.
+import { LocalPhotoSwap } from './swap.js';
+// FaceFX Lab v0.3 — on-device live photo swap and filters, optional encrypted PC WebRTC bridge.
+// Local Photo Swap: landmark-driven 2D texture warping. NOT a generative/photorealistic model.
 'use strict';
 const $ = id => document.getElementById(id);
 const state = {
@@ -7,7 +8,8 @@ const state = {
   cameraEpoch: 0, running: false, localEngine: null, visionPromise: null,
   tracked: null, smooth: null, lastDetect: 0, lastFrameTime: -1,
   lastFaceAt: 0, renderCount: 0, renderStart: 0, localMs: null,
-  remoteMode: null, sentPings: new Map(), pingIndex: 0
+  remoteMode: null, sentPings: new Map(), pingIndex: 0,
+  photoSwap: new LocalPhotoSwap(), modelBusy: false, swapDrawAt: 0
 };
 let visionModule = null;
 function say(message) {
@@ -27,6 +29,7 @@ function buttons() {
   $('remoteStop').disabled = !state.pc;
   for (const id of ['camera', 'resolution', 'fps']) $(id).disabled = !!state.stream;
   $('remoteMode').disabled = !!state.pc;
+  $('clearSource').disabled = !state.photoSwap.ready;
 }
 function resetMetrics() {
   for (const id of ['localFps', 'localMs', 'faceCount', 'remoteFps', 'remoteMs', 'remoteRtt']) $(id).textContent = '—';
@@ -40,8 +43,12 @@ function displayMode(next) {
     btn.setAttribute('aria-pressed', String(active));
   });
 }
-document.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => displayMode(btn.dataset.view)));
+document.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => {
+  displayMode(btn.dataset.view);
+  if(btn.dataset.view !== 'mobile') $('pc-setup').open = true;
+}));
 $('intensity').addEventListener('input', () => { $('intensityValue').textContent = $('intensity').value + '%'; });
+$('stability').addEventListener('input', () => { $('stabilityValue').textContent = $('stability').value + '%'; });
 $('trackingRate').addEventListener('input', () => { $('trackingValue').textContent = $('trackingRate').value + ' FPS'; });
 $('clearLog').addEventListener('click', () => { $('log').textContent = ''; });
 $('resetMetrics').addEventListener('click', resetMetrics);
@@ -70,7 +77,7 @@ async function initLandmarker() {
       options.baseOptions.delegate = 'CPU';
       state.localEngine = await sdk.FaceLandmarker.createFromOptions(fs, options);
     }
-    $('localNote').textContent = 'Real face landmarks and local Canvas effects. This is not an identity swap.';
+    $('localNote').textContent = 'On-device face tracking ready. Photo Swap uses 2D landmark-based texture deformation, not generative AI.';
     return state.localEngine;
   })();
   try { return await state.visionPromise; }
@@ -80,9 +87,10 @@ function easePoints(raw) {
   if (!raw) return null;
   if (!state.smooth || state.smooth.length !== raw.length) state.smooth = raw.map(p => ({x:p.x,y:p.y,z:p.z}));
   else for (let i = 0; i < raw.length; i++) {
-    state.smooth[i].x += (raw[i].x - state.smooth[i].x) * .40;
-    state.smooth[i].y += (raw[i].y - state.smooth[i].y) * .40;
-    state.smooth[i].z += (raw[i].z - state.smooth[i].z) * .40;
+    const k = Math.max(.12, 1-Number($('stability').value)/100);
+    state.smooth[i].x += (raw[i].x - state.smooth[i].x) * k;
+    state.smooth[i].y += (raw[i].y - state.smooth[i].y) * k;
+    state.smooth[i].z += (raw[i].z - state.smooth[i].z) * k;
   }
   return state.smooth;
 }
@@ -127,7 +135,7 @@ function localLoop(now) {
     ctx.save();if (mirror) {ctx.translate(canvas.width,0);ctx.scale(-1,1);}
     ctx.drawImage(video,0,0,canvas.width,canvas.height);
     const effect=$('effect').value;
-    if (state.localEngine && effect!=='none' && now - state.lastDetect >= 1000/Number($('trackingRate').value) && video.currentTime !== state.lastFrameTime) {
+    if (state.localEngine && !state.modelBusy && effect!=='none' && now - state.lastDetect >= 1000/Number($('trackingRate').value) && video.currentTime !== state.lastFrameTime) {
       const begin=performance.now();
       try {
         const result=state.localEngine.detectForVideo(video,now);
@@ -142,7 +150,20 @@ function localLoop(now) {
     if (effect!=='none' && state.tracked) {
       const alpha=Math.max(0,1-Math.max(0,now-state.lastFaceAt-180)/260);
       const pts=easePoints(state.tracked);
-      faceOverlay(ctx,pts,effect,Number($('intensity').value)/100,canvas.width,canvas.height,alpha);
+      if(effect === 'swap' && state.photoSwap.ready && now - state.swapDrawAt > 1000/12) {
+        const beginSwap=performance.now();
+        const quality=canvas.width > 700 ? 0.65 : 1;
+        state.photoSwap.render(pts,canvas.width,canvas.height,quality);
+        state.swapDrawAt=now;
+        $('localMs').textContent=(state.localMs+performance.now()-beginSwap).toFixed(1);
+      }
+      if(effect==='swap' && state.photoSwap.ready){
+        ctx.globalAlpha=alpha*Number($('intensity').value)/100;
+        ctx.drawImage(state.photoSwap.buffer,0,0,canvas.width,canvas.height);
+        ctx.globalAlpha=1;
+      }else if(effect!=='swap'){
+        faceOverlay(ctx,pts,effect,Number($('intensity').value)/100,canvas.width,canvas.height,alpha);
+      }
     }
     ctx.restore();
     state.renderCount++;
@@ -165,12 +186,12 @@ async function startCamera() {
     state.stream=stream;
     $('sourceVideo').srcObject=stream;
     await $('sourceVideo').play();
-    state.tracked=null;state.smooth=null;state.lastFrameTime=-1;state.lastDetect=0;state.lastFaceAt=0;
+    state.tracked=null;state.smooth=null;state.lastFrameTime=-1;state.lastDetect=0;state.lastFaceAt=0;state.swapDrawAt=0;
     resetMetrics();
     $('localPlaceholder').hidden=true;
     $('remoteVideo').classList.toggle('mirror',$('camera').value==='user');
     setState('localState','LIVE',true);
-    setCameraStatus('Camera active · local processing only until PC connect');
+    setCameraStatus('Camera active · 100% local · PC not required');
     state.animation=requestAnimationFrame(localLoop);
     buttons();say('Camera opened locally.');
     if ($('effect').value!=='none') {
@@ -191,7 +212,41 @@ async function stopCamera() {
 }
 $('cameraStart').addEventListener('click',startCamera);
 $('cameraStop').addEventListener('click',stopCamera);
-$('effect').addEventListener('change',()=>{if(state.stream && $('effect').value!=='none')initLandmarker().catch(e=>say('Model: '+e.message));});
+$('effect').addEventListener('change',()=>{
+  state.swapDrawAt=0;
+  $('sourcePicker').hidden = $('effect').value!=='swap';
+  if(state.stream && $('effect').value!=='none')initLandmarker().catch(e=>say('Model: '+e.message));
+});
+async function loadPhoto(file){
+  if(!file)return;
+  const input=$('sourcePhoto');input.disabled=true;
+  $('sourceStatus').textContent='Analyzing portrait locally (nothing uploaded)…';
+  try {
+    const engine=await initLandmarker();
+    const result=await state.photoSwap.loadFile(file,async image=>{
+      state.modelBusy=true;
+      try {
+        await engine.setOptions({runningMode:'IMAGE'});
+        return engine.detect(image).faceLandmarks[0]||null;
+      }finally {
+        try { await engine.setOptions({runningMode:'VIDEO'}); }
+        finally { state.modelBusy=false;state.lastFrameTime=-1; }
+      }
+    });
+    state.swapDrawAt=0;
+    $('sourceStatus').textContent=`Ready: ${file.name} · ${result.triangles} triangles · local only`;
+    say('Mobile source photo loaded without upload: '+result.triangles+' triangles');
+  }catch(error){
+    $('sourceStatus').textContent='Could not use this photo: '+error.message;
+    say('Source face: '+error.message);
+  }finally{input.disabled=false;buttons();}
+}
+$('sourcePhoto').addEventListener('change',event=>{void loadPhoto(event.target.files?.[0]);});
+$('clearSource').addEventListener('click',()=>{
+  state.photoSwap.clear();state.swapDrawAt=0;
+  $('sourcePhoto').value='';$('sourceStatus').textContent='Choose a clear portrait. The previous face photo has been removed from memory.';
+  buttons();say('Local source photo removed from memory.');
+});
 
 // PC bridge: GitHub Pages serves only the UI. Windows/Tailscale serves /health, /offer and /close.
 function serverBase() {
@@ -319,4 +374,4 @@ $('snapshot').addEventListener('click',()=>{
 // Closing the page or hiding it stops camera and remote processing.
 window.addEventListener('pagehide',()=>{void stopCamera();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.stream)void stopCamera();});
-buttons();resetMetrics();say('FaceFX v0.2 ready · start camera for local-only mode.');
+buttons();resetMetrics();displayMode('mobile');say('FaceFX v0.3 ready · local Photo Swap works without PC.');
