@@ -1,0 +1,2 @@
+# Optional media-file STT: install only if you want offline Whisper transcription.
+faster-whisper>=1.1,<2
