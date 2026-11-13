@@ -1,4 +1,4 @@
-# Canonical Transcript & Focused Subtitles — beta 0.5
+# Local Translator & Timed Media Files — beta 0.6
 
 ## Goals
 Give a phone-first, legible live translation experience while exposing the real sources of latency. Three display modes share one transcript and provider pipeline; visual transitions do not represent changes in recognition speed.
@@ -9,6 +9,13 @@ Give a phone-first, legible live translation experience while exposing the real 
 - **Ticker:** one translated line scrolls horizontally like an RSS/news feed. CSS animation; motion stops when reduced-motion is requested.
 - Language selectors + Start/Finish recording appear before advanced controls at the top, without needing to scroll on a phone.
 - Quick sound button runs the latest translated text through existing speech synthesis (mic must be stopped to prevent feedback).
+
+## New v0.6: provider independence and file sources
+
+- Local PC LibreTranslate (Argos) can process translated text without an external daily provider quota. When selected as primary, no MyMemory request is made unless the user explicitly enables a cloud benchmark. The app records provider response times/errors separately.
+- The local Speech Node has a fixed-upstream /translate route, /languages check and optional /api/transcribe with faster-whisper. It can serve the same lab UI on desktop, so no cross-origin/CORS exposure is required for local use.
+- File import is **not live stream recognition**: temporary uploaded file -> model decodes and outputs timed segments -> source ledger append. The user explicitly triggers transcription and later translates batches. The timestamped text can be used in VTT export. No audio file persisted on the server by this app.
+- On Android the PC must have secure HTTPS access with an owner-only policy and API token. Browser localhost does not point to the PC. Capturing audio from PC tabs/speakers remains a future opt-in adapter, subject to browser/OS availability and protections.
 
 ## New v0.5: source-of-truth log and viewport projection
 
