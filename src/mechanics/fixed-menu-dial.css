@@ -1,0 +1,9 @@
+/* FixedMenuDial standalone stylesheet — keep beside fixed-menu-dial.js */
+.fixed-menu-dial{position:relative;margin:20px auto;width:min(92vw,390px);aspect-ratio:1;touch-action:none;user-select:none;outline:none}
+.fixed-menu-dial:before{content:"";position:absolute;inset:6%;border:2px solid #ac88ee55;border-radius:50%;box-shadow:0 0 40px #5c2a9555 inset;background:radial-gradient(circle,#291b3f,#130f27 68%,transparent)}
+.fixed-menu-slot{position:absolute;transform:translate(-50%,-50%);width:29%;min-height:58px;z-index:2;
+color:#f3edff;background:#322047;border:1px solid #937ac7aa;border-radius:18px;padding:8px;font:inherit;font-weight:750;overflow-wrap:anywhere;cursor:pointer}
+.fixed-menu-slot.is-selected{background:linear-gradient(120deg,#d5b0ff,#9572df);color:#160f24;border-color:#f9df76;box-shadow:0 0 0 3px #f9df7640}
+.fixed-menu-slot:disabled{opacity:.2}
+.fixed-menu-hub{position:absolute;inset:37%;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle at 30% 30%,#8964cd,#33204f 70%);border:1px solid #c9a4ff;letter-spacing:.8px;font-weight:900;font-size:12px;pointer-events:none}
+@media(max-width:420px){.fixed-menu-slot{font-size:11px;min-height:53px}}
