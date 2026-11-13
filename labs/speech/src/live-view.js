@@ -13,6 +13,7 @@ export class LiveCaptionView {
     this.latencies=[];
     this.lastTranslation="";
     this.lastSource="";
+    this.maxHistory=30;
     for(const button of doc.querySelectorAll("[data-caption-mode]")) {
       button.addEventListener("click",()=>this.setMode(button.dataset.captionMode));
     }
@@ -33,6 +34,17 @@ export class LiveCaptionView {
     this.el("livePhase").textContent="Listening / provisional";
     this.el("liveLabel").textContent="LIVE WORDS · NOT FINAL";
     this.el("liveNotice").textContent="Speech preview is provisional; the recognizer may revise these words.";
+  }
+  pendingParagraph(text){
+    if(!text)return;
+    this.el("livePartial").textContent=text+" …";
+    this.el("liveLabel").textContent="BUILDING PARAGRAPH · WAITING FOR PAUSE";
+    this.el("livePhase").textContent="Listening…";
+  }
+  setVisibleLines(count){
+    const n=[1,2,3].includes(Number(count))?Number(count):2;
+    this.root.style.setProperty("--caption-lines",String(n));
+    this.el("liveLineCountLabel").textContent=n+" lines";
   }
   early(text,ms){
     this.el("liveTranslation").textContent="≈ "+text;
@@ -74,7 +86,7 @@ export class LiveCaptionView {
     this.el("liveNotice").textContent="Final translation visible. Render delay measured from Web Speech final event.";
     this.history=this.history.filter(item=>item.id!==row.id);
     this.history.push({id:row.id,text});
-    if(this.history.length>5)this.history.shift();
+    if(this.history.length>this.maxHistory)this.history.shift();
     this.drawHistory();
   }
   skipped(row){
@@ -93,6 +105,16 @@ export class LiveCaptionView {
       node.textContent=item.text;
       roll.append(node);
     }
+    const feed=this.el("liveAppend");
+    feed.replaceChildren();
+    for(const item of this.history.slice(-16)){
+      const block=this.doc.createElement("p");
+      block.className="append-entry";
+      block.dir="auto";
+      block.textContent=item.text;
+      feed.append(block);
+    }
+    if(this.mode==="append")feed.scrollTop=feed.scrollHeight;
     const ticker=this.el("liveTicker");
     const text=this.history.at(-1)?.text || this.lastTranslation || "Translation appears here";
     ticker.textContent=text;
