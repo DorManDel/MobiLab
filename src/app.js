@@ -1,18 +1,23 @@
 import { HapticEngine, GROUPS, PRESETS } from "./haptics.js";
 import { CameraLab } from "./camera.js";
 import { setupVibroMotion } from "./vibromotion.js";
+import { filterAndSort, loadActivity, recordVisit, loadPreferences, savePreferences } from "./lab-catalog.mjs";
 
 // MobiLab: browser-only application shell.
 // All hardware actions happen only after deliberate interaction.
 const $ = (id) => document.getElementById(id);
 const haptics = new HapticEngine();
 const camera = new CameraLab($("cameraVideo"));
-const tabs = new Set(["home", "haptics", "camera", "motion", "ideas"]);
+const tabs = new Set(["home", "haptics", "camera", "motion", "ideas", "infinity"]);
 let motionBench = null;
 const IDEAS_KEY = "mobilab.ideas.v1";
 let currentTab = "";
 let toastTimeout;
 let ideas = loadIdeas();
+const catalogStorage = (() => { try { return window.localStorage; } catch { return null; } })();
+let catalogActivity = loadActivity(catalogStorage);
+let catalogPreferences = loadPreferences(catalogStorage);
+let updateCatalog = () => {};
 
 function notify(message) {
   $("toast").textContent = message;
@@ -31,7 +36,12 @@ function navigate(target, updateLocation = true) {
   }
   if (currentTab === "haptics" && nextTab !== "haptics") haptics.stop();
   if (currentTab === "motion" && nextTab !== "motion") motionBench?.stop();
+  const changed = currentTab !== nextTab;
   currentTab = nextTab;
+  if (changed && nextTab !== "home") {
+    catalogActivity = recordVisit(catalogStorage, nextTab);
+    updateCatalog();
+  }
 
   document.querySelectorAll("[data-tab]").forEach((button) => {
     const active = button.dataset.tab === nextTab;
@@ -49,6 +59,95 @@ function navigate(target, updateLocation = true) {
     history.replaceState(null, "", "#" + nextTab);
   }
   window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+function setupCatalog() {
+  const grid = $("labCards");
+  const search = $("labSearch");
+  const sort = $("labSort");
+  const category = $("labCategory");
+  const clear = $("clearCatalog");
+  const empty = $("catalogEmpty");
+  const cards = [...grid.querySelectorAll("[data-lab-id]")];
+  const entries = cards.map((element) => ({
+    id: element.dataset.labId,
+    category: element.dataset.category,
+    updated: element.dataset.updated,
+    keywords: element.dataset.keywords || "",
+    title: element.querySelector("strong")?.textContent || "",
+    description: [...element.querySelectorAll(":scope > span:not(.card-top):not(.card-foot)")]
+      .map(part => part.textContent).join(" "),
+    element
+  }));
+  sort.value = catalogPreferences.sort;
+  category.value = catalogPreferences.category;
+
+  // Dates are manually maintained release metadata, not live GitHub API lookups.
+  const formatDate = (date) => {
+    const parsed = Date.parse(date + "T00:00:00Z");
+    return Number.isFinite(parsed) ? new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(parsed) : "";
+  };
+  for (const entry of entries) {
+    const meta = document.createElement("small");
+    meta.className = "catalog-updated";
+    meta.textContent = "Updated " + formatDate(entry.updated);
+    entry.element.append(meta);
+  }
+  function render() {
+    const results = filterAndSort(entries, {
+      query: search.value, sort: sort.value, category: category.value, activity: catalogActivity
+    });
+    const ids = new Set(results.map(entry => entry.id));
+    for (const entry of entries) entry.element.hidden = !ids.has(entry.id);
+    const fragment = document.createDocumentFragment();
+    for (const entry of results) fragment.append(entry.element);
+    grid.append(fragment);
+    const count = results.length;
+    $("labCount").textContent = count === entries.length ? entries.length + " MODULES" : count + " / " + entries.length + " MODULES";
+    $("catalogStatus").textContent = search.value.trim() || category.value !== "all"
+      ? count + " result" + (count === 1 ? "" : "s") + " found" : "";
+    empty.hidden = count > 0;
+    clear.hidden = !search.value && category.value === "all" && sort.value === "recommended";
+  }
+  updateCatalog = render;
+  search.addEventListener("input", () => {
+    if (search.value.trim() && currentTab !== "home") navigate("home");
+    render();
+  });
+  search.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") { search.value = ""; render(); search.blur(); }
+    if (event.key === "Enter") {
+      const first = grid.querySelector("[data-lab-id]:not([hidden])");
+      if (first) { event.preventDefault(); first.click(); }
+    }
+  });
+  for (const selector of [sort, category]) selector.addEventListener("change", () => {
+    catalogPreferences = { sort: sort.value, category: category.value };
+    savePreferences(catalogStorage, catalogPreferences);
+    render();
+  });
+  clear.addEventListener("click", () => {
+    search.value = ""; sort.value = "recommended"; category.value = "all";
+    catalogPreferences = { sort: sort.value, category: category.value };
+    savePreferences(catalogStorage, catalogPreferences);
+    render();
+    search.focus();
+  });
+  document.addEventListener("click", (event) => {
+    // External lab pages are navigated by regular links, not navigate().
+    const link = event.target instanceof Element ? event.target.closest("a[data-lab-id]") : null;
+    if (!link) return;
+    catalogActivity = recordVisit(catalogStorage, link.dataset.labId);
+    render();
+  });
+  document.addEventListener("keydown", (event) => {
+    const element = event.target;
+    const editing = element instanceof Element && (element.closest("input, textarea, select, [contenteditable]") !== null);
+    if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey && !editing) {
+      event.preventDefault(); search.focus(); search.select();
+    }
+  });
+  render();
 }
 
 function download(filename, content, mime = "application/json") {
@@ -369,5 +468,6 @@ document.addEventListener("visibilitychange", () => {
 setupHaptics();
 setupCamera();
 setupIdeas();
+setupCatalog();
 motionBench = setupVibroMotion({ haptics, notify, isActive: () => currentTab === "motion" });
 navigate(location.hash.slice(1) || "home", !location.hash);
