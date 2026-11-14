@@ -64,3 +64,13 @@ input[type=range]{accent-color:var(--vb-violet)}
  *,*:before,*:after{scroll-behavior:auto!important}
  button:not(.studio-recorder){transition:none!important}
 }
+
+/* Allow every form field to scroll above the fixed two-row mobile studio dock.
+   The dock plus captions can be ~220px tall on small portrait screens. */
+@media(max-width:740px){
+  html{scroll-padding-top:24px;scroll-padding-bottom:max(250px,32dvh)}
+  .shell{padding-bottom:max(350px,env(safe-area-inset-bottom) + 330px)!important}
+  .live-setting-details,.provider-config,.live-workspace summary,
+  #controls,textarea,select,input{scroll-margin-bottom:max(250px,32dvh)}
+  body{overflow-x:hidden}
+}
