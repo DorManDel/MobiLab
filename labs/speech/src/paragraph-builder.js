@@ -13,6 +13,8 @@ export class ParagraphBuilder {
     onParagraph,
     silenceMs = 1600,
     maxWords = 80,
+    flushOnSentenceEnd = true,
+    minSentenceWords = 6,
     schedule = (callback,ms)=>setTimeout(callback,ms),
     unschedule = id=>clearTimeout(id)
   } = {}) {
@@ -20,6 +22,7 @@ export class ParagraphBuilder {
     this.onPreview=onPreview;this.onParagraph=onParagraph;
     this.schedule=schedule;this.unschedule=unschedule;
     this.silenceMs=silenceMs;this.maxWords=maxWords;
+    this.flushOnSentenceEnd=flushOnSentenceEnd;this.minSentenceWords=minSentenceWords;
     this.parts=[];this.timer=null;this.meta=null;
   }
   setSilence(ms) {
@@ -47,7 +50,13 @@ export class ParagraphBuilder {
     this.meta={...meta,startedAt:this.meta?.startedAt??meta.finalPerf??null,
       finalPerf:meta.finalPerf??this.meta?.finalPerf??null};
     this.onPreview(this.pending);
-    if(this.pending.split(/\s+/u).length>=this.maxWords) {
+    const words=this.pending.split(/\s+/u).length;
+    // Translate at natural sentence boundaries without waiting for extra silence.
+    // Do not treat an abbreviation or a tiny acknowledgement as a sentence.
+    if(this.flushOnSentenceEnd && words>=this.minSentenceWords &&
+        /[.!?\u061f\u06d4\u3002]+[\u201d\u2019"'\u05f4)]*$/u.test(cleaned)) {
+      this.flush("sentence-end");
+    } else if(words>=this.maxWords) {
       this.flush("length");
     } else this.arm();
     return true;
