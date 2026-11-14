@@ -3,6 +3,8 @@
  * Use <speech-floating-controls> and setState({...}).
  * Events: speech:toggle, speech:language-change, speech:display-change.
  */
+import {retroMicHTML,retroMicCSS} from "./retro-mic.js";
+import {setupGlassLens} from "./voicebridge-glass.js";
 const languages=[["he","עברית"],["en","English"],["ar","العربية"],["es","Español"],["fr","Français"],["de","Deutsch"],["ru","Русский"],["it","Italiano"]];
 export class SpeechFloatingControls extends HTMLElement {
   constructor(){
@@ -11,6 +13,7 @@ export class SpeechFloatingControls extends HTMLElement {
     this.historyRows=[];
     this.historyLimit=80;
     this.historySize=1;
+    this.micShape={width:112,height:112,radius:28};
   }
   connectedCallback(){
     if(this.shadowRoot.childNodes.length)return;
@@ -22,6 +25,81 @@ export class SpeechFloatingControls extends HTMLElement {
         option.value=code;option.textContent=label;$(id).append(option);
       }
     }
+
+    // Reusable mesh recorder. Recording state is set only by the host app.
+    const recorder=$("record");recorder.classList.add("studio-recorder");
+    recorder.innerHTML=retroMicHTML;
+    const fxStyles=document.createElement("style");
+    fxStyles.textContent=retroMicCSS+String.raw`
+:host{--mic-width:112px;--mic-height:112px;--mic-radius:28px}
+.bar{display:grid!important;grid-template-columns:minmax(70px,min(var(--mic-width),48vw)) repeat(2,minmax(0,1fr));
+ grid-template-rows:repeat(2,minmax(44px,auto));gap:7px!important;align-items:stretch;
+ background:linear-gradient(125deg,rgba(55,49,94,.52),rgba(16,17,38,.58) 62%,rgba(45,30,72,.55))!important;
+ position:relative;isolation:isolate;overflow:hidden;
+ box-shadow:inset 0 1px 1px #fffc,0 18px 45px #02031970!important}
+.bar:before{content:"";position:absolute;inset:1px;z-index:-1;pointer-events:none;
+ border-radius:22px;background:radial-gradient(ellipse at 12% -20%,#ffffff26,transparent 48%),
+ linear-gradient(160deg,#ffffff0d,transparent 36%,#ffffff06);
+ box-shadow:inset 0 1px 1px #ffffff44}
+.bar.optical{backdrop-filter:blur(1px) url(#vb-optical-lens) blur(2px) saturate(1.45) brightness(1.08)!important}
+#record{grid-row:1/3;grid-column:1;align-self:center;justify-self:center;max-width:100%;width:var(--mic-width);
+ height:var(--mic-height);box-sizing:border-box;z-index:1}
+#historyToggle{grid-row:1;grid-column:2}
+#speak{grid-row:1;grid-column:3}
+#langs{grid-row:2;grid-column:2}
+#settings{grid-row:2;grid-column:3}
+#peek{display:none!important}
+.bar>button:not(#record){height:100%;border:1px solid #ffffff25;border-radius:15px;
+ background:linear-gradient(145deg,#ffffff24,#ffffff06 65%,#8f65ef16);color:#eae2ff;
+ box-shadow:inset 0 1px 0 #ffffff26;transition:transform .2s cubic-bezier(.2,1.5,.3,1),background .2s}
+.bar>button:not(#record):active{transform:scale(.91)}
+.caption-shell,.history-sheet,.panel{background:linear-gradient(135deg,#23213cc5,#101323bd 65%,#302344b8)!important;
+ border-color:#ffffff35!important;box-shadow:inset 0 1px 1px #ffffff3b,0 18px 35px #0007!important}
+.history-sheet:not([hidden]){animation:vbSheetArrive .32s cubic-bezier(.17,1.22,.36,1) both}
+@keyframes vbSheetArrive{from{opacity:0;transform:translateY(14px) scale(.975)}to{opacity:1;transform:translateY(0) scale(1)}}
+.panel{max-height:min(76dvh,620px);overflow-y:auto;overscroll-behavior:contain}
+.mic-tuner{border-top:1px solid #ffffff25;margin-top:12px;padding-top:9px}
+.mic-tuner summary{font-size:12px;font-weight:800;color:#f2d99e;cursor:pointer;padding:8px 0}
+.mic-inspector{padding:6px 0 10px;display:grid;gap:12px}
+.mic-inspector label{display:flex;align-items:center;justify-content:space-between;font-size:12px}
+.mic-inspector input[type=range]{width:100%;accent-color:#c19cff;min-height:22px}
+.mic-preset-row{display:flex;gap:6px}
+.mic-preset-row button{flex:1;min-height:37px;padding:6px;font-size:11px}
+.glass-toggle{display:flex;align-items:center;gap:9px;font-size:11px;color:#eee4ff}
+.glass-toggle input{width:18px;height:18px;accent-color:#ac91ec}
+@media(max-width:380px){:host{left:7px;right:7px}.bar{gap:5px!important;padding:6px!important;grid-template-columns:minmax(60px,min(var(--mic-width),44vw)) repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){
+ .history-sheet:not([hidden]){animation:none!important}
+ .bar>button:not(#record){transition:none!important}
+}
+`;
+    this.shadowRoot.append(fxStyles);
+    const designer=document.createElement("details");
+    designer.className="mic-tuner";designer.id="micDesign";
+    designer.innerHTML='<summary>🎛 Recorder shape & liquid glass</summary>'+
+      '<div class="mic-inspector">'+
+      '<div><label for="micWidth">Width <output id="micWidthOut">112px</output></label><input id="micWidth" type="range" min="88" max="220" step="1" value="112"></div>'+
+      '<div><label for="micHeight">Height <output id="micHeightOut">112px</output></label><input id="micHeight" type="range" min="68" max="195" step="1" value="112"></div>'+
+      '<div><label for="micRadius">Corner radius <output id="micRadiusOut">28px</output></label><input id="micRadius" type="range" min="10" max="65" step="1" value="28"></div>'+
+      '<div class="mic-preset-row"><button data-mic-preset="square" type="button">Square</button><button data-mic-preset="wide" type="button">Wide</button><button data-mic-preset="tall" type="button">Tall</button></div>'+
+      '<label class="glass-toggle"><input id="opticalGlass" type="checkbox" checked>Optical RGB liquid-glass lens (Chromium)</label>'+
+      '<p>Width and height are independent. REC light follows actual microphone state; effects are visual only.</p></div>';
+    $("panel").append(designer);
+    this._glass=setupGlassLens(this.shadowRoot,this.shadowRoot.querySelector(".bar"));
+    for(const key of ["Width","Height","Radius"]){
+      $("mic"+key).addEventListener("input",()=>{
+        const values={width:Number($("micWidth").value),height:Number($("micHeight").value),
+          radius:Number($("micRadius").value)};
+        this.applyMicShape(values);
+      });
+    }
+    this.shadowRoot.querySelectorAll("[data-mic-preset]").forEach(button=>button.addEventListener("click",()=>{
+      const sizes={square:{width:112,height:112,radius:28},wide:{width:188,height:86,radius:38},tall:{width:96,height:165,radius:29}};
+      this.applyMicShape(sizes[button.dataset.micPreset]);
+    }));
+    $("opticalGlass").addEventListener("change",()=>this._glass.enable($("opticalGlass").checked));
+    const opticalEnabled=this._glass.enable(true);
+    $("opticalGlass").checked=opticalEnabled;
     $("record").addEventListener("click",()=>this.emit("speech:toggle"));
     $("speak").addEventListener("click",()=>this.emit("speech:speak"));
     $("historyToggle").addEventListener("click",()=>this.toggleHistory());
@@ -67,6 +145,17 @@ export class SpeechFloatingControls extends HTMLElement {
       $("source").focus();
     }
     else $("record").focus();
+  }
+  applyMicShape({width,height,radius}){
+    this.micShape={width:Math.max(88,Math.min(220,Math.round(width))),
+      height:Math.max(68,Math.min(195,Math.round(height))),
+      radius:Math.max(10,Math.min(65,Math.round(radius)))};
+    const $=id=>this.shadowRoot.getElementById(id);
+    for(const [name,key] of [["Width","width"],["Height","height"],["Radius","radius"]]){
+      $("mic"+name).value=String(this.micShape[key]);
+      $("mic"+name+"Out").textContent=this.micShape[key]+"px";
+      this.style.setProperty("--mic-"+key,this.micShape[key]+"px");
+    }
   }
   toggleHistory(open){
     const $=id=>this.shadowRoot.getElementById(id);
