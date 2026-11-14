@@ -93,6 +93,18 @@ try {
   assert.equal(await page.locator("#floatingControls #captionText").textContent(),"Translation A");
   assert.equal(await page.locator("#providerScoreRows .score-row").count(),3);
   assert.equal(await page.locator("#liveTranslation").textContent(),"Translation A");
+  // v0.7: transcript history is a projection of the saved canonical ledger.
+  await page.locator("#floatingControls #historyToggle").click();
+  assert.equal(await page.locator("#floatingControls #historyToggle").getAttribute("aria-expanded"),"true");
+  assert.equal(await page.locator("#floatingControls #sheetList .history-item").count(),1);
+  assert.match(await page.locator("#floatingControls #sheetList .history-item").first().textContent(),/Translation A/);
+  const oldHeight=(await page.locator("#floatingControls #historySheet").boundingBox()).height;
+  await page.locator("#floatingControls #sheetSize").click();
+  assert.ok((await page.locator("#floatingControls #historySheet").boundingBox()).height>oldHeight);
+  await page.locator("#floatingControls #sheetClose").click();
+  assert.equal(await page.locator("#floatingControls #historyToggle").getAttribute("aria-expanded"),"false");
+  await page.locator("#floatingControls #speak").click();
+  assert.equal(await page.evaluate(()=>window.__spoken),"Translation A");
   await page.locator('[data-caption-mode="roll"]').click();
   assert.equal(await page.locator("#liveDeck").getAttribute("data-mode"),"roll");
   assert.ok(await page.locator(".roll-entry").count());
