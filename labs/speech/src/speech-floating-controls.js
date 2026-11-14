@@ -57,7 +57,9 @@ export class SpeechFloatingControls extends HTMLElement {
  border-color:#ffffff35!important;box-shadow:inset 0 1px 1px #ffffff3b,0 18px 35px #0007!important}
 .history-sheet:not([hidden]){animation:vbSheetArrive .32s cubic-bezier(.17,1.22,.36,1) both}
 @keyframes vbSheetArrive{from{opacity:0;transform:translateY(14px) scale(.975)}to{opacity:1;transform:translateY(0) scale(1)}}
-.panel{max-height:min(76dvh,620px);overflow-y:auto;overscroll-behavior:contain}
+.panel{bottom:calc(var(--mic-height,112px) + 26px)!important;
+ max-height:calc(100dvh - var(--mic-height,112px) - 58px)!important;
+ overflow-y:auto;overscroll-behavior:contain}
 .mic-tuner{border-top:1px solid #ffffff25;margin-top:12px;padding-top:9px}
 .mic-tuner summary{font-size:12px;font-weight:800;color:#f2d99e;cursor:pointer;padding:8px 0}
 .mic-inspector{padding:6px 0 10px;display:grid;gap:12px}
@@ -142,9 +144,12 @@ export class SpeechFloatingControls extends HTMLElement {
     $("settings").setAttribute("aria-expanded",String(yes));
     if(yes){
       this.toggleHistory(false);
+      $("captionShell").hidden=true;
       $("source").focus();
+    } else {
+      $("captionShell").hidden=this.captionVisible===false;
+      $("record").focus();
     }
-    else $("record").focus();
   }
   applyMicShape({width,height,radius}){
     this.micShape={width:Math.max(88,Math.min(220,Math.round(width))),
