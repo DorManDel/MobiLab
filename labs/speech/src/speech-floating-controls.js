@@ -96,7 +96,7 @@ export class SpeechFloatingControls extends HTMLElement {
     this.historyRows=entries;
     if(this.shadowRoot.getElementById("historySheet")?.hidden===false)this.renderHistory();
   }
-  renderHistory(forceBottom=false){
+  renderHistory(forceBottom=false,preserveAnchor=false){
     const $=id=>this.shadowRoot.getElementById(id);
     const list=$("sheetList");
     if(!list)return;
@@ -111,8 +111,7 @@ export class SpeechFloatingControls extends HTMLElement {
       older.textContent="Show "+Math.min(80,start)+" earlier paragraphs";
       older.addEventListener("click",()=>{
         this.historyLimit+=80;
-        this.renderHistory(false);
-        list.scrollTop=0;
+        this.renderHistory(false,true);
       });
       frag.append(older);
     }
@@ -134,7 +133,7 @@ export class SpeechFloatingControls extends HTMLElement {
     list.replaceChildren(frag);
     requestAnimationFrame(()=>{
       if(atBottom)list.scrollTop=list.scrollHeight;
-      else list.scrollTop=Math.max(0,previousTop+list.scrollHeight-previousHeight);
+      else list.scrollTop=Math.max(0,previousTop+(preserveAnchor?list.scrollHeight-previousHeight:0));
     });
   }
   setCaptionVisible(yes){
