@@ -1,6 +1,7 @@
 import { createChromeTranslatorAdapter, lexicalAgreement } from "./engine-compare.js";
 import { TranslationQueue, wordErrorRate, characterSimilarity, safeLibreEndpoint } from "./bench-core.js";
 import { ParagraphBuilder } from "./paragraph-builder.js";
+import { TranslationMemory, translationKey } from "./translation-memory.js";
 import {SessionLedger,ProviderCircuit} from "./session-ledger.js";
 import {LocalTranscriptArchive} from "./local-archive.js";
 import {summarizeProviders} from "./provider-stats.js";
@@ -71,7 +72,9 @@ function saveLocalSoon() {
 }
 let translateOnFinish=false;
 const paragraphs = new ParagraphBuilder({
-  silenceMs:1600,
+  silenceMs:900,
+  flushOnSentenceEnd:true,
+  minSentenceWords:6,
   onPreview(text){
     if(micActive&&text){
       liveView.pendingParagraph(text);
@@ -91,6 +94,20 @@ const paragraphs = new ParagraphBuilder({
 liveView.setVisibleLines(2);
 floating.setLineCount(2);
 floating.addEventListener("speech:toggle",()=>$("recordToggle").click());
+floating.addEventListener("speech:history-focus",(event)=>focusView(ledger.focus(event.detail.id)));
+floating.addEventListener("speech:speak",()=>{
+  if(micActive) {
+    floating.setNotice("Finish recording before playing speech to prevent echo.");
+    return;
+  }
+  const focused=focusedState();
+  if(!focused?.displayText){
+    floating.setNotice("No translated text in this paragraph yet.");
+    return;
+  }
+  floating.setNotice("Starting speech playback…");
+  speakText(focused.displayText,focused.target);
+});
 floating.addEventListener("speech:language-change",(event)=>{
   if(micActive){
     status("Finish recording before changing languages.",true);
@@ -170,7 +187,7 @@ const langNames = {he:"Hebrew",en:"English",es:"Spanish",fr:"French",de:"German"
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const synthesis = window.speechSynthesis;
 const localTranslator = createChromeTranslatorAdapter(window);
-const translationCache = new Map();
+const translationCache = new TranslationMemory({limit:400});
 let rows = ledger.entries;
 let rowId = 0;
 let sessionStart = Date.now();
@@ -376,7 +393,7 @@ function splitText(text) {
 async function translateMyMemory(text, source, target, signal) {
   if (source === target) return text;
   if(!circuit.canCall("cloud"))throw new Error(circuit.reason("cloud"));
-  const key = source+"|"+target+"|"+text;
+  const key = translationKey("cloud",source,target,text);
   if (translationCache.has(key)) return translationCache.get(key);
   const out = [];
   const timeout = timeoutSignal(signal);
@@ -755,6 +772,7 @@ function renderRows() {
     }
     container.append(card);
   }
+  floating.setHistory(rows);
   $("phraseCount").textContent=String(rows.length);
   $("showMoreRows").disabled=displayLimit>=rows.length;
   $("latency").textContent=(()=>{for(let i=rows.length-1;i>=0;i--){
