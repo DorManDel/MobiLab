@@ -1,6 +1,7 @@
 import { createChromeTranslatorAdapter, lexicalAgreement } from "./engine-compare.js";
 import { TranslationQueue, wordErrorRate, characterSimilarity, safeLibreEndpoint } from "./bench-core.js";
 import { ParagraphBuilder } from "./paragraph-builder.js";
+import { retroMicHTML, retroMicCSS } from "./retro-mic.js";
 import { TranslationMemory, translationKey } from "./translation-memory.js";
 import {SessionLedger,ProviderCircuit} from "./session-ledger.js";
 import {LocalTranscriptArchive} from "./local-archive.js";
@@ -10,6 +11,13 @@ import "./speech-floating-controls.js";
 import { LiveCaptionView } from "./live-view.js";
 
 const $ = (id) => document.getElementById(id);
+// Apply the same reusable recorder face to the desktop Start/Stop control.
+const desktopMic=$("recordToggle");
+desktopMic.classList.add("studio-recorder");
+desktopMic.innerHTML=retroMicHTML;
+const micCSS=document.createElement("style");
+micCSS.textContent=retroMicCSS+".live-workspace .record-dock{justify-content:center}.live-workspace .record-toggle{flex:0 0 auto}";
+document.head.append(micCSS);
 const ledger=new SessionLedger();
 const circuit=new ProviderCircuit();
 const archive=new LocalTranscriptArchive();
@@ -213,7 +221,9 @@ function ttsStatus(message, warning = false) {
   $("voiceSupport").classList.toggle("warn", warning);
 }
 function refreshRecordingUI() {
-  $("recordToggle").textContent = micActive ? "■ Finish recording" : "🎙 Start recording";
+  const micLabel=$("recordToggle").querySelector(".mic-label");
+  if(micLabel)micLabel.textContent=micActive?"Stop":"Start";
+  $("recordToggle").setAttribute("aria-label",micActive?"Finish recording":"Start recording");
   $("recordToggle").classList.toggle("is-recording", micActive);
   $("recordToggle").setAttribute("aria-pressed", String(micActive));
   $("recordToggle").disabled = !micActive && (!Recognition || !isSecureContext);
