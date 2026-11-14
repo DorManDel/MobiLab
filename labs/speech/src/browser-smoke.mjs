@@ -152,6 +152,10 @@ try {
   await page.locator("#floatingControls #settings").click();
   await page.locator("#floatingControls #provider").selectOption("cloud");
   await page.locator("#floatingControls #apply").click();
+  // A real phone user swipes to the controls; scroll deliberately so the fixed
+  // recorder does not sit on top of the field we intend to tap.
+  await page.locator("#liveSettings summary").evaluate(el=>
+    el.scrollIntoView({block:"start",behavior:"instant"}));
   await page.locator("#liveSettings summary").click();
   await page.locator("#silenceDuration").selectOption("900");
   await page.locator("#floatingControls #record").click();
@@ -178,6 +182,8 @@ try {
   assert.match(await page.locator("#liveTotalMs").textContent(),/ms|—/);
 
   // Optional second remote engine: same source input, real independent response.
+  await page.locator(".provider-config summary").evaluate(el=>
+    el.scrollIntoView({block:"start",behavior:"instant"}));
   await page.locator(".provider-config summary").click();
   await page.locator("#compareLibre").check();
   await page.locator("#libreEndpoint").fill("https://translate.example.org");
