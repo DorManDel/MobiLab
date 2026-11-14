@@ -1,0 +1,23 @@
+import assert from "node:assert/strict";
+import {TranslationMemory,translationKey} from "./translation-memory.js";
+let now=1000;
+const cache=new TranslationMemory({limit:2,ttlMs:500,now:()=>now});
+const k=translationKey("mymemory","he","en","  שלום   עולם  ");
+assert.equal(k,translationKey("mymemory","he","en","שלום עולם"));
+assert.notEqual(k,translationKey("libre","he","en","שלום עולם"));
+assert.notEqual(k,translationKey("mymemory","en","he","שלום עולם"));
+cache.set(k,"Hello world");
+assert.equal(cache.get(k),"Hello world");
+assert.equal(cache.stats.hits,1);
+cache.set("two","two");
+cache.get(k); // refresh LRU
+cache.set("three","three");
+assert.equal(cache.has("two"),false,"evict oldest cache entry");
+assert.equal(cache.has(k),true);
+now+=600;
+assert.equal(cache.get(k),undefined,"expire stale translations");
+cache.set("invalid","");
+assert.equal(cache.has("invalid"),false);
+cache.clear();
+assert.deepEqual(cache.stats,{hits:0,misses:0,stored:0});
+console.log("TranslationMemory: exact-language key, bounded LRU, TTL and cleanup passed.");
