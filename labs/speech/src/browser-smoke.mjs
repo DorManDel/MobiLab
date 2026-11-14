@@ -127,6 +127,20 @@ try {
   // Floating UI and paragraph grouping: successive finals are one paragraph until pause.
   await page.locator("#floatingControls #langs").click();
   assert.equal(await page.locator("#floatingControls #panel").getAttribute("hidden"),null);
+  // v0.7 hardware appearance + independent width/height inspector.
+  assert.equal(await page.locator("#floatingControls #record .vb-mic-mesh-svg").count(),1);
+  await page.locator("#floatingControls #micDesign summary").click();
+  await page.locator('#floatingControls [data-mic-preset="wide"]').click();
+  assert.equal(await page.locator("#floatingControls #micWidth").inputValue(),"188");
+  assert.equal(await page.locator("#floatingControls #micHeight").inputValue(),"86");
+  assert.equal(await page.locator("#floatingControls #record").evaluate(
+    el=>el.style.getPropertyValue("--mic-width")),"",
+    "Shape dimensions should stay scoped to the floating control host");
+  assert.equal(await page.locator("#floatingControls").evaluate(
+    el=>el.style.getPropertyValue("--mic-width")),"188px");
+  await page.locator('#floatingControls [data-mic-preset="square"]').click();
+  assert.equal(await page.locator("#floatingControls #micHeight").inputValue(),"112");
+  await page.locator("#floatingControls #micDesign summary").click();
   await page.locator("#floatingControls #lines").selectOption("3");
   await page.locator("#floatingControls #provider").selectOption("fastest");
   const panelRect=await page.locator("#floatingControls #panel").boundingBox();
