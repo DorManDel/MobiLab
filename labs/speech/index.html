@@ -102,13 +102,14 @@
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
   </style>
   <link rel="stylesheet" href="./src/live-captions.css">
+  <link rel="stylesheet" href="./src/voicebridge-theme.css">
 </head>
 <body>
 <div class="shell">
   <header><a class="brand" href="../../#home">Mobi<span>Lab</span> / SPEECH</a><a class="back" href="../../#home">← All experiments</a></header>
 
   <section class="live-workspace" aria-label="Instant captions and listening">
-    <div class="live-topline"><strong>◉ LIVE SUBTITLE STUDIO</strong><span>v0.6 · BETA</span></div>
+    <div class="live-topline"><strong>◉ LIVE SUBTITLE STUDIO</strong><span>v0.7 · MOBILE TEST</span></div>
     <div class="live-controls">
       <div class="live-languages">
         <div class="field">
@@ -192,8 +193,8 @@
         </div>
         <div class="field"><label for="silenceDuration">End paragraph after pause</label>
           <select id="silenceDuration">
-            <option value="900">0.9 seconds · fast</option>
-            <option value="1600" selected>1.6 seconds · balanced</option>
+            <option value="900" selected>0.9 seconds · fast</option>
+            <option value="1600">1.6 seconds · balanced</option>
             <option value="2500">2.5 seconds · longer turns</option>
           </select>
         </div>

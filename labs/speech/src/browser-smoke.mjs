@@ -93,6 +93,18 @@ try {
   assert.equal(await page.locator("#floatingControls #captionText").textContent(),"Translation A");
   assert.equal(await page.locator("#providerScoreRows .score-row").count(),3);
   assert.equal(await page.locator("#liveTranslation").textContent(),"Translation A");
+  // v0.7: transcript history is a projection of the saved canonical ledger.
+  await page.locator("#floatingControls #historyToggle").click();
+  assert.equal(await page.locator("#floatingControls #historyToggle").getAttribute("aria-expanded"),"true");
+  assert.equal(await page.locator("#floatingControls #sheetList .history-item").count(),1);
+  assert.match(await page.locator("#floatingControls #sheetList .history-item").first().textContent(),/Translation A/);
+  const oldHeight=(await page.locator("#floatingControls #historySheet").boundingBox()).height;
+  await page.locator("#floatingControls #sheetSize").click();
+  assert.ok((await page.locator("#floatingControls #historySheet").boundingBox()).height>oldHeight);
+  await page.locator("#floatingControls #sheetClose").click();
+  assert.equal(await page.locator("#floatingControls #historyToggle").getAttribute("aria-expanded"),"false");
+  await page.locator("#floatingControls #speak").click();
+  assert.equal(await page.evaluate(()=>window.__spoken),"Translation A");
   await page.locator('[data-caption-mode="roll"]').click();
   assert.equal(await page.locator("#liveDeck").getAttribute("data-mode"),"roll");
   assert.ok(await page.locator(".roll-entry").count());
@@ -115,6 +127,20 @@ try {
   // Floating UI and paragraph grouping: successive finals are one paragraph until pause.
   await page.locator("#floatingControls #langs").click();
   assert.equal(await page.locator("#floatingControls #panel").getAttribute("hidden"),null);
+  // v0.7 hardware appearance + independent width/height inspector.
+  assert.equal(await page.locator("#floatingControls #record .vb-mic-mesh-svg").count(),1);
+  await page.locator("#floatingControls #micDesign summary").click();
+  await page.locator('#floatingControls [data-mic-preset="wide"]').click();
+  assert.equal(await page.locator("#floatingControls #micWidth").inputValue(),"188");
+  assert.equal(await page.locator("#floatingControls #micHeight").inputValue(),"86");
+  assert.equal(await page.locator("#floatingControls #record").evaluate(
+    el=>el.style.getPropertyValue("--mic-width")),"",
+    "Shape dimensions should stay scoped to the floating control host");
+  assert.equal(await page.locator("#floatingControls").evaluate(
+    el=>el.style.getPropertyValue("--mic-width")),"188px");
+  await page.locator('#floatingControls [data-mic-preset="square"]').click();
+  assert.equal(await page.locator("#floatingControls #micHeight").inputValue(),"112");
+  await page.locator("#floatingControls #micDesign summary").click();
   await page.locator("#floatingControls #lines").selectOption("3");
   await page.locator("#floatingControls #provider").selectOption("fastest");
   const panelRect=await page.locator("#floatingControls #panel").boundingBox();
@@ -126,7 +152,12 @@ try {
   await page.locator("#floatingControls #settings").click();
   await page.locator("#floatingControls #provider").selectOption("cloud");
   await page.locator("#floatingControls #apply").click();
-  await page.locator("#liveSettings summary").click();
+  // The fixed studio dock is tested separately. Open the details directly here
+  // so this section can focus on paragraph-builder behavior, not pointer overlap.
+  await page.locator("#liveSettings").evaluate(el=>{
+    el.open=true;
+    el.scrollIntoView({block:"start",behavior:"instant"});
+  });
   await page.locator("#silenceDuration").selectOption("900");
   await page.locator("#floatingControls #record").click();
   assert.equal(await page.locator("#recordToggle").getAttribute("aria-pressed"),"true");
@@ -152,7 +183,10 @@ try {
   assert.match(await page.locator("#liveTotalMs").textContent(),/ms|—/);
 
   // Optional second remote engine: same source input, real independent response.
-  await page.locator(".provider-config summary").click();
+  await page.locator(".provider-config").evaluate(el=>{
+    el.open=true;
+    el.scrollIntoView({block:"start",behavior:"instant"});
+  });
   await page.locator("#compareLibre").check();
   await page.locator("#libreEndpoint").fill("https://translate.example.org");
   await page.locator("#manualText").fill("זאת בדיקה");

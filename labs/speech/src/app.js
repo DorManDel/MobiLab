@@ -1,6 +1,8 @@
 import { createChromeTranslatorAdapter, lexicalAgreement } from "./engine-compare.js";
 import { TranslationQueue, wordErrorRate, characterSimilarity, safeLibreEndpoint } from "./bench-core.js";
 import { ParagraphBuilder } from "./paragraph-builder.js";
+import { retroMicHTML, retroMicCSS } from "./retro-mic.js";
+import { TranslationMemory, translationKey } from "./translation-memory.js";
 import {SessionLedger,ProviderCircuit} from "./session-ledger.js";
 import {LocalTranscriptArchive} from "./local-archive.js";
 import {summarizeProviders} from "./provider-stats.js";
@@ -9,6 +11,13 @@ import "./speech-floating-controls.js";
 import { LiveCaptionView } from "./live-view.js";
 
 const $ = (id) => document.getElementById(id);
+// Apply the same reusable recorder face to the desktop Start/Stop control.
+const desktopMic=$("recordToggle");
+desktopMic.classList.add("studio-recorder");
+desktopMic.innerHTML=retroMicHTML;
+const micCSS=document.createElement("style");
+micCSS.textContent=retroMicCSS+".live-workspace .record-dock{justify-content:center}.live-workspace .record-toggle{flex:0 0 auto}";
+document.head.append(micCSS);
 const ledger=new SessionLedger();
 const circuit=new ProviderCircuit();
 const archive=new LocalTranscriptArchive();
@@ -71,7 +80,9 @@ function saveLocalSoon() {
 }
 let translateOnFinish=false;
 const paragraphs = new ParagraphBuilder({
-  silenceMs:1600,
+  silenceMs:900,
+  flushOnSentenceEnd:true,
+  minSentenceWords:6,
   onPreview(text){
     if(micActive&&text){
       liveView.pendingParagraph(text);
@@ -91,6 +102,20 @@ const paragraphs = new ParagraphBuilder({
 liveView.setVisibleLines(2);
 floating.setLineCount(2);
 floating.addEventListener("speech:toggle",()=>$("recordToggle").click());
+floating.addEventListener("speech:history-focus",(event)=>focusView(ledger.focus(event.detail.id)));
+floating.addEventListener("speech:speak",()=>{
+  if(micActive) {
+    floating.setNotice("Finish recording before playing speech to prevent echo.");
+    return;
+  }
+  const focused=focusedState();
+  if(!focused?.displayText){
+    floating.setNotice("No translated text in this paragraph yet.");
+    return;
+  }
+  floating.setNotice("Starting speech playback…");
+  speakText(focused.displayText,focused.target);
+});
 floating.addEventListener("speech:language-change",(event)=>{
   if(micActive){
     status("Finish recording before changing languages.",true);
@@ -170,7 +195,7 @@ const langNames = {he:"Hebrew",en:"English",es:"Spanish",fr:"French",de:"German"
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const synthesis = window.speechSynthesis;
 const localTranslator = createChromeTranslatorAdapter(window);
-const translationCache = new Map();
+const translationCache = new TranslationMemory({limit:400});
 let rows = ledger.entries;
 let rowId = 0;
 let sessionStart = Date.now();
@@ -196,7 +221,9 @@ function ttsStatus(message, warning = false) {
   $("voiceSupport").classList.toggle("warn", warning);
 }
 function refreshRecordingUI() {
-  $("recordToggle").textContent = micActive ? "■ Finish recording" : "🎙 Start recording";
+  const micLabel=$("recordToggle").querySelector(".mic-label");
+  if(micLabel)micLabel.textContent=micActive?"Stop":"Start";
+  $("recordToggle").setAttribute("aria-label",micActive?"Finish recording":"Start recording");
   $("recordToggle").classList.toggle("is-recording", micActive);
   $("recordToggle").setAttribute("aria-pressed", String(micActive));
   $("recordToggle").disabled = !micActive && (!Recognition || !isSecureContext);
@@ -376,7 +403,7 @@ function splitText(text) {
 async function translateMyMemory(text, source, target, signal) {
   if (source === target) return text;
   if(!circuit.canCall("cloud"))throw new Error(circuit.reason("cloud"));
-  const key = source+"|"+target+"|"+text;
+  const key = translationKey("cloud",source,target,text);
   if (translationCache.has(key)) return translationCache.get(key);
   const out = [];
   const timeout = timeoutSignal(signal);
@@ -755,6 +782,7 @@ function renderRows() {
     }
     container.append(card);
   }
+  floating.setHistory(rows);
   $("phraseCount").textContent=String(rows.length);
   $("showMoreRows").disabled=displayLimit>=rows.length;
   $("latency").textContent=(()=>{for(let i=rows.length-1;i>=0;i--){

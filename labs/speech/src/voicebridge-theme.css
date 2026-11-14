@@ -1,0 +1,76 @@
+/* VoiceBridge Studio theme: derived from Dor's portfolio glass system + WebForge FX Arsenal.
+   Optical refraction lives separately in voicebridge-glass.js; this theme is
+   the accessible, inexpensive CSS frost/specular fallback. */
+:root{--vb-violet:#b99dff;--vb-gold:#f9df98;--vb-ice:#e0eeff;--vb-edge:#ffffff30;--vb-shadow:#03041470}
+body{
+ background:
+  radial-gradient(ellipse at 16% 14%,#644dab42,transparent 52%),
+  radial-gradient(ellipse at 88% 55%,#376b9b34,transparent 57%),
+  linear-gradient(145deg,#0a1020,#121429 50%,#080d1b 100%)!important;
+ background-attachment:fixed
+}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;
+ background-image:linear-gradient(#c0aafa08 1px,transparent 1px),linear-gradient(90deg,#c0aafa08 1px,transparent 1px);
+ background-size:45px 45px;mask-image:linear-gradient(to bottom,transparent,#000 25%,#000 85%,transparent)}
+.shell{position:relative}
+header{background:linear-gradient(115deg,#ffffff09,transparent);border-radius:17px;padding:10px 14px;margin:0 -10px}
+.brand{letter-spacing:-.5px;text-shadow:0 1px 18px #9579fe5e}
+.brand span{color:var(--vb-violet)}
+.back{border-color:#ffffff26;background:#ffffff0b;border-radius:999px;backdrop-filter:blur(7px)}
+.live-workspace,.card,.stage,.provider-config{
+ position:relative;
+ background:linear-gradient(138deg,#ffffff13,#191a3068 40%,#111325c9 94%)!important;
+ border:1px solid var(--vb-edge)!important;
+ box-shadow:inset 0 1px 1px #ffffff2c,0 22px 46px var(--vb-shadow)!important;
+ -webkit-backdrop-filter:blur(12px) saturate(135%);backdrop-filter:blur(12px) saturate(135%)
+}
+.live-workspace{border-radius:26px;overflow:visible}
+.card{border-radius:23px}
+.live-deck{border-radius:23px;
+ background:radial-gradient(ellipse at 45% 90%,#7354ad77,transparent 56%),
+ radial-gradient(ellipse at 100% 4%,#41678c55,transparent 57%),linear-gradient(160deg,#101225,#1b1738 70%,#0a1224)!important;
+ box-shadow:inset 0 1px 1px #ffffff29,0 20px 45px #0006!important}
+.live-deck:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+ border-radius:inherit;box-shadow:inset 0 1px 0 #ffffff34,inset 0 0 0 1px #ffffff0d;
+ background:linear-gradient(125deg,#ffffff10,transparent 38%,#ffffff06 85%)}
+.live-output,.append-entry,.focus-controls button{
+ border:1px solid #ffffff29!important;
+ background:linear-gradient(125deg,#252744c5,#14172cba)!important;
+ box-shadow:inset 0 1px 0 #ffffff22,0 8px 25px #0004;
+ -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)
+}
+.live-output{border-radius:18px}
+.live-translation{color:var(--vb-gold)!important}
+button:not(.studio-recorder){transition:transform .22s cubic-bezier(.2,1.25,.33,1),border-color .2s,background .2s}
+button:not(.studio-recorder):active{transform:scale(.97)}
+button:focus-visible{outline:2px solid var(--vb-gold)}
+.caption-switch{background:#0a0b1a8a!important;border:1px solid #ffffff25!important;border-radius:17px;padding:5px}
+.caption-switch button{border-radius:12px!important}
+.caption-switch button[aria-pressed=true]{background:linear-gradient(120deg,#b59af2,#e1bde6)!important;color:#171029!important;box-shadow:0 4px 14px #8b60f550}
+.live-metrics>div,.engine-box,.metric-box,.segment{background:#0c1122aa!important;border:1px solid #ffffff19!important;border-radius:14px!important}
+.live-metrics strong,.metric{color:var(--vb-gold)!important}
+input[type=range]{accent-color:var(--vb-violet)}
+.record-dock{border-radius:20px;background:#1d1d348e;border-color:#ffffff34}
+@media(max-width:740px){
+ body{background-attachment:scroll}
+ .shell{padding-bottom:max(170px,env(safe-area-inset-bottom) + 150px)!important}
+ header{margin:0;padding:8px 10px}
+ .live-workspace{padding:13px 12px}
+ .live-workspace,.card,.stage,.provider-config{backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+ .live-deck{height:clamp(240px,37dvh,385px)}
+ .live-metrics strong{font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*:before,*:after{scroll-behavior:auto!important}
+ button:not(.studio-recorder){transition:none!important}
+}
+
+/* Allow every form field to scroll above the fixed two-row mobile studio dock.
+   The dock plus captions can be ~220px tall on small portrait screens. */
+@media(max-width:740px){
+  html{scroll-padding-top:24px;scroll-padding-bottom:max(250px,32dvh)}
+  .shell{padding-bottom:max(350px,env(safe-area-inset-bottom) + 330px)!important}
+  .live-setting-details,.provider-config,.live-workspace summary,
+  #controls,textarea,select,input{scroll-margin-bottom:max(250px,32dvh)}
+  body{overflow-x:hidden}
+}
