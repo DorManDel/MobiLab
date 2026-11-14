@@ -34,3 +34,17 @@ builder.setSilence(120);
 assert.equal(builder.silenceMs,500,"Safe lower pause limit");
 assert.ok(previews.includes("שלום לכולם זאת שיחה מתמשכת"));
 console.log("ParagraphBuilder debounce, language separation, Stop flush, clear and safety limits passed.");
+
+const sentence=[];
+const sentenceBuilder=new ParagraphBuilder({onParagraph:p=>sentence.push(p),silenceMs:1600});
+sentenceBuilder.addFinal("This is a complete sentence with enough context.",{source:"en",target:"he"});
+assert.equal(sentence.length,1,"Punctuation on a finalized sentence should commit immediately");
+assert.equal(sentence[0].reason,"sentence-end");
+sentenceBuilder.addFinal("Dr.",{source:"en",target:"he"});
+assert.equal(sentence.length,1,"Short abbreviation should not immediately flush");
+sentenceBuilder.clear();
+const noPunctuation=[];
+const hold=new ParagraphBuilder({onParagraph:p=>noPunctuation.push(p),flushOnSentenceEnd:false});
+hold.addFinal("This is a complete sentence with enough context.",{source:"en",target:"he"});
+assert.equal(noPunctuation.length,0,"Explicit opt-out preserves pause grouping");
+hold.clear();
