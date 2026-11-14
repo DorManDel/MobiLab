@@ -4,6 +4,8 @@ A mobile-first collection of experimental web mechanics and hardware exploration
 
 ## Experiments
 
+- **Photo3D Lab (browser beta)** — independent, modular portrait-analysis experiment with on-device MediaPipe landmarks and synchronized relative-3D point visualization. [Open Photo3D Lab](https://dormandel.github.io/Photo3D-Engine/) · [Photo3D source](https://github.com/DorManDel/Photo3D-Engine). Its model was verified by automated Chromium against a reference portrait; real phone UX remains to be checked. True depth geometry and blinking are not implemented yet.
+
 - **Liquid FX · WebForge FX Arsenal v0.3** — 12 touch-ready interaction experiments including optical SVG-displacement Liquid Glass (Border Radius, Frost, Blur, Refraction, Bezel Depth), preset export, CSS/SVG copy, six scene previews and a standalone glass demo. [Open FX Playground](./labs/liquid-fx/) · [Previous 4-mode lab](./labs/liquid-fx/legacy.html) · [Lab notes](./labs/liquid-fx/README.md).
 
 - **FaceFX Lab (v0.3 mobile-first)** — on-device local Photo Swap (2D face texture transfer), MediaPipe/Canvas filters and an optional private Python WebRTC + RTX processor with comparison telemetry. [Open lab](./labs/facefx/) · [PC server setup](./facefx-server/) · see [FaceFX notes](./labs/facefx/README.md).
