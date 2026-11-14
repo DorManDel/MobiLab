@@ -31,7 +31,7 @@ export class SpeechFloatingControls extends HTMLElement {
     recorder.innerHTML=retroMicHTML;
     const fxStyles=document.createElement("style");
     fxStyles.textContent=retroMicCSS+String.raw`
-:host{--mic-width:112px;--mic-height:112px;--mic-radius:28px;pointer-events:none}\n.bar,.panel,.history-sheet{pointer-events:auto}\n.caption-shell{pointer-events:none}
+:host{--mic-width:112px;--mic-height:112px;--mic-radius:28px}\n.caption-shell{pointer-events:none}
 .bar{display:grid!important;grid-template-columns:minmax(70px,min(var(--mic-width),48vw)) repeat(2,minmax(0,1fr));
  grid-template-rows:repeat(2,minmax(44px,auto));gap:7px!important;align-items:stretch;
  background:linear-gradient(125deg,rgba(55,49,94,.52),rgba(16,17,38,.58) 62%,rgba(45,30,72,.55))!important;
