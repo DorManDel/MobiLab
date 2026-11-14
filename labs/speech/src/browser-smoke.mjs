@@ -152,11 +152,12 @@ try {
   await page.locator("#floatingControls #settings").click();
   await page.locator("#floatingControls #provider").selectOption("cloud");
   await page.locator("#floatingControls #apply").click();
-  // A real phone user swipes to the controls; scroll deliberately so the fixed
-  // recorder does not sit on top of the field we intend to tap.
-  await page.locator("#liveSettings summary").evaluate(el=>
-    el.scrollIntoView({block:"start",behavior:"instant"}));
-  // Expand deep advanced settings programmatically; dock touch behavior is\n  // tested separately and manual accessibility needs physical phone QA.\n  await page.locator("#liveSettings summary").evaluate(el=>el.click());
+  // The fixed studio dock is tested separately. Open the details directly here
+  // so this section can focus on paragraph-builder behavior, not pointer overlap.
+  await page.locator("#liveSettings").evaluate(el=>{
+    el.open=true;
+    el.scrollIntoView({block:"start",behavior:"instant"});
+  });
   await page.locator("#silenceDuration").selectOption("900");
   await page.locator("#floatingControls #record").click();
   assert.equal(await page.locator("#recordToggle").getAttribute("aria-pressed"),"true");
@@ -182,9 +183,10 @@ try {
   assert.match(await page.locator("#liveTotalMs").textContent(),/ms|—/);
 
   // Optional second remote engine: same source input, real independent response.
-  await page.locator(".provider-config summary").evaluate(el=>
-    el.scrollIntoView({block:"start",behavior:"instant"}));
-  await page.locator(".provider-config summary").evaluate(el=>el.click());
+  await page.locator(".provider-config").evaluate(el=>{
+    el.open=true;
+    el.scrollIntoView({block:"start",behavior:"instant"});
+  });
   await page.locator("#compareLibre").check();
   await page.locator("#libreEndpoint").fill("https://translate.example.org");
   await page.locator("#manualText").fill("זאת בדיקה");
