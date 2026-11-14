@@ -37,6 +37,9 @@ jobs:
           node --check labs/speech/src/session-ledger.js
           node --check labs/speech/src/local-archive.js
           node --check labs/speech/src/provider-stats.js
+          node --check labs/speech/src/retro-mic.js
+          node --check labs/speech/src/voicebridge-glass.js
+          node --check labs/speech/src/translation-memory.js
       - name: Run pure unit tests and DOM contract
         working-directory: labs/speech
         run: npm test
