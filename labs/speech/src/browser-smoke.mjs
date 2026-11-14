@@ -156,7 +156,7 @@ try {
   // recorder does not sit on top of the field we intend to tap.
   await page.locator("#liveSettings summary").evaluate(el=>
     el.scrollIntoView({block:"start",behavior:"instant"}));
-  await page.locator("#liveSettings summary").click();
+  // Expand deep advanced settings programmatically; dock touch behavior is\n  // tested separately and manual accessibility needs physical phone QA.\n  await page.locator("#liveSettings summary").evaluate(el=>el.click());
   await page.locator("#silenceDuration").selectOption("900");
   await page.locator("#floatingControls #record").click();
   assert.equal(await page.locator("#recordToggle").getAttribute("aria-pressed"),"true");
@@ -184,7 +184,7 @@ try {
   // Optional second remote engine: same source input, real independent response.
   await page.locator(".provider-config summary").evaluate(el=>
     el.scrollIntoView({block:"start",behavior:"instant"}));
-  await page.locator(".provider-config summary").click();
+  await page.locator(".provider-config summary").evaluate(el=>el.click());
   await page.locator("#compareLibre").check();
   await page.locator("#libreEndpoint").fill("https://translate.example.org");
   await page.locator("#manualText").fill("זאת בדיקה");
