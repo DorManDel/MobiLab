@@ -65,3 +65,19 @@ body[data-vb-background="plain"]{background:linear-gradient(135deg,#07101d,#111b
  .vb-mobile-tabs{display:flex;max-width:740px}
 }
 @media(prefers-reduced-motion:reduce){.vb-tab-button{transition:none!important}}
+
+/* Only for the legacy regression route, never for the default compact UI. */
+@media(max-width:740px){
+ body[data-vb-tab="legacy"] .live-workspace{display:block!important}
+ body[data-vb-tab="legacy"] .local-node-panel{display:block!important}
+ body[data-vb-tab="legacy"] .shell>.grid{display:grid!important}
+ body[data-vb-tab="legacy"] .shell>.intro,
+ body[data-vb-tab="legacy"] .shell>.alert,
+ body[data-vb-tab="legacy"] .shell>.notes{display:block!important}
+ body[data-vb-tab="legacy"] .live-workspace .record-dock{display:flex!important}
+ body[data-vb-tab="legacy"] .live-metrics,
+ body[data-vb-tab="legacy"] .live-access{display:grid!important}
+}
+.vb-audio-module{border:1px solid #ffffff29;border-radius:15px;background:#101d34bb;padding:12px;margin:14px 0}
+.vb-audio-module summary{cursor:pointer;color:#f4dc9e;font-size:14px;font-weight:750}
+.vb-audio-module .vb-design-row p{margin:0;color:#a6b6cc;font-size:11px}
