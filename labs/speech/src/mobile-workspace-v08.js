@@ -137,6 +137,16 @@ export function createMobileWorkspace({ledger,floating}){
   const advancedTiming=document.getElementById("liveSettings");
   if(advancedTiming)settings.append(advancedTiming);
   const $=id=>document.getElementById(id);
+  const windowPanel=document.createElement("div");
+  windowPanel.className="vb-design-row";
+  windowPanel.innerHTML='<label for="vbWindowPreset">Floating window layout</label>'+
+    '<select id="vbWindowPreset"><option value="bubble">Bubble</option>'+
+    '<option value="floating" selected>Floating · default</option>'+
+    '<option value="expanded">Expanded</option></select>'+
+    '<p>The widget can also be moved with the top handle or cycled with ◉.</p>';
+  settings.append(windowPanel);
+  document.getElementById("vbWindowPreset").addEventListener("change",event=>
+    floating.setLayoutMode?.(event.target.value));
   const telemetry=new VoiceBridgeTelemetry();
   const appearance=loadAppearance();
   function applyAppearance(){
@@ -227,12 +237,17 @@ export function createMobileWorkspace({ledger,floating}){
     const rows=ledger.entries;
     const nums=(fn)=>rows.map(fn).filter(Number.isFinite);
     const stt=nums(r=>r.sttMs),total=nums(r=>r.finalToSubtitleMs);
+    const waits=nums(r=>r.queueWaitMs);
+    const providers=rows.flatMap(r=>Object.values(r.results||{})
+      .filter(v=>v.status==="success"&&Number.isFinite(v.ms)).map(v=>v.ms));
     const gap=telemetry.gaps;
     const missed=rows.filter(r=>["skipped","canceled"].includes(r.queueStatus)).length;
     const stats=$("vbDiagStats");
     stats.replaceChildren(metric("Speech → final estimate · p50",p(stt,.5)===null?"—":p(stt,.5)+" ms"),
       metric("Final → subtitle · p50",p(total,.5)===null?"—":p(total,.5)+" ms"),
       metric("Final → subtitle · p90",p(total,.9)===null?"—":p(total,.9)+" ms"),
+      metric("Queue wait · p50",p(waits,.5)===null?"—":p(waits,.5)+" ms"),
+      metric("Translator · p50",p(providers,.5)===null?"—":p(providers,.5)+" ms"),
       metric("Reconnect gap · last",gap.length?Math.round(gap.at(-1))+" ms":"—"),
       metric("Guarded duplicated finals",String(telemetry.counts["duplicate-suppressed"]||0)),
       metric("Skipped / canceled rows",String(missed)));
