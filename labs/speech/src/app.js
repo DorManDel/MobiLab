@@ -1,6 +1,7 @@
 import { createChromeTranslatorAdapter, lexicalAgreement } from "./engine-compare.js";
 import { TranslationQueue, wordErrorRate, characterSimilarity, safeLibreEndpoint } from "./bench-core.js";
 import { ParagraphBuilder } from "./paragraph-builder.js";
+import { SpeechFinalGuard } from "./speech-final-guard.js";
 import { retroMicHTML, retroMicCSS } from "./retro-mic.js";
 import { TranslationMemory, translationKey } from "./translation-memory.js";
 import {SessionLedger,ProviderCircuit} from "./session-ledger.js";
@@ -205,6 +206,8 @@ let micActive = false;
 let micToken = 0;
 let restartTimeout = null;
 let restartTimes = [];
+const finalGuard=new SpeechFinalGuard();
+let recognizerResumed=false;
 let sessionTimer = null;
 let interimActive = false;
 let currentUtterance = null;
@@ -255,17 +258,17 @@ function stopMic(translateLast=false) {
     try { old.abort(); } catch {}
   }
   cancelDraft();
-  queue.stop(); // cancellation for all prior translation work
+  // Finishing microphone capture must not cancel already queued translations.
+  // Explicit Clear and pagehide remain the only cancellation paths.
   interimActive = false;
-  // Explicit Finish may translate only its final unfinished paragraph.
-  // Background/error Stop never initiates new network requests.
-  translateOnFinish=Boolean(translateLast);
+  // Flush the last recognized paragraph; finish outstanding queue work separately.
+  translateOnFinish=true;
   paragraphs.flush("stop");
   translateOnFinish=false;
   refreshRecordingUI();
   status(translateLast
-    ? "Mic off. Earlier pending translations canceled; only the last unfinished paragraph may finish translating."
-    : "Mic off. Transcript remains in this page; translations canceled.");
+    ? "Mic off. Translating queued and final paragraphs; original transcript is preserved."
+    : "Mic off. Existing translation jobs continue while this page remains open.");
   if(rows.length){
     const latest=rows[rows.length-1];
     showCaption(latest);showComparison(latest);focusView(ledger.focused||latest);
@@ -302,7 +305,11 @@ function activateRecognizer(token) {
         cancelDraft();
         const finalPerf=performance.now();
         const speechDuration=speechStartPerf===null?null:Math.max(0,finalPerf-speechStartPerf);
-        paragraphs.addFinal(phrase,{
+        const guarded=finalGuard.accept(phrase,{at:Date.now(),source:$("sourceLang").value,
+          target:$("targetLang").value,restarted:recognizerResumed});
+        recognizerResumed=false;
+        if(!guarded.text)continue;
+        paragraphs.addFinal(guarded.text,{
           source:$("sourceLang").value,target:$("targetLang").value,
           candidates,sttMs:speechDuration,finalPerf
         });
@@ -342,6 +349,7 @@ function activateRecognizer(token) {
       return;
     }
     status("Speech recognizer paused; reconnecting while REC is enabled…");
+    recognizerResumed=true;
     restartTimeout = setTimeout(() => {
       if (micActive && token === micToken) {
         try { activateRecognizer(token); }
@@ -365,6 +373,8 @@ function startMic() {
   micActive = true;
   micToken++;
   restartTimes = [];
+  finalGuard.clear();
+  recognizerResumed=false;
   paragraphs.clear();
   queue.start();
   refreshRecordingUI();
