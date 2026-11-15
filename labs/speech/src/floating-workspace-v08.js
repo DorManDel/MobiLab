@@ -87,6 +87,13 @@ export function initializeFloatingWorkspace(host){
     requestAnimationFrame(()=>{clampWindow();persist();});
   }
   host.setLayoutMode=setMode;
+  // Default gear opens the normal mobile Settings tab, not another giant popup.
+  // The legacy regression route keeps its original settings popup.
+  $("settings").addEventListener("click",event=>{
+    if(new URLSearchParams(location.search).has("legacy"))return;
+    event.stopImmediatePropagation();
+    host.emit("speech:open-workspace-settings");
+  },{capture:true});
   $("vbLayout").addEventListener("change",e=>setMode(e.target.value));
   $("vbCycle").addEventListener("click",()=>setMode(MODES[(MODES.indexOf(layout)+1)%MODES.length]));
   $("vbDrag").addEventListener("pointerdown",e=>{
