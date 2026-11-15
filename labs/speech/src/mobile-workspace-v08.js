@@ -80,6 +80,9 @@ export function createMobileWorkspace({ledger,floating}){
     '<button type="button" id="vbResetAppearance">Reset appearance</button>'+
     '<p>Recording, TTS, provider credentials, local media and benchmark tools remain in the Advanced workbench below.</p>';
   nav.after(transcript,diagnostics,settings);
+  // Advanced paragraph and provider settings belong to Settings, not Live.
+  const advancedTiming=document.getElementById("liveSettings");
+  if(advancedTiming)settings.append(advancedTiming);
   const $=id=>document.getElementById(id);
   const telemetry=new VoiceBridgeTelemetry();
   const appearance=loadAppearance();
@@ -200,5 +203,10 @@ export function createMobileWorkspace({ledger,floating}){
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
   selectTab("live");
+  // Separate legacy workbench path for regression tests / debugging.
+  // Normal visitors always start with compact Live mode.
+  if(new URLSearchParams(location.search).has("legacy")){
+    document.body.dataset.vbTab="legacy";settings.hidden=false;
+  }
   return {telemetry,selectTab,refreshTranscript,renderDiagnostics};
 }
