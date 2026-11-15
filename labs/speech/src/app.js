@@ -27,6 +27,10 @@ const archive=new LocalTranscriptArchive();
 const liveView = new LiveCaptionView(document);
 liveView.bindLedger(ledger);
 const floating = $("floatingControls");
+// A backdrop-filtered ancestor becomes a containing block for fixed elements.
+// Portal the actual dock to <body> so its position and full-screen curtain
+// are viewport-fixed instead of trapped inside .live-workspace.
+document.body.append(floating);
 const workspace=createMobileWorkspace({ledger,floating});
 const audioMonitor=new SpeechAudioMonitor({
   canvas:floating.shadowRoot?.getElementById("vbWave"),
