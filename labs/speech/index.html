@@ -103,13 +103,14 @@
   </style>
   <link rel="stylesheet" href="./src/live-captions.css">
   <link rel="stylesheet" href="./src/voicebridge-theme.css">
+  <link rel="stylesheet" href="./src/voicebridge-workspace.css">
 </head>
 <body>
 <div class="shell">
   <header><a class="brand" href="../../#home">Mobi<span>Lab</span> / SPEECH</a><a class="back" href="../../#home">← All experiments</a></header>
 
   <section class="live-workspace" aria-label="Instant captions and listening">
-    <div class="live-topline"><strong>◉ LIVE SUBTITLE STUDIO</strong><span>v0.7 · MOBILE TEST</span></div>
+    <div class="live-topline"><strong>◉ LIVE SUBTITLE STUDIO</strong><span>v0.8 · FLOATING WORKSPACE</span></div>
     <div class="live-controls">
       <div class="live-languages">
         <div class="field">
@@ -258,19 +259,19 @@
   </section>
 
   <div class="intro">
-    <div class="eyebrow">EXPERIMENT 07 · LANGUAGE & AUDIO · LIVE BETA 0.6</div>
+    <div class="eyebrow">EXPERIMENT 07 · LANGUAGE & AUDIO · LIVE BETA 0.8</div>
     <h1>Speech & <em>Translate</em> Lab</h1>
     <p>A mobile-first listening workbench: record and save transcripts, translate through real engines, compare outputs and hear the result. Designed for reusable components.</p>
     <div class="row"><span class="tag">🎙 Live microphone</span><span class="tag">🗺 Translation</span><span class="tag">🔊 TTS</span><span class="tag">📊 WER test</span></div>
   </div>
-  <div class="alert"><strong>Privacy & capability:</strong> Browser recognition may send microphone audio to a speech service. Translating sends finalized text to MyMemory. Nothing is saved on a server by this app. This lab cannot capture telephone calls or other apps' protected audio. Recording starts only when you tap Start. Stop cancels pending API work and preserves completed transcript segments in this page.</div>
+  <div class="alert"><strong>Privacy & capability:</strong> Browser recognition may send microphone audio to a speech service. Translating sends finalized text to MyMemory. Nothing is saved on a server by this app. This lab cannot capture telephone calls or other apps' protected audio. Recording starts only when you tap Start. Finishing capture lets queued translations complete while this page stays open; Clear cancels pending API work. The original transcript remains available.</div>
   <div class="grid">
     <section class="card" id="controls" aria-labelledby="controlTitle">
       <div class="row between"><div><div class="eyebrow">01 / INPUT</div><h2 id="controlTitle">Recording details</h2></div><span class="tag" id="browserSupport">Checking…</span></div>
       <p class="hint">Microphone recognition requires a selected spoken language. Auto detection is experimental and only available for typed text. The built-in browser recognizer is <strong>not</strong> a reliable multilingual auto-detector.</p>
       <label class="check" for="autoTranslate"><input id="autoTranslate" type="checkbox" checked> Translate each completed paragraph while listening</label>
       <button type="button" id="translateSaved" class="btn-translate-saved">↻ Translate saved phrases / re-run latest</button>
-      <p class="hint">Stop immediately ends speech recognition and cancels outstanding translations. The final <strong>text transcript</strong> stays in this page until you clear or close it; <strong>no raw audio recording is saved</strong>.</p>
+      <p class="hint">Stop immediately ends speech recognition; pending translations continue while this page stays open. The final <strong>text transcript</strong> stays in this page until you clear or close it; <strong>no raw audio recording is saved</strong>.</p>
       <p class="status" aria-live="polite"><span id="stateDot" class="dot"></span><span id="status">Ready. Microphone is off.</span></p>
       <div class="divider"></div>
       <div class="eyebrow">02 / MANUAL TEXT TEST</div><h2>Paste or type a phrase</h2>
@@ -376,7 +377,7 @@
     <ul>
       <li><strong>Engine comparison:</strong> MyMemory, desktop-only Chrome Translator and an optional user-controlled HTTPS LibreTranslate-compatible server can translate the <em>same finalized text</em>. One microphone recognizer still supplies that text; these are translation engines, not independent STT models. Provider quality cannot be inferred from agreement alone.</li>
       <li><strong>Speech recognition:</strong> Web Speech API on supporting browsers, typically cloud-backed; Android may stop listening after pauses. The lab attempts safe restarts while you keep the mic enabled.</li>
-      <li><strong>Translation:</strong> MyMemory public API has anonymous limits; only final phrases are submitted. Requests are placed in a bounded queue, canceled on Stop, and failures remain visible. A separate custom server can be used with explicit opt-in.</li>
+      <li><strong>Translation:</strong> MyMemory public API has anonymous limits; only final phrases are submitted. Requests are placed in a bounded queue; finishing recording does not cancel translation work, while Clear and page exit do. Failures remain visible. A separate custom server can be used with explicit opt-in.</li>
       <li><strong>Automatic spoken-language detection:</strong> Not implemented in this version. Later: audio-language-ID + Whisper or a comparable multilingual recognizer.</li>
       <li><strong>Future inputs:</strong> File upload, video playback, permitted desktop tab audio, native Android media capture, OCR translation and a keyboard integration each require their own adapters.</li>
       <li><strong>Model comparison:</strong> Benchmark Whisper / device recognition / cloud STT on the same consented dataset, comparing WER, latency, battery and privacy; don't mistake model-generated guesses for ground truth.</li>
