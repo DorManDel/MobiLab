@@ -87,16 +87,16 @@ try {
   assert.equal(await page.locator("#floatingControls").getAttribute("data-layout"),"floating");
   assert.equal(await page.locator("#floatingControls #vbWave").count(),1);
   assert.equal(await page.locator("#floatingControls #vbVuNeedle").count(),1);
-  assert.equal(await page.locator('[data-vb-tab="live"]').getAttribute("aria-selected"),"true");
-  await page.locator('[data-vb-tab="settings"]').click();
+  assert.equal(await page.locator('#vbMobileTabs [data-vb-tab="live"]').getAttribute("aria-selected"),"true");
+  await page.locator('#vbMobileTabs [data-vb-tab="settings"]').click();
   assert.equal(await page.locator("#vbAudio-enabled").count(),1,
     "Actual shared SettingsRegistry audio module is mounted");
   assert.equal(await page.locator("#vbAppearanceblur").count(),1);
-  await page.locator('[data-vb-tab="diagnostics"]').click();
+  await page.locator('#vbMobileTabs [data-vb-tab="diagnostics"]').click();
   assert.equal(await page.locator("#vbDiagnosticsPane").getAttribute("hidden"),null);
-  await page.locator('[data-vb-tab="transcript"]').click();
+  await page.locator('#vbMobileTabs [data-vb-tab="transcript"]').click();
   assert.equal(await page.locator("#vbTranscriptPane").getAttribute("hidden"),null);
-  await page.locator('[data-vb-tab="live"]').click();
+  await page.locator('#vbMobileTabs [data-vb-tab="live"]').click();
   await page.locator("#floatingControls #vbCycle").click();
   assert.equal(await page.locator("#floatingControls").getAttribute("data-layout"),"expanded");
   await page.locator("#floatingControls #historyToggle").click();
