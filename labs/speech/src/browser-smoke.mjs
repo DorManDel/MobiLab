@@ -82,7 +82,31 @@ try {
       body:JSON.stringify({translatedText:"Translation B"})});}
     catch{}
   });
+  // Compact v0.8 is the default; exercise its real DOM before the legacy tests.
   await page.goto("http://127.0.0.1:8765/labs/speech/");
+  assert.equal(await page.locator("#floatingControls").getAttribute("data-layout"),"floating");
+  assert.equal(await page.locator("#floatingControls #vbWave").count(),1);
+  assert.equal(await page.locator("#floatingControls #vbVuNeedle").count(),1);
+  assert.equal(await page.locator('[data-vb-tab="live"]').getAttribute("aria-selected"),"true");
+  await page.locator('[data-vb-tab="settings"]').click();
+  assert.equal(await page.locator("#vbAudio-enabled").count(),1,
+    "Actual shared SettingsRegistry audio module is mounted");
+  assert.equal(await page.locator("#vbAppearanceblur").count(),1);
+  await page.locator('[data-vb-tab="diagnostics"]').click();
+  assert.equal(await page.locator("#vbDiagnosticsPane").getAttribute("hidden"),null);
+  await page.locator('[data-vb-tab="transcript"]').click();
+  assert.equal(await page.locator("#vbTranscriptPane").getAttribute("hidden"),null);
+  await page.locator('[data-vb-tab="live"]').click();
+  await page.locator("#floatingControls #vbCycle").click();
+  assert.equal(await page.locator("#floatingControls").getAttribute("data-layout"),"expanded");
+  await page.locator("#floatingControls #historyToggle").click();
+  assert.equal(await page.locator("#floatingControls #vbCurtainBackdrop").getAttribute("hidden"),null);
+  await page.locator("#floatingControls #sheetClose").click();
+
+  // Original integration regression suite uses the explicit legacy workbench.
+  await page.goto("http://127.0.0.1:8765/labs/speech/?legacy=1");
+  await page.locator("#floatingControls").evaluate(el=>el.setLayoutMode("expanded"));
+
   assert.equal(await page.locator("#recordToggle").getAttribute("aria-pressed"),"false");
   await page.locator("#testVoice").click();
   assert.equal(await page.evaluate(()=>window.__spoken),"Hello, this is a voice test.");
