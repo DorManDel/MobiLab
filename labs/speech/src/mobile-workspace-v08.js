@@ -261,5 +261,5 @@ export function createMobileWorkspace({ledger,floating}){
   if(new URLSearchParams(location.search).has("legacy")){
     document.body.dataset.vbTab="legacy";settings.hidden=false;
   }
-  return {...workspaceAPI,telemetry,selectTab,refreshTranscript,renderDiagnostics};
+  return Object.assign(workspaceAPI,{telemetry,selectTab,refreshTranscript,renderDiagnostics});
 }
