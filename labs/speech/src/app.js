@@ -3,6 +3,7 @@ import { TranslationQueue, wordErrorRate, characterSimilarity, safeLibreEndpoint
 import { ParagraphBuilder } from "./paragraph-builder.js";
 import { SpeechFinalGuard } from "./speech-final-guard.js";
 import { createMobileWorkspace } from "./mobile-workspace-v08.js";
+import { SpeechAudioMonitor } from "./audio-monitor-v08.js";
 import { retroMicHTML, retroMicCSS } from "./retro-mic.js";
 import { TranslationMemory, translationKey } from "./translation-memory.js";
 import {SessionLedger,ProviderCircuit} from "./session-ledger.js";
@@ -27,6 +28,18 @@ const liveView = new LiveCaptionView(document);
 liveView.bindLedger(ledger);
 const floating = $("floatingControls");
 const workspace=createMobileWorkspace({ledger,floating});
+const audioMonitor=new SpeechAudioMonitor({
+  canvas:floating.shadowRoot?.getElementById("vbWave"),
+  needle:floating.shadowRoot?.getElementById("vbVuNeedle"),
+  status:floating.shadowRoot?.getElementById("vbSignalStatus")
+});
+audioMonitor.configure(workspace.getAudioOptions());
+workspace.onAudioSettingsChange=options=>{
+  const enabledBefore=audioMonitor.enabled;
+  audioMonitor.configure(options);
+  if(micActive && options.enabled && (!enabledBefore||!audioMonitor.stream))
+    void audioMonitor.start().then(ok=>trace(ok?"audio-monitor-live":"audio-monitor-unavailable"));
+};
 const trace=(type,detail="",rowId=null)=>workspace.telemetry.mark(type,detail,rowId);
 let archiveTimer=null;
 let displayLimit=40;
@@ -251,6 +264,7 @@ function updateTimer() {
 function stopMic(translateLast=false) {
   trace("mic-stop",translateLast?"user finish":"system stop");
   micActive = false;
+  audioMonitor.stop();
   micToken++;
   clearTimeout(restartTimeout);
   clearInterval(sessionTimer);
@@ -392,8 +406,13 @@ function startMic() {
   refreshRecordingUI();
   $("recordTime").textContent = "00:00";
   sessionTimer = setInterval(updateTimer,1000);
-  try { activateRecognizer(micToken); }
-  catch (error) { stopMic();status("Microphone failed: "+error.message,true); }
+  try {
+    activateRecognizer(micToken);
+    // Optional second capture is for LEVEL DISPLAY ONLY, not STT.
+    // Do not block browser recognition if Android refuses concurrent mic access.
+    if(audioMonitor.enabled)
+      void audioMonitor.start().then(ok=>trace(ok?"audio-monitor-live":"audio-monitor-unavailable"));
+  } catch (error) { stopMic();status("Microphone failed: "+error.message,true); }
 }
 $("recordToggle").addEventListener("click", () => micActive ? stopMic(true) : startMic());
 
@@ -1029,6 +1048,7 @@ document.addEventListener("visibilitychange",()=>{
 });
 window.addEventListener("pagehide",()=>{
   if(micActive)stopMic();
+  audioMonitor.stop();
   queue.stop();
   synthesis?.cancel();
   localTranslator.dispose();
