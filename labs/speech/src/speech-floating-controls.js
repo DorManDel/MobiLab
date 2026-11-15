@@ -5,6 +5,7 @@
  */
 import {retroMicHTML,retroMicCSS} from "./retro-mic.js";
 import {setupGlassLens} from "./voicebridge-glass.js";
+import {initializeFloatingWorkspace} from "./floating-workspace-v08.js";
 const languages=[["he","עברית"],["en","English"],["ar","العربية"],["es","Español"],["fr","Français"],["de","Deutsch"],["ru","Русский"],["it","Italiano"]];
 export class SpeechFloatingControls extends HTMLElement {
   constructor(){
@@ -134,6 +135,7 @@ export class SpeechFloatingControls extends HTMLElement {
       this.open(false);
     });
     this.setState(this.state);
+    initializeFloatingWorkspace(this);
   }
   emit(name,detail){this.dispatchEvent(new CustomEvent(name,{detail,bubbles:true,composed:true}));}
   open(force){
@@ -174,6 +176,7 @@ export class SpeechFloatingControls extends HTMLElement {
     }else{
       $("captionShell").hidden=this.captionVisible===false;
     }
+    this.syncCurtain?.();
   }
   resizeHistory(direction=1){
     this.historySize=Math.min(2,Math.max(0,this.historySize+direction));
