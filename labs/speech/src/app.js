@@ -124,6 +124,7 @@ const paragraphs = new ParagraphBuilder({
 liveView.setVisibleLines(2);
 floating.setLineCount(2);
 floating.addEventListener("speech:toggle",()=>$("recordToggle").click());
+floating.addEventListener("speech:open-workspace-settings",()=>workspace.selectTab("settings"));
 floating.addEventListener("speech:history-focus",(event)=>focusView(ledger.focus(event.detail.id)));
 floating.addEventListener("speech:speak",()=>{
   if(micActive) {
