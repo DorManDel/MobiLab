@@ -153,7 +153,7 @@ export class SpeechAudioMonitor {
   }
   stop(){
     this.generation++;
-    cancelAnimationFrame(this.frame);
+    if(typeof cancelAnimationFrame==="function")cancelAnimationFrame(this.frame);
     this.frame=0;
     this.stream?.getTracks().forEach(track=>track.stop());
     this.stream=null;this.node?.disconnect();this.node=null;
