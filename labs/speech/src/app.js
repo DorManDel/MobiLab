@@ -2,6 +2,7 @@ import { createChromeTranslatorAdapter, lexicalAgreement } from "./engine-compar
 import { TranslationQueue, wordErrorRate, characterSimilarity, safeLibreEndpoint } from "./bench-core.js";
 import { ParagraphBuilder } from "./paragraph-builder.js";
 import { SpeechFinalGuard } from "./speech-final-guard.js";
+import { createMobileWorkspace } from "./mobile-workspace-v08.js";
 import { retroMicHTML, retroMicCSS } from "./retro-mic.js";
 import { TranslationMemory, translationKey } from "./translation-memory.js";
 import {SessionLedger,ProviderCircuit} from "./session-ledger.js";
@@ -25,6 +26,8 @@ const archive=new LocalTranscriptArchive();
 const liveView = new LiveCaptionView(document);
 liveView.bindLedger(ledger);
 const floating = $("floatingControls");
+const workspace=createMobileWorkspace({ledger,floating});
+const trace=(type,detail="",rowId=null)=>workspace.telemetry.mark(type,detail,rowId);
 let archiveTimer=null;
 let displayLimit=40;
 function focusedState() {
@@ -92,6 +95,7 @@ const paragraphs = new ParagraphBuilder({
     }
   },
   onParagraph(data){
+    trace("paragraph-final",data.reason||"boundary");
     interimActive=false;
     cancelDraft();
     if(translateOnFinish)queue.start();
@@ -245,6 +249,7 @@ function updateTimer() {
   $("recordTime").textContent = micActive ? clockText(Date.now() - recordingStart) : $("recordTime").textContent;
 }
 function stopMic(translateLast=false) {
+  trace("mic-stop",translateLast?"user finish":"system stop");
   micActive = false;
   micToken++;
   clearTimeout(restartTimeout);
@@ -280,12 +285,13 @@ function activateRecognizer(token) {
   recognize = instance;
   const finalized = new Set();
   let speechStartPerf=null;
-  instance.onspeechstart=()=>{speechStartPerf=performance.now();};
+  instance.onspeechstart=()=>{speechStartPerf=performance.now();trace("speech-start");};
   instance.lang = locale[$("sourceLang").value];
   instance.continuous = true;
   instance.interimResults = true;
   instance.maxAlternatives = 3;
   instance.onstart = () => {
+    trace("recognizer-start");
     if (micActive && token === micToken) status("Listening in " + langNames[$("sourceLang").value] + "…");
   };
   instance.onresult = (event) => {
@@ -305,10 +311,12 @@ function activateRecognizer(token) {
         cancelDraft();
         const finalPerf=performance.now();
         const speechDuration=speechStartPerf===null?null:Math.max(0,finalPerf-speechStartPerf);
+        trace("speech-final",String(phrase.length)+" chars");
         const guarded=finalGuard.accept(phrase,{at:Date.now(),source:$("sourceLang").value,
           target:$("targetLang").value,restarted:recognizerResumed});
         recognizerResumed=false;
-        if(!guarded.text)continue;
+        if(!guarded.text){trace("duplicate-suppressed",guarded.action);continue;}
+        if(guarded.action==="overlap-trimmed")trace("overlap-trimmed",String(guarded.overlap)+" words");
         paragraphs.addFinal(guarded.text,{
           source:$("sourceLang").value,target:$("targetLang").value,
           candidates,sttMs:speechDuration,finalPerf
@@ -318,6 +326,7 @@ function activateRecognizer(token) {
       } else if (!result.isFinal) interim += " " + phrase;
     }
     if (interim.trim()) {
+      if(!interimActive)trace("interim-first");
       interimActive = true;
       $("captionOriginal").textContent = interim.trim() + " …";
       $("captionTranslated").textContent = "Listening for the end of this phrase…";
@@ -330,6 +339,7 @@ function activateRecognizer(token) {
   };
   instance.onerror = (event) => {
     if (!micActive || token !== micToken) return;
+    trace("recognizer-error",event.error||"unknown");
     const fatal = ["not-allowed","service-not-allowed","audio-capture","language-not-supported","network"];
     if (fatal.includes(event.error)) {
       stopMic();
@@ -340,6 +350,7 @@ function activateRecognizer(token) {
   };
   instance.onend = () => {
     if (!micActive || token !== micToken || recognize !== instance) return;
+    trace("recognizer-ended");
     const now = Date.now();
     restartTimes = restartTimes.filter(t => now - t < 30000);
     restartTimes.push(now);
@@ -369,6 +380,7 @@ function startMic() {
     return;
   }
   window.speechSynthesis?.cancel(); // no voice-feedback loop
+  trace("mic-start");
   recordingStart = Date.now(); // session timestamps remain monotonic across multiple recordings
   micActive = true;
   micToken++;
@@ -500,6 +512,10 @@ function activeProviders() {
 }
 function updateRow(row,id,patch) {
   if(!row)return;
+  if(id==="queue" && ["queued","skipped","canceled","completed"].includes(patch.status))
+    trace("queue-"+patch.status,"",row.id);
+  if(id!=="queue" && ["running","success","error","skipped","canceled"].includes(patch.status))
+    trace("provider-"+patch.status,id+(Number.isFinite(patch.ms)?" · "+patch.ms+"ms":""),row.id);
   if(id==="queue") {
     row.queueStatus=patch.status;
   }else{
@@ -569,6 +585,7 @@ function addPhrase(text,source,target,candidates=null,automatic=true,sttMs=null,
     captionProvider:$("captionProvider").value,displayText:"",displayProvider:null,displayShown:false,
     fallbackUsed:false };
   ledger.append(row);
+  trace("transcript-appended","",row.id);
   interimActive=false;
   renderRows();renderScoreboard();showCaption(row);showComparison(row);showCandidates(row);
   liveView.final(row);
@@ -670,7 +687,7 @@ $("clearAll").addEventListener("click",()=>{
   queue.stop();
   translationCache.clear();
   paragraphs.clear();
-  ledger.clear();rowId=0;lastSubtitleShownId=0;sessionStart=Date.now();recordingStart=sessionStart;
+  ledger.clear();workspace.telemetry.reset();rowId=0;lastSubtitleShownId=0;sessionStart=Date.now();recordingStart=sessionStart;
   interimActive=false;
   $("recordTime").textContent="00:00";
   $("wer").textContent="—";
@@ -793,6 +810,7 @@ function renderRows() {
     container.append(card);
   }
   floating.setHistory(rows);
+  workspace.refreshTranscript();
   $("phraseCount").textContent=String(rows.length);
   $("showMoreRows").disabled=displayLimit>=rows.length;
   $("latency").textContent=(()=>{for(let i=rows.length-1;i>=0;i--){
