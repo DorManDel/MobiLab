@@ -40,6 +40,10 @@ jobs:
           node --check labs/speech/src/retro-mic.js
           node --check labs/speech/src/voicebridge-glass.js
           node --check labs/speech/src/translation-memory.js
+          node --check labs/speech/src/floating-workspace-v08.js
+          node --check labs/speech/src/mobile-workspace-v08.js
+          node --check labs/speech/src/audio-monitor-v08.js
+          node --check labs/speech/src/speech-final-guard.js
       - name: Run pure unit tests and DOM contract
         working-directory: labs/speech
         run: npm test
