@@ -3,6 +3,7 @@
  * Does not clone or mutate the canonical SessionLedger. All transcript rows are
  * rendered from it, and telemetry contains event names/times only (no speech).
  */
+import {SettingsRegistry, SettingsStore} from "../../settings/engine.js";
 const APPEARANCE_KEY="mobilab.voicebridge.appearance.v08";
 const TABS=["live","transcript","diagnostics","settings"];
 const now=()=>performance.now();
@@ -80,6 +81,58 @@ export function createMobileWorkspace({ledger,floating}){
     '<button type="button" id="vbResetAppearance">Reset appearance</button>'+
     '<p>Recording, TTS, provider credentials, local media and benchmark tools remain in the Advanced workbench below.</p>';
   nav.after(transcript,diagnostics,settings);
+  // Reuse the actual headless Settings Lab engine, not a new ad-hoc audio store.
+  const audioRegistry=new SettingsRegistry();
+  audioRegistry.registerModule({
+    id:"audio",title:"Analog VU + waveform",icon:"🎚",public:true,status:"mobile-test",
+    fields:[
+      {id:"enabled",title:"Real audio meter",type:"toggle",default:true,
+        help:"Analyzes a separate local microphone stream only while recording."},
+      {id:"wave",title:"Show waveform",type:"toggle",default:true,
+        help:"Real sampled signal, not an animation or speech confidence."},
+      {id:"sensitivity",title:"VU sensitivity",type:"range",min:30,max:400,default:100,unit:"%",
+        help:"Needle response to quieter/louder input."},
+      {id:"inertia",title:"Needle damping",type:"range",min:3,max:85,default:22,unit:"%",
+        help:"Higher response speed, lower value = heavier spring."},
+      {id:"gain",title:"Waveform gain",type:"range",min:25,max:500,default:100,unit:"%",
+        help:"Changes drawing scale only, not what recognition hears."}
+    ]
+  });
+  const audioStore=new SettingsStore(audioRegistry,"mobilab.voicebridge.audio.v08");
+  const audioSection=document.createElement("details");
+  audioSection.open=true;audioSection.className="vb-audio-module";
+  const audioTitle=document.createElement("summary");audioTitle.textContent="🎚 Audio monitor / VU";
+  audioSection.append(audioTitle);
+  const audioOptions=()=>({
+    enabled:audioStore.get("audio","enabled"),
+    showWave:audioStore.get("audio","wave"),
+    sensitivity:audioStore.get("audio","sensitivity")/100,
+    inertia:audioStore.get("audio","inertia")/100,
+    gain:audioStore.get("audio","gain")/100
+  });
+  for(const f of audioRegistry.get("audio").fields){
+    const line=document.createElement("div");line.className="vb-design-row";
+    const label=document.createElement("label");label.htmlFor="vbAudio-"+f.id;
+    const name=document.createElement("span");name.textContent=f.title;
+    const current=document.createElement("output");
+    const format=v=>f.type==="toggle"?(v?"On":"Off"):v+(f.unit||"");
+    current.textContent=format(audioStore.get("audio",f.id));
+    label.append(name,current);
+    const input=document.createElement("input");input.id="vbAudio-"+f.id;
+    input.type=f.type==="toggle"?"checkbox":"range";
+    if(f.type==="toggle")input.checked=audioStore.get("audio",f.id);
+    else{input.min=f.min;input.max=f.max;input.step=1;input.value=audioStore.get("audio",f.id);}
+    input.addEventListener("input",()=>{
+      const value=audioStore.set("audio",f.id,f.type==="toggle"?input.checked:Number(input.value));
+      current.textContent=format(value);
+      if(typeof workspaceAPI.onAudioSettingsChange==="function")
+        workspaceAPI.onAudioSettingsChange(audioOptions());
+    });
+    const help=document.createElement("p");help.textContent=f.help||"";
+    line.append(label,input,help);audioSection.append(line);
+  }
+  settings.append(audioSection);
+  const workspaceAPI={getAudioOptions:audioOptions,onAudioSettingsChange:null};
   // Advanced paragraph and provider settings belong to Settings, not Live.
   const advancedTiming=document.getElementById("liveSettings");
   if(advancedTiming)settings.append(advancedTiming);
@@ -208,5 +261,5 @@ export function createMobileWorkspace({ledger,floating}){
   if(new URLSearchParams(location.search).has("legacy")){
     document.body.dataset.vbTab="legacy";settings.hidden=false;
   }
-  return {telemetry,selectTab,refreshTranscript,renderDiagnostics};
+  return {...workspaceAPI,telemetry,selectTab,refreshTranscript,renderDiagnostics};
 }
