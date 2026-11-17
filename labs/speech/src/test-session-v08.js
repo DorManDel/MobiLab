@@ -234,6 +234,8 @@ export function segmentsCsv(bundle){
     "word_count","stt_ms","queue_wait_ms","final_to_caption_ms","queue_status",
     "provider","provider_status","provider_ms","error_category","display_provider",
     "translated","fallback_used"];
+  if(bundle.run.privacy.includesTranscript)
+    headers.push("original_text","translated_text","human_reference");
   const records=[];
   for(const row of bundle.segments){
     const choices=row.providers.length?row.providers:[{provider:"none",status:"unavailable",durationMs:null,errorCategory:null}];
@@ -245,7 +247,9 @@ export function segmentsCsv(bundle){
         final_to_caption_ms:row.finalToSubtitleMs,queue_status:row.queueStatus,
         provider:p.provider,provider_status:p.status,provider_ms:p.durationMs,
         error_category:p.errorCategory,display_provider:row.captionProvider,
-        translated:row.translated,fallback_used:row.fallbackUsed
+        translated:row.translated,fallback_used:row.fallbackUsed,
+        original_text:row.original??"",translated_text:row.translation??"",
+        human_reference:row.reference??""
       });
     }
   }
