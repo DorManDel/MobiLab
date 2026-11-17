@@ -100,6 +100,10 @@ try{
   await page.locator("#start").click();
   await page.waitForFunction(()=>document.querySelector("#translateStatus")?.textContent==="FAILED",null,{timeout:5000});
   await page.locator("#next").click();
+  await page.waitForFunction(()=>{
+    const value=localStorage.getItem("voicebridge.pilot.https-preview.v2");
+    return value&&JSON.parse(value).rows.length>=1;
+  },null,{timeout:5000});
   const pilot429=await page.evaluate(()=>JSON.parse(localStorage.getItem("voicebridge.pilot.https-preview.v2")));
   assert.equal(pilot429.rows[0].translationStatus,"error");
   assert.equal(pilot429.rows[0].translationError,"rate_limit_429");
