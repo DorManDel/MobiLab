@@ -124,13 +124,16 @@ async function sendDraft(x,proposal){
     if(seq===x.draftVersion){
       x.draftInFlight=false;
       if(x.draftStatus==="running")x.draftStatus="idle";
+      const pending=x.pendingDraft;x.pendingDraft=null;
+      if(pending && !x.finalStarted && cap===x && !pilot.draftsBlocked)
+        void sendDraft(x,pending);
     }
   }
 }
 function observeInterim(x){
   if(!x||pilot.captionMode!=="incremental"||pilot.translationProvider==="off"||x.finalStarted)return;
   const proposal=x.planner.observe(x.interim,clock());
-  if(proposal&&!x.draftInFlight)void sendDraft(x,proposal);
+  if(proposal){if(x.draftInFlight)x.pendingDraft=proposal;else void sendDraft(x,proposal);}
 }
 async function runTranslator(text,language,provider,externalSignal=null){
   const {source,target}=translationTarget(language);
@@ -176,7 +179,7 @@ async function translateOnce(x,text){
   x.finalStarted=true;
   x.draftAbort?.abort();
   ++x.draftVersion;
-  x.draftInFlight=false;
+  x.draftInFlight=false;x.pendingDraft=null;
   if(provider==="off"){
     x.translation={provider,status:"off",ms:null,text:"",error:null,sourceText:text};
     translationCard(x);return;
@@ -228,7 +231,7 @@ async function checkTranslator(){
 function startMic(){if(!pilot||cap?.running)return;const {name,c}=step();stopVU();const x={engine:name,started:clock(),firstInterim:null,firstFinal:null,final:"",interim:"",
   error:null,running:false,lang:c.lang,translation:null,translationPromise:null,translateTimer:null,
   planner:new StableInterimPlanner({maxDrafts:Number(pilot?.draftLimit||2)}),
-  preview:null,draftAbort:null,draftVersion:0,draftInFlight:false,draftCalls:0,
+  preview:null,draftAbort:null,draftVersion:0,draftInFlight:false,pendingDraft:null,draftCalls:0,
   draftErrors:0,draftWords:0,draftStatus:"idle",interimCount:0,
   firstDraftMs:null,finalCaptionMs:null,previewRevision:0,finalStarted:false};cap=x;$("recognized").textContent="Connecting speech recognition…";$("micStatus").textContent="CONNECTING";const Constructor=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Constructor){x.error="unsupported_browser";$("micStatus").textContent="STT NOT SUPPORTED";$("fallback").open=true;return}try{const mic=new Constructor();mic.lang=c.lang;mic.interimResults=true;mic.continuous=true;rec=mic;mic.onstart=()=>{x.running=true;$("micStatus").textContent="● LISTENING";void meter(x)};mic.onresult=e=>{const finals=[],interims=[];for(let k=0;k<e.results.length;k++){const r=e.results[k],t=r[0]?.transcript?.trim();if(t)(r.isFinal?finals:interims).push(t)}x.final=finals.join(" ");x.interim=interims.join(" ");if(x.interim&&x.firstInterim===null)x.firstInterim=num(clock()-x.started);if(x.final&&x.firstFinal===null)x.firstFinal=num(clock()-x.started);if(cap===x)$("recognized").textContent=x.final+(x.interim?" "+x.interim:"")||"Listening…";
   if(x.interim){
