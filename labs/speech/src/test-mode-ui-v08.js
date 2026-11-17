@@ -134,8 +134,7 @@ export function createTestModeUI({ledger,telemetry,nav,diagnostics}){
         ["Translated",String(s.translatedSegments)],
         ["STT → Final p50",measure(s.stt.p50Ms)],
         ["Queue p50",measure(s.queueWait.p50Ms)],
-        ["Provider p50",measure(
-          Object.values(s.providerPerformance).flatMap(p=>p.latency.p50Ms===null?[]:[p.latency.p50Ms])[0]??null)],
+        ["Translator p50",measure(s.translator.p50Ms)],
         ["Final → Caption p90",measure(s.finalToCaption.p90Ms)],
         ["Duplicate finals",String(s.duplicatedFinalsSuppressed)],
         ["Recognizer errors",String(s.recognizerErrors)]
