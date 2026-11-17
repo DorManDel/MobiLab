@@ -73,13 +73,13 @@ function translationCard(x){
   const error=Boolean(final?.status==="error");
   const draftShown=Boolean(draft?.status==="success"&&!settled);
   const value=settled?final.text:draftShown?draft.text:"";
-  const state=settled?"success":draftShown?(working?"finalizing":"draft"):
+  const state=settled?"success":draftShown?(error?"error":working?"finalizing":"draft"):
     error?"error":x?.draftStatus==="running"?"running":
     final?.status==="off"?"off":working?"running":"idle";
   $("translationCard").dataset.status=state;
   $("translateProviderLabel").textContent=TPROVIDERS[pilot?.translationProvider||$("translator").value]||"Translator";
   $("translateStatus").textContent=settled?"FINAL · "+final.ms+" ms":
-    draftShown?(working?"DRAFT · FINALIZING":"LIVE DRAFT · MAY CHANGE"):
+    draftShown?(error?"DRAFT · FINAL FAILED":working?"DRAFT · FINALIZING":"LIVE DRAFT · MAY CHANGE"):
     error?"FINAL ERROR":state==="running"?"TRANSLATING…":
     state==="off"?"STT ONLY":"WAITING FOR STABLE SPEECH";
   $("translatedText").textContent=value||(
@@ -91,7 +91,8 @@ function translationCard(x){
     (x.interimCount||0)+" interim updates · "+
     (x.draftCalls||0)+" draft requests · "+
     (x.previewRevision||0)+" preview versions"+
-    (x.firstDraftMs!==null?" · first draft "+x.firstDraftMs+" ms":""):"";
+    (x.firstDraftMs!==null?" · first draft "+x.firstDraftMs+" ms":"")+
+    (error&&draftShown?" · final failed: "+final.error:""):"";
 }
 function isQuotaFailure(error){
   return /rate_limit_429|provider_quota|quota_exhausted/i.test(String(error?.message||error));
