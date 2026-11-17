@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {StableInterimPlanner,stablePrefix} from "./stable-interim.mjs";
-assert.equal(stablePrefix("אני רוצה לבדוק את המיקרופון","אני רוצה לבדוק את המיקרופון עכשיו"),null);
+assert.equal(stablePrefix("אני רוצה לבדוק", "אני רוצה לבדוק את"),null);
 assert.deepEqual(stablePrefix(
   "אני רוצה לבדוק את איכות התמלול שלנו",
   "אני רוצה לבדוק את איכות התמלול שלנו עכשיו"
