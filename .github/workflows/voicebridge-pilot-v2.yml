@@ -1,0 +1,29 @@
+name: VoiceBridge Core Pilot v2 translation preview
+on:
+  push:
+    branches:
+      - preview/voicebridge-core-pilot-translation-v2
+    paths:
+      - 'previews/voicebridge-core-pilot/**'
+      - '.github/workflows/voicebridge-pilot-v2.yml'
+  pull_request:
+    paths:
+      - 'previews/voicebridge-core-pilot/**'
+      - '.github/workflows/voicebridge-pilot-v2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pilot-browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright browser
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run phone-size translation and export tests
+        run: node previews/voicebridge-core-pilot/browser-smoke.mjs
