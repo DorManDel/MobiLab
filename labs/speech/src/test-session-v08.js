@@ -212,6 +212,7 @@ export class TestSessionRecorder {
         processingErrors,
         stt:durationSummary(stt),queueWait:durationSummary(queue),
         finalToCaption:durationSummary(captions),
+        translator:durationSummary(allProviders.filter(x=>x.status==="success").map(x=>x.durationMs)),
         providerPerformance:providers
       },
       segments:rows,
