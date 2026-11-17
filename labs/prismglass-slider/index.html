@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101322">
+<title>PrismGlass Slider · MobiLab</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:#f6f4ff;background:#101322;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;min-height:100svh}
+.scene{min-height:100svh;padding:clamp(22px,5vw,64px);background:linear-gradient(#ffffff18 1px,transparent 1px) 0 0/34px 34px,linear-gradient(90deg,#ffffff18 1px,transparent 1px) 0 0/34px 34px,radial-gradient(ellipse at 20% 20%,#a458a4 0%,transparent 48%),radial-gradient(ellipse at 80% 25%,#254fc8 0%,transparent 52%),radial-gradient(ellipse at 50% 100%,#2f9782 0%,transparent 48%),#101322}
+header{max-width:1120px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}a{color:inherit;text-decoration:none}.brand{font-weight:800;letter-spacing:.04em}.brand b{color:#f1d56b}.muted{color:#c6c6da;font-size:.9rem}.wrap{max-width:1120px;margin:70px auto;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(270px,.75fr);gap:22px;align-items:start}
+h1{font-size:clamp(36px,5.8vw,72px);letter-spacing:-.06em;line-height:1.02;margin:0 0 15px}h2{font-size:1.1rem;margin:0 0 20px}.panel{padding:clamp(20px,3vw,36px);border-radius:28px;background:#10162669;box-shadow:0 12px 55px #0004,inset 0 1px #ffffff5c;backdrop-filter:blur(12px)}.eyebrow{letter-spacing:.17em;font-size:.72rem;color:#e9d48c;font-weight:700;margin-bottom:17px}.sub{color:#e5e2f5;max-width:56ch;line-height:1.55;margin-bottom:42px}
+.demo{padding:26px 0 40px}.line{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:8px}.line strong{font-size:1.08rem}output{font-variant-numeric:tabular-nums;color:#e6dbff}
+.pg-slider{--accent:#a98aff;position:relative;height:68px;touch-action:pan-y;user-select:none}
+.pg-track{position:absolute;inset:auto 0;top:calc(50% - 4px);height:8px;border-radius:100px;background:#090c1d6b;box-shadow:inset 0 1px 3px #0007,0 1px 1px #ffffff32}
+.pg-fill{height:100%;width:50%;border-radius:inherit;background:linear-gradient(90deg,#f1d56b,var(--accent));box-shadow:0 0 17px #a98aff55}
+.pg-knob{--x:50%;--sx:1;--sy:1;position:absolute;left:var(--x);top:50%;width:36px;height:24px;transform:translate(-50%,-50%) scale(var(--sx),var(--sy));border-radius:999px;background:transparent;box-shadow:0 0 0 1px #15152a55,0 7px 19px #0005;pointer-events:none;transition:transform 440ms cubic-bezier(.2,1.5,.4,1)}
+.pg-knob .solid,.pg-knob .optic,.pg-knob .rim{position:absolute;inset:0;border-radius:inherit;transition:opacity 140ms ease}
+.pg-knob .solid{background:linear-gradient(145deg,#fff,#dddaf4);box-shadow:inset 1px 2px 1px #fff, inset -1px -2px 2px #afa9c6}
+.pg-knob .optic{opacity:0;background:#ffffff19;backdrop-filter:var(--optic-filter,blur(3px) saturate(1.5));-webkit-backdrop-filter:var(--optic-filter,blur(3px) saturate(1.5))}
+.pg-knob .rim{opacity:0;box-shadow:inset 1.5px 1.5px 0 #ffffffdd,inset -1px -1px 0 #ffffff88,inset 2px 3px 8px #ffffff77}
+.pg-slider.dragging .solid{opacity:0}.pg-slider.dragging .optic,.pg-slider.dragging .rim{opacity:1}
+.pg-slider.dragging .pg-knob{transition:transform 90ms ease-out}
+.pg-input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:grab;touch-action:pan-y}.pg-input:active{cursor:grabbing}.pg-input:focus-visible~.pg-knob{outline:3px solid #f6d77e;outline-offset:5px}
+.pg-slider[aria-disabled="true"]{opacity:.38;filter:grayscale(1)}.pg-slider[aria-disabled="true"] .pg-input{cursor:not-allowed}
+.control{display:grid;gap:9px;margin:19px 0}.control label{display:flex;justify-content:space-between;font-size:.87rem}.control input[type=range]{width:100%;accent-color:#b698ff}
+.selectrow{display:flex;flex-wrap:wrap;gap:8px;margin:17px 0}.chip{border:1px solid #ffffff40;border-radius:999px;padding:8px 13px;background:#fff1;color:#fff;cursor:pointer}.chip[aria-pressed=true]{background:#c5a6ff;color:#161425;border-color:transparent}
+button{font:inherit}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:24px}.action{padding:11px 15px;border:1px solid #ffffff55;background:#ffffff20;color:white;border-radius:13px;cursor:pointer}.action:hover{background:#ffffff35}
+.stats{display:flex;gap:20px;flex-wrap:wrap;color:#cecadf;font-size:.85rem}.stats b{color:white}.note{font-size:.85rem;color:#d2cde1;line-height:1.55}
+.light{color:#1c2035;background:#f5f7fc;color-scheme:light}.light .scene{background:linear-gradient(#26375125 1px,transparent 1px) 0 0/34px 34px,linear-gradient(90deg,#26375125 1px,transparent 1px) 0 0/34px 34px,radial-gradient(ellipse at 15% 20%,#f6b4d2,transparent 48%),radial-gradient(ellipse at 85% 22%,#c4d2ff,transparent 53%),radial-gradient(ellipse at 50% 95%,#abefd4,transparent 45%),#f5f7fc}.light .panel{background:#ffffff6b;box-shadow:0 8px 44px #3a3a6b22,inset 0 1px #fff}.light .sub,.light .muted,.light .note,.light .stats,.light output{color:#41445d}.light .stats b{color:#171b34}.light .chip,.light .action{color:#181c35;background:#ffffff8c;border-color:#30334f44}.light .eyebrow{color:#7458a0}
+@media(max-width:760px){.wrap{grid-template-columns:1fr;margin:44px auto}.scene{padding:20px}.panel{border-radius:24px}.demo{padding:15px 0 28px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
+@media(prefers-reduced-transparency:reduce){.pg-knob .optic{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:#ece8f5db}.pg-knob .solid{opacity:1!important}.pg-slider.dragging .optic{opacity:0!important}}
+</style>
+</head>
+<body><main class="scene">
+<header><a class="brand" href="../../">Mobi<b>Lab</b> / FX ARSENAL</a><a class="muted" href="../glass-motion/">↗ Glass Motion Suite · 4 experiments</a></header>
+<div class="wrap">
+<section class="panel">
+<div class="eyebrow">INTERACTION MATERIAL LAB</div><h1>Glass with<br>momentum.</h1>
+<p class="sub">A Meniscus-style convex lens meets FreeDesignMD velocity stretching. Drag, reverse direction, and release. Test the actual effect over the grid, not a flat color.</p>
+<div class="demo"><div class="line"><strong>PrismGlass Intensity</strong><output id="valueText">52%</output></div>
+<div class="pg-slider" id="prismSlider"><div class="pg-track"><div class="pg-fill"></div></div><input class="pg-input" type="range" min="0" max="100" value="52" step="1" aria-label="PrismGlass intensity"><span class="pg-knob" aria-hidden="true"><span class="solid"></span><span class="optic"></span><span class="rim"></span></span></div></div>
+<div class="stats"><span>State: <b id="state">Rest</b></span><span>Velocity: <b id="speed">0</b> px/s</span><span>Engine: <b id="engine">Checking</b></span></div>
+<div class="actions"><button class="action" id="copyPreset">Copy preset JSON</button><button class="action" id="reset">Reset</button><button class="action" id="disable">Disable slider</button></div>
+</section>
+<aside class="panel"><h2>Optics & movement</h2>
+<div class="control"><label for="stretch">Velocity stretch <output id="stretchOut">0.22</output></label><input id="stretch" type="range" min="0" max=".5" value=".22" step=".01"></div>
+<div class="control"><label for="scale">Held expansion <output id="scaleOut">1.30</output></label><input id="scale" type="range" min="1" max="1.4" value="1.3" step=".01"></div>
+<div class="control"><label for="glass">Glass opacity <output id="glassOut">0.10</output></label><input id="glass" type="range" min="0" max=".6" value=".1" step=".01"></div>
+<div class="control"><label for="bend">Edge refraction <output id="bendOut">5.0</output></label><input id="bend" type="range" min="0" max="7" value="5" step=".5"></div>
+<div class="control"><label for="accent">Accent color</label><input id="accent" type="color" value="#a98aff"></div>
+<div class="selectrow"><button class="chip" id="dark" aria-pressed="true">Dark</button><button class="chip" id="light" aria-pressed="false">Light</button><button class="chip" id="fallback" aria-pressed="false">Frost fallback</button></div>
+<p class="note">Chromium can refract the live backdrop through an SVG displacement filter. Safari and Firefox use a frosted lens. Physical phone performance, contrast, and optical bending still need validation.</p>
+</aside></div>
+<svg id="filterSVG" aria-hidden="true" style="position:absolute;width:0;height:0;pointer-events:none"><defs><filter id="prismglassLens" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feImage id="mapImage" result="map" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none"/><feDisplacementMap id="displace" in="SourceGraphic" in2="map" scale="10" xChannelSelector="R" yChannelSelector="G" result="bent"/><feGaussianBlur in="bent" stdDeviation=".8" result="blurred"/><feColorMatrix in="blurred" type="saturate" values="1.5"/></filter></defs></svg>
+</main>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id), el=$('prismSlider'), input=el.querySelector('input'), fill=el.querySelector('.pg-fill'), knob=el.querySelector('.pg-knob'), optic=knob.querySelector('.optic');
+const c={stretch:.22,scale:1.3,glass:.1,bend:5,accent:'#a98aff'}, reduced=matchMedia('(prefers-reduced-motion: reduce)');
+const canBend=/(Chrome|Chromium|Edg)\//.test(navigator.userAgent)&&!/CriOS|EdgiOS|FxiOS/.test(navigator.userAgent);
+let forcedFrost=false,drag=false,px=0,ts=0,releaseTimer=0;
+function displacement(){const w=96,h=64,canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d'),img=ctx.createImageData(w,h);
+for(let y=0;y<h;y++)for(let x=0;x<w;x++){const nx=(x+.5-w/2)/(w/2),ny=(y+.5-h/2)/(h/2),r=Math.sqrt(nx*nx+ny*ny),f=r<1?Math.max(0,1-r)**.65:0,k=(y*w+x)*4;img.data[k]=128-Math.sign(nx)*Math.round(115*f);img.data[k+1]=128-Math.sign(ny)*Math.round(115*f);img.data[k+2]=128;img.data[k+3]=255;}
+ctx.putImageData(img,0,0);$('mapImage').setAttribute('href',canvas.toDataURL());}
+displacement();
+function optics(){const enabled=canBend&&!forcedFrost;$('engine').textContent=enabled?'SVG lens':'CSS frost';$('displace').setAttribute('scale',String(c.bend*2));optic.style.setProperty('--optic-filter',enabled?'url(#prismglassLens)':'blur(3px) saturate(1.5)');optic.style.background='rgba(255,255,255,'+c.glass+')'}
+function update(){const ratio=(Number(input.value)-Number(input.min))/(Number(input.max)-Number(input.min));fill.style.width=(ratio*100)+'%';knob.style.setProperty('--x',(ratio*100)+'%');$('valueText').textContent=input.value+'%';el.style.setProperty('--accent',c.accent)}
+function moving(){if(!drag)return;const now=performance.now(),x=Number(input.value),dt=Math.max(16,now-ts),speed=Math.min(2200,Math.abs((x-px)/100*el.clientWidth/dt*1000));px=x;ts=now;$('speed').textContent=Math.round(speed);const s=reduced.matches?1:c.scale;const stretch=reduced.matches?0:Math.min(c.stretch,speed/2200*c.stretch);knob.style.setProperty('--sx',(s*(1+stretch)).toFixed(3));knob.style.setProperty('--sy',(s/(1+stretch)).toFixed(3));}
+function stop(){if(!drag)return;drag=false;el.classList.remove('dragging');knob.style.setProperty('--sx','1');knob.style.setProperty('--sy','1');$('state').textContent='Rest';$('speed').textContent='0';}
+input.addEventListener('pointerdown',()=>{if(input.disabled)return;clearTimeout(releaseTimer);drag=true;px=Number(input.value);ts=performance.now();el.classList.add('dragging');$('state').textContent='Dragging';moving()});
+input.addEventListener('input',()=>{update();moving()});['pointerup','pointercancel','lostpointercapture','blur'].forEach(e=>input.addEventListener(e,stop));
+window.addEventListener('pointerup',stop);
+['stretch','scale','glass','bend'].forEach(id=>$(id).addEventListener('input',()=>{c[id]=Number($(id).value);$(id+'Out').textContent=c[id].toFixed(id==='bend'?1:2);optics();if(drag)moving()}));
+$('accent').addEventListener('input',()=>{c.accent=$('accent').value;update()});
+function theme(light){document.body.classList.toggle('light',light);$('dark').setAttribute('aria-pressed',String(!light));$('light').setAttribute('aria-pressed',String(light))}
+$('dark').onclick=()=>theme(false);$('light').onclick=()=>theme(true);
+$('fallback').onclick=()=>{forcedFrost=!forcedFrost;$('fallback').setAttribute('aria-pressed',String(forcedFrost));optics()};
+$('reset').onclick=()=>{Object.assign(c,{stretch:.22,scale:1.3,glass:.1,bend:5,accent:'#a98aff'});for(const id of ['stretch','scale','glass','bend']){$(id).value=c[id];$(id+'Out').textContent=c[id].toFixed(id==='bend'?1:2)}$('accent').value=c.accent;input.value='52';input.disabled=false;el.setAttribute('aria-disabled','false');$('disable').textContent='Disable slider';stop();update();optics()};
+$('disable').onclick=()=>{input.disabled=!input.disabled;el.setAttribute('aria-disabled',String(input.disabled));$('disable').textContent=input.disabled?'Enable slider':'Disable slider';stop()};
+$('copyPreset').onclick=async()=>{const json=JSON.stringify({component:'PrismGlassSlider',version:1,value:Number(input.value),...c},null,2);try{await navigator.clipboard.writeText(json);$('copyPreset').textContent='Copied!';setTimeout(()=>$('copyPreset').textContent='Copy preset JSON',1500)}catch{const blob=new Blob([json],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='prismglass-preset.json';a.click();URL.revokeObjectURL(url)}};
+theme(matchMedia('(prefers-color-scheme: light)').matches);update();optics();
+})();
+</script>
+</body></html>
