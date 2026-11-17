@@ -67,6 +67,8 @@ try{
   assert.ok(apiCalls>=4,"preflight and 3 live case calls were expected");
   const txt=await page.locator("#translationResults").innerText();
   assert.match(txt,/3\/3 translated/);
+  assert.equal(await page.locator("#includeWords").isChecked(),false,"speech text export must be opt-in");
+  await page.locator("#includeWords").check();
   const d=page.waitForEvent("download");
   await page.locator("#json").click();
   const downloaded=await d;
