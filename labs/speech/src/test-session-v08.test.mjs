@@ -28,7 +28,7 @@ ledger.entries.push({
 });
 rec.onEvent({type:"provider-success",rowId:2});
 clock+=40;rec.requestStop();
-rec.seal();
+rec.seal(rec.finishReason);
 const without=rec.bundle();
 assert.equal(without.schema,"voicebridge.test.bundle.v1");
 assert.equal(without.run.id,id);
