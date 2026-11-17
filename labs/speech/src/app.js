@@ -420,6 +420,28 @@ function startMic() {
   } catch (error) { stopMic();status("Microphone failed: "+error.message,true); }
 }
 $("recordToggle").addEventListener("click", () => micActive ? stopMic(true) : startMic());
+// Test Mode uses the same microphone and providers as ordinary VoiceBridge.
+// Never export provider keys/tokens, endpoint URLs, raw audio or credentials.
+workspace.testMode.configureHooks({
+  startRecording:()=>startMic(),
+  finishRecording:()=>stopMic(true),
+  isRecording:()=>micActive,
+  getConfig:()=>({
+    appVersion:"v0.8-feature-test",branch:"feat/voicebridge-v08-floating-workspace",
+    source:$("sourceLang").value,target:$("targetLang").value,
+    sttEngine:"browser-web-speech",
+    translationEngine:$("captionProvider").value,
+    compareCloud:$("compareCloud").checked,
+    compareLocal:$("compareLocal").checked,
+    compareLibre:$("compareLibre").checked,
+    autoTranslate:$("autoTranslate").checked,
+    earlyPreview:$("earlyPreview").checked,
+    chunkMode:$("chunkMode").value,
+    silenceDurationMs:Number($("silenceDuration").value),
+    subtitlePriority:$("subtitlePriority").value,
+    audioMeterEnabled:audioMonitor.enabled
+  })
+});
 
 function timeoutSignal(parentSignal, timeoutMs = 12000) {
   const controller = new AbortController();
@@ -707,6 +729,7 @@ $("translateManual").addEventListener("click",async()=>{
   addPhrase(text,source,$("targetLang").value,null,true);
 });
 $("clearAll").addEventListener("click",()=>{
+  workspace.testMode.invalidate("cleared_during_test");
   if(micActive) stopMic();
   queue.stop();
   translationCache.clear();
