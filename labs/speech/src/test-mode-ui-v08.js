@@ -53,7 +53,6 @@ export function createTestModeUI({ledger,telemetry,nav,diagnostics}){
     ledger,
     onChange:()=>{render();if(recorder.ready)restoreAutoTranslate();}
   });
-  telemetry.onEvent=event=>recorder.onEvent(event);
   const card=element("section",{id:"vbTestPanel",className:"vb-dashboard-surface vb-test-panel",
     "aria-label":"Test Mode recorder"});
   const kicker=element("span",{className:"vb-tab-label",textContent:"TEST MODE · LOCAL ANALYTICS"});
@@ -196,10 +195,8 @@ export function createTestModeUI({ledger,telemetry,nav,diagnostics}){
   csv.addEventListener("click",()=>exportFile("csv"));
   function setTab(tab){card.hidden=tab!=="live";result.hidden=tab!=="diagnostics"||!recorder.ready;}
   function onMicStop(){
-    if(recorder.recording){
-      recorder.requestStop("mic_stopped");
-      queueMicrotask(restoreAutoTranslate);
-    }
+    if(recorder.recording)recorder.requestStop("mic_stopped");
+    if(recorder.pending)queueMicrotask(restoreAutoTranslate);
   }
   render();
   return {
