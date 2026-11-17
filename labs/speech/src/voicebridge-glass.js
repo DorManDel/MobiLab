@@ -37,12 +37,12 @@ export function setupGlassLens(shadowRoot,dock){
   mount.style.cssText="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none";
   mount.setAttribute("aria-hidden","true");
   shadowRoot.append(mount);
-  let enabled=false,frame=0;
+  let enabled=false,frame=0,refraction=80;
   const update=()=>{
     if(!enabled)return;
     const box=dock.getBoundingClientRect(),w=Math.round(box.width),h=Math.round(box.height);
     if(w<40||h<30)return;
-    mount.innerHTML=makeGlassFilter(w,h);
+    mount.innerHTML=makeGlassFilter(w,h,"vb-optical-lens",refraction);
   };
   const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(update);};
   const observer=typeof ResizeObserver!=="undefined"?new ResizeObserver(schedule):null;
@@ -56,6 +56,7 @@ export function setupGlassLens(shadowRoot,dock){
       else{cancelAnimationFrame(frame);mount.replaceChildren();}
       return enabled;
     },
+    setRefraction(value){refraction=Math.max(0,Math.min(280,Math.round(Number(value)||0)));schedule();},
     destroy(){observer?.disconnect();cancelAnimationFrame(frame);mount.remove();}
   };
 }

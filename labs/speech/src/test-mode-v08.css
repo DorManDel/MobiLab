@@ -1,0 +1,47 @@
+/* VoiceBridge v0.8 Test Mode: compact, mobile-first glass inspector. */
+.vb-test-panel{display:grid;gap:10px;padding:14px 15px!important}
+.vb-test-panel[hidden],.vb-test-report[hidden]{display:none!important}
+.vb-test-head{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.vb-test-head strong{font-size:15px;letter-spacing:-.15px}
+.vb-test-badge{border:1px solid #ffffff30;border-radius:999px;padding:4px 8px;font-size:9px;
+ color:#edd3aa;background:#111b31a9;font-weight:800;letter-spacing:.5px}
+.vb-test-panel[data-state="recording"] .vb-test-badge{color:#ffb9ab;border-color:#ff686b77;
+ background:#5b1d309c;box-shadow:0 0 10px #f4433644}
+.vb-test-panel[data-state="finishing"] .vb-test-badge{color:#fce4a9}
+.vb-test-panel[data-state="ready"] .vb-test-badge{color:#b1f1d2;border-color:#63bca166}
+.vb-test-scenario{display:flex;align-items:center;gap:8px}
+.vb-test-scenario label{font-size:11px;color:#a9bee0}
+.vb-test-scenario select{flex:1;min-width:0;background:#17243ca8;border:1px solid #ffffff2f;color:#f4eeff;
+ border-radius:11px;min-height:38px;padding:6px 8px}
+.vb-test-panel #vbTestLabel{width:100%;min-height:36px;background:#0d1930a9;border:1px solid #ffffff28;
+ border-radius:11px;color:#f9f5ff;padding:7px 10px;font-size:12px}
+.vb-test-actions{display:flex;flex-wrap:wrap;align-items:stretch;gap:7px}
+.vb-test-actions button{min-height:40px;border:1px solid #ffffff36;border-radius:12px;
+ font-size:12px;padding:8px 10px;min-width:0;flex:1;
+ background:linear-gradient(140deg,#ffffff27,#ffffff08);color:#f2eaff}
+.vb-test-actions #vbStartTest{background:linear-gradient(135deg,#8c70d8,#b9a0ec);
+ color:#151028;border-color:#dbcefc;font-weight:800}
+.vb-test-actions #vbFinishTest{background:linear-gradient(135deg,#702b52,#381d38);
+ border-color:#cb6f9b}
+.vb-test-actions button:disabled{opacity:.43;cursor:default}
+.vb-test-panel p{margin:0;font-size:11px;line-height:1.55;color:#bfd0e8}
+.vb-test-panel .vb-test-helper{color:#91a0c0;font-size:10px}
+.vb-test-report{border:1px solid #ffffff30;background:linear-gradient(140deg,#182746c8,#101a32e8);
+ border-radius:18px;padding:13px;margin-bottom:16px}
+.vb-test-report h3{margin:0 0 10px;font-size:15px}
+.vb-test-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:12px}
+.vb-test-stat{padding:9px;border-radius:11px;background:#080f21aa;border:1px solid #ffffff1c;min-width:0}
+.vb-test-stat span{display:block;font-size:10px;color:#abbedb}
+.vb-test-stat strong{display:block;margin-top:3px;font-size:17px;color:#ffe4a7;
+ font-variant-numeric:tabular-nums}
+.vb-test-privacy{display:flex;align-items:center;gap:7px;font-size:11px;color:#d1d6e8;margin:10px 0}
+.vb-test-privacy input{width:17px;height:17px;accent-color:#ad92e5}
+.vb-test-report .vb-test-helper{font-size:10px;color:#9eb0ce;line-height:1.45;margin-top:10px}
+@media(max-width:360px){
+ .vb-test-panel{padding:10px!important}
+ .vb-test-scenario{flex-direction:column;align-items:stretch;gap:4px}
+ .vb-test-actions button{font-size:11px;padding:7px}
+}
+@media(prefers-reduced-motion:reduce){
+ .vb-test-actions button,.vb-test-badge{animation:none!important;transition:none!important}
+}

@@ -1,6 +1,9 @@
 import { createChromeTranslatorAdapter, lexicalAgreement } from "./engine-compare.js";
 import { TranslationQueue, wordErrorRate, characterSimilarity, safeLibreEndpoint } from "./bench-core.js";
 import { ParagraphBuilder } from "./paragraph-builder.js";
+import { SpeechFinalGuard } from "./speech-final-guard.js";
+import { createMobileWorkspace } from "./mobile-workspace-v08.js";
+import { SpeechAudioMonitor } from "./audio-monitor-v08.js";
 import { retroMicHTML, retroMicCSS } from "./retro-mic.js";
 import { TranslationMemory, translationKey } from "./translation-memory.js";
 import {SessionLedger,ProviderCircuit} from "./session-ledger.js";
@@ -24,6 +27,24 @@ const archive=new LocalTranscriptArchive();
 const liveView = new LiveCaptionView(document);
 liveView.bindLedger(ledger);
 const floating = $("floatingControls");
+// A backdrop-filtered ancestor becomes a containing block for fixed elements.
+// Portal the actual dock to <body> so its position and full-screen curtain
+// are viewport-fixed instead of trapped inside .live-workspace.
+document.body.append(floating);
+const workspace=createMobileWorkspace({ledger,floating});
+const audioMonitor=new SpeechAudioMonitor({
+  canvas:floating.shadowRoot?.getElementById("vbWave"),
+  needle:floating.shadowRoot?.getElementById("vbVuNeedle"),
+  status:floating.shadowRoot?.getElementById("vbSignalStatus")
+});
+audioMonitor.configure(workspace.getAudioOptions());
+workspace.onAudioSettingsChange=options=>{
+  const enabledBefore=audioMonitor.enabled;
+  audioMonitor.configure(options);
+  if(micActive && options.enabled && (!enabledBefore||!audioMonitor.stream))
+    void audioMonitor.start().then(ok=>trace(ok?"audio-monitor-live":"audio-monitor-unavailable"));
+};
+const trace=(type,detail="",rowId=null)=>workspace.telemetry.mark(type,detail,rowId);
 let archiveTimer=null;
 let displayLimit=40;
 function focusedState() {
@@ -91,6 +112,7 @@ const paragraphs = new ParagraphBuilder({
     }
   },
   onParagraph(data){
+    trace("paragraph-final",data.reason||"boundary");
     interimActive=false;
     cancelDraft();
     if(translateOnFinish)queue.start();
@@ -102,6 +124,7 @@ const paragraphs = new ParagraphBuilder({
 liveView.setVisibleLines(2);
 floating.setLineCount(2);
 floating.addEventListener("speech:toggle",()=>$("recordToggle").click());
+floating.addEventListener("speech:open-workspace-settings",()=>workspace.selectTab("settings"));
 floating.addEventListener("speech:history-focus",(event)=>focusView(ledger.focus(event.detail.id)));
 floating.addEventListener("speech:speak",()=>{
   if(micActive) {
@@ -205,6 +228,8 @@ let micActive = false;
 let micToken = 0;
 let restartTimeout = null;
 let restartTimes = [];
+const finalGuard=new SpeechFinalGuard();
+let recognizerResumed=false;
 let sessionTimer = null;
 let interimActive = false;
 let currentUtterance = null;
@@ -242,7 +267,9 @@ function updateTimer() {
   $("recordTime").textContent = micActive ? clockText(Date.now() - recordingStart) : $("recordTime").textContent;
 }
 function stopMic(translateLast=false) {
+  trace("mic-stop",translateLast?"user finish":"system stop");
   micActive = false;
+  audioMonitor.stop();
   micToken++;
   clearTimeout(restartTimeout);
   clearInterval(sessionTimer);
@@ -255,17 +282,17 @@ function stopMic(translateLast=false) {
     try { old.abort(); } catch {}
   }
   cancelDraft();
-  queue.stop(); // cancellation for all prior translation work
+  // Finishing microphone capture must not cancel already queued translations.
+  // Explicit Clear and pagehide remain the only cancellation paths.
   interimActive = false;
-  // Explicit Finish may translate only its final unfinished paragraph.
-  // Background/error Stop never initiates new network requests.
-  translateOnFinish=Boolean(translateLast);
+  // Flush the last recognized paragraph; finish outstanding queue work separately.
+  translateOnFinish=true;
   paragraphs.flush("stop");
   translateOnFinish=false;
   refreshRecordingUI();
   status(translateLast
-    ? "Mic off. Earlier pending translations canceled; only the last unfinished paragraph may finish translating."
-    : "Mic off. Transcript remains in this page; translations canceled.");
+    ? "Mic off. Translating queued and final paragraphs; original transcript is preserved."
+    : "Mic off. Existing translation jobs continue while this page remains open.");
   if(rows.length){
     const latest=rows[rows.length-1];
     showCaption(latest);showComparison(latest);focusView(ledger.focused||latest);
@@ -277,12 +304,13 @@ function activateRecognizer(token) {
   recognize = instance;
   const finalized = new Set();
   let speechStartPerf=null;
-  instance.onspeechstart=()=>{speechStartPerf=performance.now();};
+  instance.onspeechstart=()=>{speechStartPerf=performance.now();trace("speech-start");};
   instance.lang = locale[$("sourceLang").value];
   instance.continuous = true;
   instance.interimResults = true;
   instance.maxAlternatives = 3;
   instance.onstart = () => {
+    trace("recognizer-start");
     if (micActive && token === micToken) status("Listening in " + langNames[$("sourceLang").value] + "…");
   };
   instance.onresult = (event) => {
@@ -302,7 +330,13 @@ function activateRecognizer(token) {
         cancelDraft();
         const finalPerf=performance.now();
         const speechDuration=speechStartPerf===null?null:Math.max(0,finalPerf-speechStartPerf);
-        paragraphs.addFinal(phrase,{
+        trace("speech-final",String(phrase.length)+" chars");
+        const guarded=finalGuard.accept(phrase,{at:Date.now(),source:$("sourceLang").value,
+          target:$("targetLang").value,restarted:recognizerResumed});
+        recognizerResumed=false;
+        if(!guarded.text){trace("duplicate-suppressed",guarded.action);continue;}
+        if(guarded.action==="overlap-trimmed")trace("overlap-trimmed",String(guarded.overlap)+" words");
+        paragraphs.addFinal(guarded.text,{
           source:$("sourceLang").value,target:$("targetLang").value,
           candidates,sttMs:speechDuration,finalPerf
         });
@@ -311,6 +345,7 @@ function activateRecognizer(token) {
       } else if (!result.isFinal) interim += " " + phrase;
     }
     if (interim.trim()) {
+      if(!interimActive)trace("interim-first");
       interimActive = true;
       $("captionOriginal").textContent = interim.trim() + " …";
       $("captionTranslated").textContent = "Listening for the end of this phrase…";
@@ -323,6 +358,7 @@ function activateRecognizer(token) {
   };
   instance.onerror = (event) => {
     if (!micActive || token !== micToken) return;
+    trace("recognizer-error",event.error||"unknown");
     const fatal = ["not-allowed","service-not-allowed","audio-capture","language-not-supported","network"];
     if (fatal.includes(event.error)) {
       stopMic();
@@ -333,6 +369,7 @@ function activateRecognizer(token) {
   };
   instance.onend = () => {
     if (!micActive || token !== micToken || recognize !== instance) return;
+    trace("recognizer-ended");
     const now = Date.now();
     restartTimes = restartTimes.filter(t => now - t < 30000);
     restartTimes.push(now);
@@ -342,6 +379,7 @@ function activateRecognizer(token) {
       return;
     }
     status("Speech recognizer paused; reconnecting while REC is enabled…");
+    recognizerResumed=true;
     restartTimeout = setTimeout(() => {
       if (micActive && token === micToken) {
         try { activateRecognizer(token); }
@@ -361,19 +399,49 @@ function startMic() {
     return;
   }
   window.speechSynthesis?.cancel(); // no voice-feedback loop
+  trace("mic-start");
   recordingStart = Date.now(); // session timestamps remain monotonic across multiple recordings
   micActive = true;
   micToken++;
   restartTimes = [];
+  finalGuard.clear();
+  recognizerResumed=false;
   paragraphs.clear();
   queue.start();
   refreshRecordingUI();
   $("recordTime").textContent = "00:00";
   sessionTimer = setInterval(updateTimer,1000);
-  try { activateRecognizer(micToken); }
-  catch (error) { stopMic();status("Microphone failed: "+error.message,true); }
+  try {
+    activateRecognizer(micToken);
+    // Optional second capture is for LEVEL DISPLAY ONLY, not STT.
+    // Do not block browser recognition if Android refuses concurrent mic access.
+    if(audioMonitor.enabled)
+      void audioMonitor.start().then(ok=>trace(ok?"audio-monitor-live":"audio-monitor-unavailable"));
+  } catch (error) { stopMic();status("Microphone failed: "+error.message,true); }
 }
 $("recordToggle").addEventListener("click", () => micActive ? stopMic(true) : startMic());
+// Test Mode uses the same microphone and providers as ordinary VoiceBridge.
+// Never export provider keys/tokens, endpoint URLs, raw audio or credentials.
+workspace.testMode.configureHooks({
+  startRecording:()=>startMic(),
+  finishRecording:()=>stopMic(true),
+  isRecording:()=>micActive,
+  getConfig:()=>({
+    appVersion:"v0.8-feature-test",branch:"feat/voicebridge-v08-floating-workspace",
+    source:$("sourceLang").value,target:$("targetLang").value,
+    sttEngine:"browser-web-speech",
+    translationEngine:$("captionProvider").value,
+    compareCloud:$("compareCloud").checked,
+    compareLocal:$("compareLocal").checked,
+    compareLibre:$("compareLibre").checked,
+    autoTranslate:$("autoTranslate").checked,
+    earlyPreview:$("earlyPreview").checked,
+    chunkMode:$("chunkMode").value,
+    silenceDurationMs:Number($("silenceDuration").value),
+    subtitlePriority:$("subtitlePriority").value,
+    audioMeterEnabled:audioMonitor.enabled
+  })
+});
 
 function timeoutSignal(parentSignal, timeoutMs = 12000) {
   const controller = new AbortController();
@@ -490,6 +558,10 @@ function activeProviders() {
 }
 function updateRow(row,id,patch) {
   if(!row)return;
+  if(id==="queue" && ["queued","skipped","canceled","completed"].includes(patch.status))
+    trace("queue-"+patch.status,"",row.id);
+  if(id!=="queue" && ["running","success","error","skipped","canceled"].includes(patch.status))
+    trace("provider-"+patch.status,id+(Number.isFinite(patch.ms)?" · "+patch.ms+"ms":""),row.id);
   if(id==="queue") {
     row.queueStatus=patch.status;
   }else{
@@ -559,6 +631,7 @@ function addPhrase(text,source,target,candidates=null,automatic=true,sttMs=null,
     captionProvider:$("captionProvider").value,displayText:"",displayProvider:null,displayShown:false,
     fallbackUsed:false };
   ledger.append(row);
+  trace("transcript-appended","",row.id);
   interimActive=false;
   renderRows();renderScoreboard();showCaption(row);showComparison(row);showCandidates(row);
   liveView.final(row);
@@ -656,11 +729,12 @@ $("translateManual").addEventListener("click",async()=>{
   addPhrase(text,source,$("targetLang").value,null,true);
 });
 $("clearAll").addEventListener("click",()=>{
+  workspace.testMode.invalidate("cleared_during_test");
   if(micActive) stopMic();
   queue.stop();
   translationCache.clear();
   paragraphs.clear();
-  ledger.clear();rowId=0;lastSubtitleShownId=0;sessionStart=Date.now();recordingStart=sessionStart;
+  ledger.clear();workspace.telemetry.reset();rowId=0;lastSubtitleShownId=0;sessionStart=Date.now();recordingStart=sessionStart;
   interimActive=false;
   $("recordTime").textContent="00:00";
   $("wer").textContent="—";
@@ -783,6 +857,7 @@ function renderRows() {
     container.append(card);
   }
   floating.setHistory(rows);
+  workspace.refreshTranscript();
   $("phraseCount").textContent=String(rows.length);
   $("showMoreRows").disabled=displayLimit>=rows.length;
   $("latency").textContent=(()=>{for(let i=rows.length-1;i>=0;i--){
@@ -1001,6 +1076,7 @@ document.addEventListener("visibilitychange",()=>{
 });
 window.addEventListener("pagehide",()=>{
   if(micActive)stopMic();
+  audioMonitor.stop();
   queue.stop();
   synthesis?.cancel();
   localTranslator.dispose();
