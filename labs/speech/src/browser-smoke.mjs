@@ -103,6 +103,33 @@ try {
   assert.equal(await page.locator("#floatingControls #vbCurtainBackdrop").getAttribute("hidden"),null);
   await page.locator("#floatingControls #sheetClose").click();
 
+  // v0.8 Test Mode: one-tap real STT session, no automatic translation,
+  // privacy-first analytics and a downloadable JSON+CSV ZIP bundle.
+  await page.locator("#vbTestScenario").selectOption("stt-only");
+  await page.locator("#vbTestLabel").fill("Phone A/VU on");
+  await page.locator("#vbStartTest").click();
+  assert.equal(await page.locator("#recordToggle").getAttribute("aria-pressed"),"true");
+  assert.equal(await page.locator("#autoTranslate").isChecked(),false);
+  assert.equal(await page.locator("#vbTestState").textContent(),"RECORDING");
+  await page.evaluate(()=>window.__recognition.emitInterim("This is a mobile test"));
+  await page.evaluate(()=>window.__recognition.emitFinal(
+    "This is a finalized test sentence with no translation required."));
+  await page.locator("#vbFinishTest").click();
+  await page.waitForFunction(()=>document.querySelector("#vbTestState")?.textContent==="REPORT READY");
+  assert.equal(await page.locator("#autoTranslate").isChecked(),true,
+    "STT-only test must restore original auto-translation preference");
+  assert.match(await page.locator("#vbTestStatus").textContent(),/1 paragraphs/);
+  await page.locator("#vbViewTest").click();
+  assert.equal(await page.locator("#vbTestReport").getAttribute("hidden"),null);
+  assert.equal(await page.locator("#vbIncludeText").isChecked(),false);
+  const bundleDownload=page.waitForEvent("download");
+  await page.locator("#vbDownloadBundle").click();
+  const actualDownload=await bundleDownload;
+  assert.match(actualDownload.suggestedFilename(),/\.zip$/);
+  assert.ok((await import("node:fs/promises")).readFile);
+  const bytes=await (await import("node:fs/promises")).readFile(await actualDownload.path());
+  assert.equal(bytes.readUInt32LE(0),0x04034b50,"ZIP must have a valid local header");
+
   // Original integration regression suite uses the explicit legacy workbench.
   await page.goto("http://127.0.0.1:8765/labs/speech/?legacy=1");
   await page.locator("#floatingControls").evaluate(el=>el.setLayoutMode("expanded"));
