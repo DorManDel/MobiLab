@@ -4,6 +4,7 @@
  * rendered from it, and telemetry contains event names/times only (no speech).
  */
 import {SettingsRegistry, SettingsStore} from "../../settings/engine.js";
+import {createTestModeUI} from "./test-mode-ui-v08.js";
 const APPEARANCE_KEY="mobilab.voicebridge.appearance.v08";
 const TABS=["live","transcript","diagnostics","settings"];
 const now=()=>performance.now();
@@ -27,7 +28,9 @@ export class VoiceBridgeTelemetry {
     this.events.push(event);
     if(this.events.length>220)this.events.shift();
     this.counts[type]=(this.counts[type]||0)+1;
+    this.onEvent?.(event);
     this.onChange();
+    return event;
   }
   reset(){this.events=[];this.t0=now();this.counts={};this.disconnectedAt=null;this.gaps=[];this.onChange();}
   export(){return {schema:"voicebridge.telemetry.v1",timeBasis:"relative performance.now milliseconds",
@@ -148,6 +151,8 @@ export function createMobileWorkspace({ledger,floating}){
   document.getElementById("vbWindowPreset").addEventListener("change",event=>
     floating.setLayoutMode?.(event.target.value));
   const telemetry=new VoiceBridgeTelemetry();
+  const testMode=createTestModeUI({ledger,telemetry,nav,diagnostics});
+  telemetry.onEvent=event=>testMode.onEvent(event);
   const appearance=loadAppearance();
   function applyAppearance(){
     document.body.dataset.vbBackground=appearance.background;
@@ -194,6 +199,7 @@ export function createMobileWorkspace({ledger,floating}){
     transcript.hidden=tab!=="transcript";
     diagnostics.hidden=tab!=="diagnostics";
     settings.hidden=tab!=="settings";
+    testMode.setTab(tab);
     if(tab==="transcript")refreshTranscript();
     if(tab==="diagnostics")renderDiagnostics();
     window.scrollTo({top:0,behavior:"instant"});
@@ -276,5 +282,5 @@ export function createMobileWorkspace({ledger,floating}){
   if(new URLSearchParams(location.search).has("legacy")){
     document.body.dataset.vbTab="legacy";settings.hidden=false;
   }
-  return Object.assign(workspaceAPI,{telemetry,selectTab,refreshTranscript,renderDiagnostics});
+  return Object.assign(workspaceAPI,{telemetry,testMode,selectTab,refreshTranscript,renderDiagnostics});
 }
