@@ -48,6 +48,8 @@ const withText=rec.bundle({includeText:true});
 assert.equal(withText.segments[0].original,"Hello world, check!");
 assert.equal(withText.segments[0].translation,"שלום, עולם!");
 assert.equal(withText.run.privacy.includesTranscript,true);
+assert.match(segmentsCsv(withText),/Hello world, check!/);
+assert.match(segmentsCsv(withText),/שלום, עולם!/);
 assert.equal(percentile([],0.9),null);
 assert.equal(percentile([10,20,30,50],.9),50);
 const csv=segmentsCsv(without);
