@@ -59,7 +59,7 @@ try{
     await route.fulfill({
       status:200,contentType:"application/json",
       body:JSON.stringify({responseStatus:200,responseData:{
-        translatedText:(url.searchParams.get("q")||"").trim().split(/\\s+/).length<7
+        translatedText:(url.searchParams.get("q")||"").trim().split(" ").length<7
           ?"DRAFT preview translation":"FINAL verified translation"
       }})
     });
