@@ -24,6 +24,17 @@ const a=new AdaptiveInterimPlanner();
 a.observe("אני לא רוצה לעצור את השיחה",100);
 const unstable=a.observe("אני כן רוצה לעצור את השיחה",250);
 assert.equal(unstable,null);
+// A repeated short phrase can become eligible under 3 observations
+// while the original v3 planner still waits for at least four stable words.
+const short=[
+  {tMs:150,text:"אני רוצה לבדוק את"},
+  {tMs:250,text:"אני רוצה לבדוק את"},
+  {tMs:350,text:"אני רוצה לבדוק את"}
+];
+const special=replayTrace(short,"אני רוצה לבדוק את");
+assert.equal(special[0].candidateCount,0);
+assert.equal(special[2].candidateCount,1);
+assert.equal(special[2].proposals[0].text,"אני רוצה לבדוק");
 assert.equal(createPlanner("final-only",2),null);
 assert.equal(createPlanner("fast",2).rules.maxDrafts,1);
 assert.equal(replayTrace([],final)[0].firstEligibleMs,null);
