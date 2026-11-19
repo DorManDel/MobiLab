@@ -40,16 +40,20 @@ export class AdaptiveInterimPlanner {
     // Three repeated hypotheses permit a shorter phrase. For two snapshots,
     // prefer a larger, more conservative stable prefix.
     const three=old2&&stablePrefix(old2,current,{holdTail:1,minWords:1});
-    const triple=Boolean(three&&three.wordCount>=common.wordCount);
+    const triple=Boolean(three&&three.wordCount>=3);
     const threshold=(triple||age>=450)?3:4;
-    if(common.wordCount<threshold)return null;
-    const growth=this.lastSentWords===0?threshold:(common.wordCount>=10?3:4);
-    if(common.wordCount<this.lastSentWords+growth)return null;
+    // If we rely on a 3-hypothesis agreement, send only the tokens common
+    // to ALL THREE hypotheses, not a newer extension observed only twice.
+    const eligibleWords=triple?Math.min(three.wordCount,common.wordCount):common.wordCount;
+    if(eligibleWords<threshold)return null;
+    const growth=this.lastSentWords===0?threshold:(eligibleWords>=10?3:4);
+    if(eligibleWords<this.lastSentWords+growth)return null;
     const cooldown=this.lastSentWords?950:0;
     if(at-this.lastSentAt<cooldown)return null;
-    if(key===this.lastSentText)return null;
-    this.sent++;this.lastSentWords=common.wordCount;this.lastSentText=key;this.lastSentAt=at;
-    return {...common,reason:triple?"three-hypotheses":"stable-pair"};
+    const candidateText=words(current).slice(0,eligibleWords).join(" ");
+    if(candidateText===this.lastSentText)return null;
+    this.sent++;this.lastSentWords=eligibleWords;this.lastSentText=candidateText;this.lastSentAt=at;
+    return {...common,text:candidateText,wordCount:eligibleWords,reason:triple?"three-hypotheses":"stable-pair"};
   }
 }
 
