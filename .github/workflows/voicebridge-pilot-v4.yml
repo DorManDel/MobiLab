@@ -1,0 +1,33 @@
+name: VoiceBridge Adaptive Replay Pilot v4
+on:
+  push:
+    branches:
+      - preview/voicebridge-adaptive-replay-v4
+    paths:
+      - 'previews/voicebridge-core-pilot/**'
+      - '.github/workflows/voicebridge-pilot-v4.yml'
+  pull_request:
+    paths:
+      - 'previews/voicebridge-core-pilot/**'
+      - '.github/workflows/voicebridge-pilot-v4.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  adaptive-replay:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run stable and adaptive algorithm tests
+        run: |
+          node previews/voicebridge-core-pilot/stable-interim.test.mjs
+          node previews/voicebridge-core-pilot/adaptive-replay.test.mjs
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run mobile-size live/replay regression
+        run: node previews/voicebridge-core-pilot/browser-smoke.mjs
