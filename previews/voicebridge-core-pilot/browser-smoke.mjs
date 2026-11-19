@@ -6,10 +6,12 @@ import {chromium} from "playwright";
 const file=new URL("./index.html",import.meta.url);
 const html=await readFile(file);
 const stable=await readFile(new URL("./stable-interim.mjs",import.meta.url));
+const adaptive=await readFile(new URL("./adaptive-replay.mjs",import.meta.url));
 const server=http.createServer((req,res)=>{
-  const modulePath=req.url?.split("?")[0]==="/stable-interim.mjs";
-  res.writeHead(200,{"Content-Type":modulePath?"text/javascript; charset=utf-8":"text/html; charset=utf-8","Cache-Control":"no-store"});
-  res.end(modulePath?stable:html);
+  const path=req.url?.split("?")[0];
+  const isModule=path==="/stable-interim.mjs"||path==="/adaptive-replay.mjs";
+  res.writeHead(200,{"Content-Type":isModule?"text/javascript; charset=utf-8":"text/html; charset=utf-8","Cache-Control":"no-store"});
+  res.end(path==="/stable-interim.mjs"?stable:path==="/adaptive-replay.mjs"?adaptive:html);
 });
 await new Promise(resolve=>server.listen(8766,"127.0.0.1",resolve));
 let browser;
@@ -72,7 +74,7 @@ try{
   await page.locator("#script").selectOption("quick");
   await page.locator("#on").uncheck();
   await page.locator("#translator").selectOption("mymemory");
-  await page.locator("#captionMode").selectOption("incremental");
+  await page.locator("#captionMode").selectOption("adaptive");
   await page.locator("#draftLimit").selectOption("1");
   await page.locator("#start").click();
   assert.match(await page.locator("#top").innerText(),/VU OFF/);
@@ -86,7 +88,13 @@ try{
     if(i<2)await page.waitForFunction(()=>document.querySelector("#translateStatus")?.textContent?.includes("LIVE DRAFT"),null,{timeout:5000});
   }
   assert.ok(apiCalls>=7,"preflight, live interim drafts and final translation calls were expected");
-  const txt=await page.locator("#translationResults").innerText();
+  await page.locator("#replayLab summary").click();
+  const apiBefore=apiCalls;
+  await page.locator("#replayCase").selectOption("1");
+  assert.equal(await page.locator("#replayTable tbody tr").count(),4);
+  assert.match(await page.locator("#replayStatus").innerText(),/no cloud calls/);
+  assert.equal(apiCalls,apiBefore,"offline replay must not call translation API");
+    const txt=await page.locator("#translationResults").innerText();
   assert.match(txt,/3\/3 translated/);
   assert.equal(await page.locator("#includeWords").isChecked(),false,"speech text export must be opt-in");
   await page.locator("#includeWords").check();
@@ -94,13 +102,16 @@ try{
   await page.locator("#json").click();
   const downloaded=await d;
   const json=JSON.parse(await readFile(await downloaded.path(),"utf8"));
-  assert.equal(json.schema,"voicebridge.pilot.report.preview.v3");
-  assert.equal(json.pilot.captionMode,"incremental");
+  assert.equal(json.schema,"voicebridge.pilot.report.preview.v4");
+  assert.equal(json.replaySummary.length,3);
+  assert.equal(json.replaySummary[0].comparisons.length,4);
+  assert.equal(json.pilot.captionMode,"adaptive");
   assert.equal(json.pilot.rows.length,3);
   assert.ok(json.pilot.rows.every(r=>r.translationStatus==="success"));
   assert.ok(json.pilot.rows.every(r=>Number.isFinite(r.translationMs)));
   assert.ok(json.pilot.rows.every(r=>r.translatedText.startsWith("FINAL")));
   assert.ok(json.pilot.rows.every(r=>r.liveDraftCalls===1));
+  assert.ok(json.pilot.rows.every(r=>r.interimTrace.length>=2));
   assert.ok(json.pilot.rows.every(r=>Number.isFinite(r.firstDraftMs)));
   assert.ok(json.pilot.rows.every(r=>r.firstDraftMs<r.finalCaptionMs));
   assert.ok(json.pilot.rows.every(r=>r.livePreviewVersions===1));
@@ -113,7 +124,8 @@ try{
   await page.locator("#json").click();
   const redacted=JSON.parse(await readFile(await (await d2).path(),"utf8"));
   assert.equal(redacted.privacy.includesSpeechText,false);
-  assert.ok(redacted.pilot.rows.every(r=>r.recognized===undefined&&r.translatedText===undefined));
+  assert.ok(redacted.pilot.rows.every(r=>r.recognized===undefined&&r.translatedText===undefined&&r.interimTrace===undefined));
+  assert.equal(redacted.replaySummary[0].comparisons[0].proposals,undefined);
   assert.ok(redacted.pilot.tests.every(c=>c.txt===undefined));
 
   // Rate limited: status shows failure and report tracks 429.
@@ -129,14 +141,14 @@ try{
   await page.waitForFunction(()=>document.querySelector("#draftInfo")?.textContent?.includes("Draft unavailable"),null,{timeout:5000});
   await page.locator("#next").click();
   await page.waitForFunction(()=>{
-    const value=localStorage.getItem("voicebridge.pilot.https-preview.v3");
+    const value=localStorage.getItem("voicebridge.pilot.https-preview.v4");
     return value&&JSON.parse(value).rows.length>=1;
   },null,{timeout:5000});
   const pilot429=await page.evaluate(()=>JSON.parse(localStorage.getItem("voicebridge.pilot.https-preview.v3")));
   assert.equal(pilot429.rows[0].translationStatus,"error");
   assert.equal(pilot429.rows[0].translationError,"rate_limit_429");
   assert.equal(errors.length,0,"browser JavaScript errors: "+errors.join("; "));
-  console.log("PASS: stable-interim live drafts before final STT, authoritative correction, Next, metrics, privacy, 429");
+  console.log("PASS: adaptive live drafts, same-event offline replay, authoritative final, privacy, 429");
   await ctx.close();
 }finally{
   if(browser)await browser.close();
