@@ -18,23 +18,40 @@
 .translation[data-status="finalizing"]{border-color:#eccf8b8c}
 .live-explainer{font-size:11px;line-height:1.45;color:#c1b2ee;margin-top:6px}
 .metric-inline{font-size:10px;color:#ffe0ad}
+
+.replay-lab{margin-top:12px;padding:12px;border-radius:16px;background:#111a31d9;border:1px solid #9e92db5b}
+.replay-lab summary{cursor:pointer;color:#f0ddff;font-size:13px;font-weight:750}
+.replay-lab select{width:100%;margin:8px 0}
+.replay-table{overflow-x:auto;margin-top:8px}
+.replay-table table{width:100%;border-collapse:collapse;font-size:11px;min-width:315px}
+.replay-table th,.replay-table td{padding:8px 6px;text-align:left;border-bottom:1px solid #ffffff1f}
+.replay-table td{color:#f7dfae;font-variant-numeric:tabular-nums}
+.replay-table th{color:#afbce0}
+@media(max-width:430px){.replay-lab{padding:8px}.replay-table th,.replay-table td{padding:7px 4px}}
 </style></head><body><main><div class="top"><span>Voice<em>Bridge</em> <span style="font-size:10px;letter-spacing:1px;color:#abb8d6">CORE PILOT</span></span><span class="badge" id="top">HTTPS PREVIEW</span></div>
 <section class="glass" id="setup"><div class="label">ONE-TAP WORKFLOW</div><h1>Start once.<br><span style="color:var(--lav)">Next through the Pilot.</span></h1><p class="sub">Five fixed sentences, automatically repeated under each test configuration. Results are saved together with a Pilot ID, WER, errors and browser response timing.</p><label class="label" for="pilotName">Pilot name</label><input id="pilotName" value="Core Pilot · baseline"><label class="label" for="script">Case set</label><select id="script"><option value="core">Core 5 · recommended</option><option value="quick">Quick 3</option></select><div class="opts"><label><input id="off" type="checkbox" checked>Browser STT · VU OFF (baseline)</label><label><input id="on" type="checkbox" checked>Browser STT · VU ON (same engine)</label></div><label class="label" for="captionMode">Caption pipeline</label>
-<select id="captionMode"><option value="incremental" selected>⚡ Progressive · stable interim → draft → final</option><option value="final-only">Final-only · original baseline</option></select>
+<select id="captionMode"><option value="incremental">⚡ Progressive v3 · stable interim → draft → final</option><option value="adaptive" selected>Adaptive v4 · observed stable speech</option><option value="fast">Fast · earlier, one draft</option><option value="final-only">Final-only · no interim translation</option></select>
 <label class="label" for="draftLimit">Draft request budget per sentence</label>
-<select id="draftLimit"><option value="1">1 draft + final · quota-friendly</option><option value="2" selected>2 drafts + final · recommended</option></select>
-<p class="live-explainer">Two consecutive STT interim hypotheses must agree, except the uncertain last word. We do not invent unheard words. Up to two preview translations per sentence plus a final translation consume your provider's quota.</p>
+<select id="draftLimit"><option value="1" selected>1 draft + final · quota-friendly</option><option value="2">2 drafts + final · quality comparison</option></select>
+<p class="live-explainer">Adaptive v4 translates recognized stable prefixes, never words that haven't been spoken. Fast favors earlier drafts; v3 preserves original rules. Replay Lab compares these timings without further cloud requests.</p>
 <label class="label" for="translator">Translation provider · real API calls</label>
 <select id="translator"><option value="mymemory" selected>MyMemory · live HE ↔ EN (free quota)</option><option value="chrome">Chrome on-device (if available)</option><option value="off">Off · STT benchmark only</option></select>
 <div class="actions"><button id="probe" type="button">↻ Test translation engine</button></div>
 <p class="mini-note" id="probeStatus" role="status">Choose a translator. MyMemory sends recognized words to its cloud and has a daily quota. Browser recognition may separately use a remote speech service.</p>
-<button class="primary" style="width:100%;margin-top:8px" id="start">▶ Start Pilot</button><button id="resume" style="width:100%;margin-top:8px" class="hide">Resume saved Pilot</button><div class="alert"><b>Preview limitation:</b> Both runs use the same browser STT recognizer. This tests whether the secondary VU capture changes performance. This v2 pilot calls the explicitly selected <b>MyMemory</b> or <b>Chrome local</b> translator. VU ON/OFF still compare the same browser STT, not two different STT engines. Translation requests run on recognized final text; interim text is not translated.</div></section>
+<button class="primary" style="width:100%;margin-top:8px" id="start">▶ Start Pilot</button><button id="resume" style="width:100%;margin-top:8px" class="hide">Resume saved Pilot</button><div class="alert"><b>Preview limitation:</b> Both runs use the same browser STT recognizer. This tests whether the secondary VU capture changes performance. This v4 pilot calls the explicitly selected <b>MyMemory</b> or <b>Chrome local</b> translator. VU ON/OFF still compare the same browser STT, not two different STT engines. Adaptive, Fast and v3 can translate stable interim words before Final; the final recognized text remains authoritative.</div></section>
 <section class="glass hide" id="runner"><div class="row"><span class="label" id="engine">RUN 1/2 · VU OFF</span><span class="badge" id="position">1 / 10</span></div><div class="progress"><i id="bar"></i></div><div class="label" id="caseId">HE01</div><h2 id="caseTitle"></h2><div class="prompt"><div class="label">READ ALOUD</div><p id="scriptText" dir="auto"></p></div><p class="sub" id="guidance"></p><div class="meter"><span class="status" id="micStatus">MIC OFF</span><canvas id="wave" width="100" height="24"></canvas><span class="vu"><span id="needle" class="needle"></span></span></div><div class="heard" id="recognized">Your transcript will appear here.</div>
 <div class="translation" id="translationCard" data-status="idle"><div class="row"><div class="label">TRANSLATION · <span id="translateProviderLabel">MyMemory</span></div><small id="translateStatus" aria-live="polite">WAITING FOR INTERIM</small></div><p id="translatedText">Live translation will appear as speech stabilizes.</p><small id="draftInfo" class="metric-inline"></small></div><details id="fallback"><summary>Manual fallback (not scored as STT)</summary><textarea id="typed" placeholder="Only use if recognition is unavailable."></textarea></details><div class="pips" id="pips"></div><div class="actions"><button id="mic">◉ Start Mic</button><button class="primary" id="next">Save & Next →</button></div><div class="actions"><button id="skip">Skip</button><button id="end">Finish early</button></div><p class="mini">Next saves the current result and advances. If mobile permission blocks automatic restart, tap Mic once. The meter shows input amplitude only, not recognition accuracy.</p><div class="toast" id="notice"></div></section>
-<section class="glass hide" id="report"><div class="label">PILOT COMPLETE</div><h1>Comparison report</h1><p class="sub" id="reportTitle"></p><div class="metric header"><span>Configuration</span><span>Finals</span><span>WER</span><span>Interim p50</span></div><div id="results"></div><div class="label" style="margin-top:15px">TRANSLATION BENCHMARK</div><div id="translationResults"></div><details><summary>See per-case translation results</summary><div id="translationCases"></div></details><div class="opts"><label><input id="includeWords" type="checkbox"> Include spoken words and translations in downloaded files</label></div><div class="actions"><button class="gold" id="json">↓ JSON</button><button id="csv">↓ CSV</button></div><button id="new" style="width:100%;margin-top:9px" class="primary">New Pilot</button><p class="mini">WER uses only confirmed Final STT. Missing results, manual corrections and unsupported browsers are not silently counted as accurate recognition. Timing is from UI button to interim/final, not exact acoustic delay. Actual translator requests and their outcomes are recorded. If the provider is blocked, rate-limited or unsupported, the error is shown rather than inventing a translation.</p></section>
+<section class="glass hide" id="report"><div class="label">PILOT COMPLETE</div><h1>Comparison report</h1><p class="sub" id="reportTitle"></p><div class="metric header"><span>Configuration</span><span>Finals</span><span>WER</span><span>Interim p50</span></div><div id="results"></div><div class="label" style="margin-top:15px">TRANSLATION BENCHMARK</div><div id="translationResults"></div><details><summary>See per-case translation results</summary><div id="translationCases"></div></details>
+<details id="replayLab" class="replay-lab"><summary>⚡ Replay Lab · Compare algorithms offline</summary>
+<p class="mini-note">All algorithms see the same recorded STT interim events. Zero extra translation API requests. Times indicate when a request <b>could start</b>, not when translated text appeared.</p>
+<label class="label" for="replayCase">Recorded sentence</label>
+<select id="replayCase" aria-label="Choose saved case for offline replay"></select>
+<div id="replayStatus" class="mini-note"></div><div class="replay-table" id="replayTable"></div>
+<p class="mini-note">Divergent prefix compares candidate source words with Final. This is a proxy for instability, not a translation quality score.</p>
+</details><div class="opts"><label><input id="includeWords" type="checkbox"> Include spoken words and translations in downloaded files</label></div><div class="actions"><button class="gold" id="json">↓ JSON</button><button id="csv">↓ CSV</button></div><button id="new" style="width:100%;margin-top:9px" class="primary">New Pilot</button><p class="mini">WER uses only confirmed Final STT. Missing results, manual corrections and unsupported browsers are not silently counted as accurate recognition. Timing is from UI button to interim/final, not exact acoustic delay. Actual translator requests and their outcomes are recorded. If the provider is blocked, rate-limited or unsupported, the error is shown rather than inventing a translation.</p></section>
 <section class="glass" id="how"><div class="label">FAIR BENCHMARK PRINCIPLE</div><p class="sub"><b>For STT:</b> read the same cases under both configurations (eventually replay the same recording to different STT engines). <b>For translators:</b> send the same saved reference text to each connected provider. No need to reread every sentence for a translation-only comparison.</p><p class="mini">This page can ask for mic permissions. Browser speech recognition may process voice using the browser vendor's service. No raw audio is stored by the page. Test transcripts are saved locally for resume; use New Pilot to clear the checkpoint.</p></section></main>
 <script type="module">
-import {StableInterimPlanner} from "./stable-interim.mjs";
+import {createPlanner,replayTrace,replaySummary} from "./adaptive-replay.mjs";
 (()=>{"use strict";
 const cases=[
 {id:"HE01",title:"Short baseline",lang:"he-IL",txt:"שלום, אני בודק את איכות התמלול ואת מהירות התרגום בזמן אמת.",hint:"Read normally in a quiet room."},
@@ -43,7 +60,7 @@ const cases=[
 {id:"HE08",title:"Technical words",lang:"he-IL",txt:"ב־Unity נבצע Build ל־Android, נשלח את הנתונים ב־WebSocket ונבדוק את ה־FPS.",hint:"Use natural pronunciation for technical terms."},
 {id:"HE09",title:"Preserve negation",lang:"he-IL",txt:"אני לא רוצה לעצור את ההקלטה לפני שכל התרגומים נשמרו.",hint:"Emphasize לא naturally."}];
 const $=id=>document.getElementById(id);
-const KEY="voicebridge.pilot.https-preview.v3";
+const KEY="voicebridge.pilot.https-preview.v4";
 let pilot=null,cap=null,rec=null,stream=null,ac=null,analyser=null,frame=0,busy=false;
 const TPROVIDERS={mymemory:"MyMemory",chrome:"Chrome on-device",off:"STT only"};
 const TRANSLATE_TIMEOUT=11000;
@@ -98,7 +115,7 @@ function isQuotaFailure(error){
   return /rate_limit_429|provider_quota|quota_exhausted/i.test(String(error?.message||error));
 }
 async function sendDraft(x,proposal){
-  if(!x||cap!==x||x.finalStarted||pilot.captionMode!=="incremental"||
+  if(!x||cap!==x||x.finalStarted||pilot.captionMode==="final-only"||
      pilot.translationProvider==="off"||pilot.draftsBlocked||x.draftInFlight)return;
   const controller=new AbortController(),seq=++x.draftVersion;
   x.draftAbort=controller;x.draftInFlight=true;x.draftStatus="running";
@@ -132,7 +149,7 @@ async function sendDraft(x,proposal){
   }
 }
 function observeInterim(x){
-  if(!x||pilot.captionMode!=="incremental"||pilot.translationProvider==="off"||x.finalStarted)return;
+  if(!x||pilot.captionMode==="final-only"||pilot.translationProvider==="off"||x.finalStarted)return;
   const proposal=x.planner.observe(x.interim,clock());
   if(proposal){if(x.draftInFlight)x.pendingDraft=proposal;else void sendDraft(x,proposal);}
 }
@@ -231,12 +248,13 @@ async function checkTranslator(){
 
 function startMic(){if(!pilot||cap?.running)return;const {name,c}=step();stopVU();const x={engine:name,started:clock(),firstInterim:null,firstFinal:null,final:"",interim:"",
   error:null,running:false,lang:c.lang,translation:null,translationPromise:null,translateTimer:null,
-  planner:new StableInterimPlanner({maxDrafts:Number(pilot?.draftLimit||2)}),
+  planner:createPlanner(pilot?.captionMode,Number(pilot?.draftLimit||1)),interimTrace:[],
   preview:null,draftAbort:null,draftVersion:0,draftInFlight:false,pendingDraft:null,draftCalls:0,
   draftErrors:0,draftWords:0,draftStatus:"idle",interimCount:0,
   firstDraftMs:null,finalCaptionMs:null,previewRevision:0,finalStarted:false};cap=x;$("recognized").textContent="Connecting speech recognition…";$("micStatus").textContent="CONNECTING";const Constructor=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Constructor){x.error="unsupported_browser";$("micStatus").textContent="STT NOT SUPPORTED";$("fallback").open=true;return}try{const mic=new Constructor();mic.lang=c.lang;mic.interimResults=true;mic.continuous=true;rec=mic;mic.onstart=()=>{x.running=true;$("micStatus").textContent="● LISTENING";void meter(x)};mic.onresult=e=>{const finals=[],interims=[];for(let k=0;k<e.results.length;k++){const r=e.results[k],t=r[0]?.transcript?.trim();if(t)(r.isFinal?finals:interims).push(t)}x.final=finals.join(" ");x.interim=interims.join(" ");if(x.interim&&x.firstInterim===null)x.firstInterim=num(clock()-x.started);if(x.final&&x.firstFinal===null)x.firstFinal=num(clock()-x.started);if(cap===x)$("recognized").textContent=x.final+(x.interim?" "+x.interim:"")||"Listening…";
   if(x.interim){
     x.interimCount++;
+    if(x.interimTrace.length<500)x.interimTrace.push({tMs:num(clock()-x.started),text:x.interim});
     observeInterim(x);
   }
   if(x.final&&pilot.translationProvider!=="off"&&x.translation?.sourceText!==x.final){
@@ -248,7 +266,7 @@ function renderStep(){const {name,c}=step();const n=pilot.engines.length*pilot.t
 function save(x,skipped){const {name,c}=step(),recognized=x?.final?.trim()||"",manual=$("typed").value.trim();const source=skipped?"skipped":recognized?"speech-final":manual?"manual":x?.interim?"interim-only":"no-final";const r=token(c.txt),p=token(recognized);pilot.rows.push({pilotId:pilot.id,profile:name.id,caseId:c.id,reference:c.txt,recognized,source,firstInterimMs:x?.firstInterim??null,firstFinalMs:x?.firstFinal??null,wordErrors:recognized?edit(r,p):null,referenceWords:r.length,wer:recognized?edit(r,p)/r.length:null,sttError:x?.error??null,vuError:x?.vuError??null,
   captionMode:pilot.captionMode,
   firstDraftMs:x?.firstDraftMs??null,finalCaptionMs:x?.finalCaptionMs??null,
-  interimUpdateCount:x?.interimCount??0,uniqueInterimCount:x?.planner.uniqueUpdates??0,
+  interimUpdateCount:x?.interimCount??0,uniqueInterimCount:x?.planner?.uniqueUpdates??0,interimTrace:x?.interimTrace||[],
   liveDraftCalls:x?.draftCalls??0,liveDraftErrors:x?.draftErrors??0,
   livePreviewVersions:x?.previewRevision??0,liveDraftWordCount:x?.draftWords??0,
   translationProvider:pilot.translationProvider,
@@ -283,6 +301,49 @@ function reportData(){return pilot.engines.map(e=>{const rows=pilot.rows.filter(
     previewVersions:rows.reduce((n,x)=>n+(x.livePreviewVersions||0),0),
     interimEvents:rows.reduce((n,x)=>n+(x.interimUpdateCount||0),0)
   }})}
+function populateReplay(){
+  const select=$("replayCase"),old=select.value;
+  select.replaceChildren();
+  for(let i=0;i<pilot.rows.length;i++){
+    const row=pilot.rows[i],opt=document.createElement("option");
+    opt.value=String(i);opt.textContent=row.profile+" · "+row.caseId+
+      " ("+(row.interimTrace?.length||0)+" STT events)";
+    select.append(opt);
+  }
+  if([...select.options].some(o=>o.value===old))select.value=old;
+  renderReplay();
+}
+function renderReplay(){
+  const row=pilot?.rows?.[Number($("replayCase").value||0)],table=$("replayTable");
+  table.replaceChildren();
+  if(!row?.interimTrace?.length){
+    $("replayStatus").textContent="No captured interim trace for this case. Record a v4 Pilot first.";return;
+  }
+  const summaries=replayTrace(row.interimTrace,row.recognized,{maxDrafts:pilot.draftLimit});
+  $("replayStatus").textContent=row.interimTrace.length+
+    " captured STT events · offline dry run · no cloud calls";
+  const tab=document.createElement("table");
+  const head=document.createElement("thead"),tr=document.createElement("tr");
+  for(const label of ["Algorithm","First eligible","Candidates","Different from Final"]){
+    const th=document.createElement("th");th.textContent=label;tr.append(th);
+  }
+  head.append(tr);tab.append(head);
+  const body=document.createElement("tbody");
+  for(const item of summaries){
+    const line=document.createElement("tr");
+    for(const value of [
+      {incremental:"v3 baseline",fast:"Fast",adaptive:"Adaptive v4","final-only":"Final only"}[item.mode],
+      item.firstEligibleMs===null?"—":item.firstEligibleMs+" ms",
+      String(item.candidateCount),
+      item.evaluatedCount?item.divergentPrefixes+"/"+item.evaluatedCount:"—"
+    ]){
+      const td=document.createElement("td");td.textContent=value;line.append(td);
+    }
+    body.append(line);
+  }
+  tab.append(body);table.append(tab);
+}
+
 function renderReport(){const box=$("results");box.replaceChildren();$("reportTitle").textContent=pilot.label+" · "+pilot.id+" · "+pilot.rows.length+" cases saved";for(const z of reportData()){const row=document.createElement("div");row.className="metric";for(const item of [z.label,z.finals+"/"+z.cases,z.wer===null?"—":(z.wer*100).toFixed(1)+"%",z.interimP50Ms===null?"—":z.interimP50Ms+" ms"]){const n=document.createElement("span");n.textContent=item;row.append(n)}box.append(row)}
   const tb=$("translationResults");tb.replaceChildren();
   for(const z of reportData()){
@@ -305,19 +366,24 @@ function renderReport(){const box=$("results");box.replaceChildren();$("reportTi
     const value=document.createElement("span");value.textContent=z.translatedText||z.translationError||"No translation returned";
     item.append(title,value);list.append(item);
   }
+  populateReplay();
   $("top").textContent="REPORT READY"}
 function begin(){const e=[];if($("off").checked)e.push({id:"vu-off",label:"VU OFF",vu:false});if($("on").checked)e.push({id:"vu-on",label:"VU ON",vu:true});if(!e.length){alert("Select a configuration");return}const tests=$("script").value==="quick"?[cases[0],cases[2],cases[4]]:cases;
-  const provider=$("translator").value;pilot={schema:"voicebridge.pilot.https-preview.v3",translationProvider:provider,
+  const provider=$("translator").value;pilot={schema:"voicebridge.pilot.https-preview.v4",translationProvider:provider,
     captionMode:$("captionMode").value,draftLimit:Number($("draftLimit").value),draftsBlocked:false,id:typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36),label:$("pilotName").value.trim(),startedAt:new Date().toISOString(),status:"running",e:0,i:0,engines:e,tests,rows:[]};write();renderStep();startMic()}
 function download(kind){
   const includeText=$("includeWords").checked;
   const archived=JSON.parse(JSON.stringify(pilot));
   if(!includeText){
-    archived.rows=archived.rows.map(({reference,recognized,translatedText,translationInput,...other})=>other);
+    archived.rows=archived.rows.map(({reference,recognized,translatedText,translationInput,interimTrace,...other})=>other);
     archived.tests=archived.tests.map(({txt,...other})=>other);
   }
   const data={
-    schema:"voicebridge.pilot.report.preview.v3",
+    schema:"voicebridge.pilot.report.preview.v4",
+    replaySummary:pilot.rows.map(row=>({
+      profile:row.profile,caseId:row.caseId,
+      comparisons:replaySummary(row.interimTrace||[],row.recognized,{maxDrafts:pilot.draftLimit})
+    })),
     privacy:{includesSpeechText:includeText,includesRawAudio:false,uploaded:false},
     pilot:archived,summary:reportData(),
     notes:["Same browser STT engine in both VU configurations",
@@ -333,6 +399,7 @@ function download(kind){
       "word_errors","reference_words","wer","stt_error","translation_provider",
       "translation_status","translation_ms","translation_error",
       "caption_mode","first_draft_ms","final_caption_ms","interim_updates",
+      "replay_v3_first_eligible_ms","replay_fast_first_eligible_ms","replay_adaptive_first_eligible_ms",
       "unique_interim_updates","draft_calls","draft_errors","draft_versions",
       ...(includeText?["reference_text","recognized_text","translated_text"]:[])];
     const cell=v=>{
@@ -346,6 +413,7 @@ function download(kind){
       x.wordErrors,x.referenceWords,x.wer,x.sttError,x.translationProvider,
       x.translationStatus,x.translationMs,x.translationError,
       x.captionMode,x.firstDraftMs,x.finalCaptionMs,x.interimUpdateCount,
+      ...replaySummary(x.interimTrace||[],x.recognized,{maxDrafts:pilot.draftLimit}).slice(0,3).map(k=>k.firstEligibleMs),
       x.uniqueInterimCount,x.liveDraftCalls,x.liveDraftErrors,x.livePreviewVersions,
       ...(includeText?[x.reference,x.recognized,x.translatedText]:[])
     ].map(cell).join(","))].join("\r\n");
@@ -355,6 +423,7 @@ function download(kind){
   a.href=url;a.download="VoiceBridge-Pilot-"+pilot.id.slice(0,8)+"."+kind;
   document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
+$("replayCase").addEventListener("change",renderReplay);
 button("probe",()=>void checkTranslator());button("start",begin);button("next",()=>void next());button("skip",()=>void next(true));button("end",()=>void early());button("mic",()=>{if(rec)void stopMic();else startMic()});button("json",()=>download("json"));button("csv",()=>download("csv"));button("new",()=>{void stopMic();pilot=null;try{localStorage.removeItem(KEY)}catch{}show("setup");$("top").textContent="HTTPS PREVIEW"});button("resume",()=>{pilot=read();if(!pilot)return;pilot.status==="done"?(renderReport(),show("report")):(renderStep(),$("micStatus").textContent="RESUME · TAP MIC");});
 if(read())$("resume").classList.remove("hide");show("setup");
 })();
